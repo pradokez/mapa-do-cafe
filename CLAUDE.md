@@ -163,7 +163,7 @@ Vem do design. Não reinventar na implementação.
 
 ## Horário e distância
 
-`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
+`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
 
 O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora e sem timezone. **"Aberto agora"** (com hora corrente e fuso) é Fase 3; não confundir.
 

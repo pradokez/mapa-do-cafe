@@ -88,3 +88,8 @@ export const CAFE_COLUMNS = [
 type MissingColumns = Exclude<keyof Cafe, (typeof CAFE_COLUMNS)[number]>;
 const _allColumns: [MissingColumns] extends [never] ? true : MissingColumns = true;
 void _allColumns;
+
+/** Ordem alfabética pt-BR, ignorando caixa e acento ("Café com" antes de "Café Jardim"). */
+export function compararPorNome(a: Pick<Cafe, "nome">, b: Pick<Cafe, "nome">): number {
+  return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+}

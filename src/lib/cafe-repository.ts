@@ -4,7 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import { CAFE_COLUMNS, type Cafe } from "./cafe";
+import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 
 function client() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,5 +28,5 @@ export async function listCafesAtivos(): Promise<Cafe[]> {
   if (error) {
     throw new Error(`Falha ao listar cafés: ${error.message}`);
   }
-  return data.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }));
+  return data.sort(compararPorNome);
 }

@@ -24,45 +24,58 @@ Todo filtro ativo vira query param na URL, então qualquer recorte é um link co
 
 ## Rodando localmente
 
+Requisitos: Node 20 (`.nvmrc`) e pnpm.
+
 ```bash
-# 1. Clone o repo
+# 1. Clone o repo e instale as dependências
 git clone https://github.com/pradokez/mapa-do-cafe.git
 cd mapa-do-cafe
+pnpm install
 
-# 2. Instale as dependências
-npm install
-
-# 3. Configure as variáveis de ambiente
+# 2. Configure as variáveis de ambiente
 cp .env.example .env.local
-# Preencha NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY e NEXT_PUBLIC_MAPBOX_TOKEN
+# Preencha NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# 4. Rode as migrations e o seed
-npm run db:migrate
-npm run db:seed
-
-# 5. Inicie o servidor de desenvolvimento
-npm run dev
+# 3. Inicie o servidor de desenvolvimento
+pnpm dev
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000).
+
+## Banco de dados (Supabase)
+
+Migrations em `supabase/migrations/`, aplicadas no projeto hospedado com o Supabase CLI (via `npx`, sem instalação global):
+
+```bash
+npx supabase login
+npx supabase link --project-ref <ref-do-projeto>
+npx supabase db push --include-seed
+```
+
+O seed carrega os 29 cafés de `supabase/seed/cafes.json` (27 ativos, 3 em Olinda), com os mesmos `id`s. O JSON é a fonte da verdade; `supabase/seed.sql` é gerado a partir dele:
+
+```bash
+pnpm seed:build
+```
+
+Rodar o seed de novo atualiza os registros em vez de duplicá-los.
 
 ## Variáveis de ambiente
 
 | Variável | Descrição |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon pública do Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Chave service role (apenas servidor) |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon pública do Supabase (a RLS só expõe cafés ativos) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox — entra com o mapa (#6) |
 
-Mapbox é a única dependência externa com chave. Não há API paga no caminho crítico.
+Na Vercel, configure as mesmas variáveis em Project Settings › Environment Variables.
 
-## Seed
-
-O seed popula o banco com os 33 cafés associados à ASCAPE, com `associado_ascape = true`:
+## Testes
 
 ```bash
-npm run db:seed
+pnpm test
+pnpm lint
+pnpm typecheck
 ```
 
 ## Fotos

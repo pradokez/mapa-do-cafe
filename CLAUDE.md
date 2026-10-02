@@ -18,6 +18,19 @@ O produto se chama **Mapa do Café**, com "(Recife!)" como parte do logo — nun
 
 Única dependência externa com chave na Fase 1: **Mapbox**. Não há API paga no caminho crítico.
 
+## Comandos
+
+```bash
+pnpm dev          # servidor local (precisa de .env.local — veja .env.example)
+pnpm test         # Vitest
+pnpm lint         # next lint
+pnpm typecheck    # tsc --noEmit
+pnpm seed:build   # regenera supabase/seed.sql a partir de supabase/seed/cafes.json
+npx supabase db push --include-seed   # aplica migrations + seed no projeto linkado
+```
+
+Node 20 (`.nvmrc`), pnpm.
+
 ## Duas regras invioláveis
 
 1. **Mapbox só dentro de `<CafeMap />`.** Nenhum outro arquivo importa `mapbox-gl`. Isso mantém uma eventual migração para Leaflet isolada em um arquivo.

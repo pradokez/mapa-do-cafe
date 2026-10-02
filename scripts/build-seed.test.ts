@@ -27,4 +27,8 @@ describe("seed do Supabase", () => {
     ]);
     expect(cafes.filter((c) => c.cidade === "Olinda")).toHaveLength(3);
   });
+
+  it("recusa JSON que fecharia o literal do SQL antes da hora", () => {
+    expect(() => buildSeedSql('[{"nome": "$seed$; drop table cafes; --"}]')).toThrow();
+  });
 });

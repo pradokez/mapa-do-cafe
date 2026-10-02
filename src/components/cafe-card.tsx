@@ -1,6 +1,6 @@
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
-import { localLabel } from "@/lib/format";
+import { faixaPrecoNome, localLabel } from "@/lib/format";
 
 const ICON_PROPS = {
   width: 16,
@@ -52,11 +52,8 @@ const ATRIBUTOS = [
   },
 ] as const satisfies ReadonlyArray<{ key: keyof Cafe; label: string; icon: JSX.Element }>;
 
-const NIVEL_PRECO = { $: 1, $$: 2, $$$: 3 } as const;
-
 export function CafeCard({ cafe }: { cafe: Cafe }) {
   const [photo] = resolveCafePhotos(cafe);
-  const nivel = NIVEL_PRECO[cafe.faixa_preco];
   const atributos = ATRIBUTOS.filter(({ key }) => cafe[key]);
 
   return (
@@ -107,11 +104,11 @@ export function CafeCard({ cafe }: { cafe: Cafe }) {
             {cafe.nome}
           </h2>
           <span className="flex-none text-[13px] font-semibold tracking-[.05em] text-espresso">
-            <span className="sr-only">Faixa de preço: </span>
-            {"$".repeat(nivel)}
-            <span className="text-price-off" aria-hidden="true">
-              {"$".repeat(3 - nivel)}
+            <span aria-hidden="true">
+              {cafe.faixa_preco}
+              <span className="text-price-off">{"$".repeat(3 - cafe.faixa_preco.length)}</span>
             </span>
+            <span className="sr-only">Faixa de preço: {faixaPrecoNome(cafe.faixa_preco)}</span>
           </span>
         </div>
         <span className="text-[13px] text-ink-3">{localLabel(cafe)}</span>

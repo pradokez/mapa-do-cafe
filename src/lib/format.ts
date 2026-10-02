@@ -1,4 +1,4 @@
-import type { Cafe } from "./cafe";
+import type { Cafe, FaixaPreco } from "./cafe";
 
 /** "1 café encontrado" / "N cafés encontrados" (microcopy fixado). */
 export function contadorLabel(n: number): string {
@@ -11,4 +11,15 @@ export function contadorLabel(n: number): string {
  */
 export function localLabel(cafe: Pick<Cafe, "bairro" | "cidade">): string {
   return cafe.cidade === "Recife" ? cafe.bairro : `${cafe.bairro}, ${cafe.cidade}`;
+}
+
+const NOMES_FAIXA_PRECO: Record<FaixaPreco, string> = {
+  $: "Econômico",
+  $$: "Moderado",
+  $$$: "Especial",
+};
+
+/** Nome da faixa de preço (microcopy fixado): "$$" → "Moderado". */
+export function faixaPrecoNome(faixa: FaixaPreco): string {
+  return NOMES_FAIXA_PRECO[faixa];
 }

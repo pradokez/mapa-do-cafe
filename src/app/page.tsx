@@ -13,6 +13,7 @@ export default async function Home() {
       <SiteHeader />
       <main className="grid min-h-0 flex-1 lg:grid-cols-[45%_55%]">
         <div className="lg:overflow-y-auto">
+          <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
           <CafeList cafes={cafes} />
         </div>
         {/* Espaço reservado para o <CafeMap /> (#6). */}

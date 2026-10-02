@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contadorLabel, localLabel } from "./format";
+import { contadorLabel, faixaPrecoNome, localLabel } from "./format";
 
 describe("contadorLabel", () => {
   it.each([
@@ -20,5 +20,15 @@ describe("localLabel", () => {
 
   it("café de Olinda mostra bairro e cidade", () => {
     expect(localLabel({ bairro: "Casa Caiada", cidade: "Olinda" })).toBe("Casa Caiada, Olinda");
+  });
+});
+
+describe("faixaPrecoNome", () => {
+  it.each([
+    ["$", "Econômico"],
+    ["$$", "Moderado"],
+    ["$$$", "Especial"],
+  ] as const)("%s → %s", (faixa, nome) => {
+    expect(faixaPrecoNome(faixa)).toBe(nome);
   });
 });

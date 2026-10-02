@@ -24,7 +24,7 @@ Todo filtro ativo vira query param na URL, então qualquer recorte é um link co
 
 ## Rodando localmente
 
-Requisitos: Node 20 (`.nvmrc`) e pnpm.
+Requisitos: Node 24 (`.nvmrc`) e pnpm.
 
 ```bash
 # 1. Clone o repo e instale as dependências

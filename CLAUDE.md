@@ -29,7 +29,7 @@ pnpm seed:build   # regenera supabase/seed.sql a partir de supabase/seed/cafes.j
 npx supabase db push --include-seed   # aplica migrations + seed no projeto linkado
 ```
 
-Node 20 (`.nvmrc`), pnpm.
+Node 24 (`.nvmrc`), pnpm.
 
 ## Duas regras invioláveis
 

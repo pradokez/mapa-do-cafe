@@ -11,39 +11,41 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { CAFE_COLUMNS } from "../src/lib/cafe";
+
 const TAG = "$seed$";
 
-const COLUMNS = [
-  ["id", "uuid"],
-  ["slug", "text"],
-  ["nome", "text"],
-  ["bairro", "text"],
-  ["bairro_slug", "text"],
-  ["endereco", "text"],
-  ["cidade", "text"],
-  ["lat", "double precision"],
-  ["lng", "double precision"],
-  ["selo_ascape", "boolean"],
-  ["aceita_pets", "boolean"],
-  ["tem_estacionamento", "boolean"],
-  ["permite_coffee_office", "boolean"],
-  ["faixa_preco", "text"],
-  ["comodidades", "text[]"],
-  ["horario_funcionamento", "jsonb"],
-  ["instagram", "text"],
-  ["telefone", "text"],
-  ["fotos", "text[]"],
-  ["ativo", "boolean"],
-] as const;
+// Tipo SQL de cada coluna, para o `jsonb_to_recordset`.
+const SQL_TYPES: Record<(typeof CAFE_COLUMNS)[number], string> = {
+  id: "uuid",
+  slug: "text",
+  nome: "text",
+  bairro: "text",
+  bairro_slug: "text",
+  endereco: "text",
+  cidade: "text",
+  lat: "double precision",
+  lng: "double precision",
+  selo_ascape: "boolean",
+  aceita_pets: "boolean",
+  tem_estacionamento: "boolean",
+  permite_coffee_office: "boolean",
+  faixa_preco: "text",
+  comodidades: "text[]",
+  horario_funcionamento: "jsonb",
+  instagram: "text",
+  telefone: "text",
+  fotos: "text[]",
+  ativo: "boolean",
+};
 
 export function buildSeedSql(cafesJson: string): string {
   if (cafesJson.includes(TAG)) {
     throw new Error(`O JSON do seed não pode conter ${TAG}.`);
   }
-  const names = COLUMNS.map(([name]) => name);
-  const list = names.join(",\n  ");
-  const recordset = COLUMNS.map(([name, type]) => `${name} ${type}`).join(",\n  ");
-  const updates = names
+  const list = CAFE_COLUMNS.join(",\n  ");
+  const recordset = CAFE_COLUMNS.map((name) => `${name} ${SQL_TYPES[name]}`).join(",\n  ");
+  const updates = CAFE_COLUMNS
     .filter((name) => name !== "id")
     .map((name) => `${name} = excluded.${name}`)
     .join(",\n  ");

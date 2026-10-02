@@ -4,31 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import type { Cafe } from "./cafe";
-
-// Colunas do tipo `Cafe` — `location` e timestamps ficam no banco.
-const CAFE_COLUMNS = [
-  "id",
-  "slug",
-  "nome",
-  "bairro",
-  "bairro_slug",
-  "endereco",
-  "cidade",
-  "lat",
-  "lng",
-  "selo_ascape",
-  "aceita_pets",
-  "tem_estacionamento",
-  "permite_coffee_office",
-  "faixa_preco",
-  "comodidades",
-  "horario_funcionamento",
-  "instagram",
-  "telefone",
-  "fotos",
-  "ativo",
-].join(", ");
+import { CAFE_COLUMNS, type Cafe } from "./cafe";
 
 function client() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -45,9 +21,9 @@ function client() {
 export async function listCafesAtivos(): Promise<Cafe[]> {
   const { data, error } = await client()
     .from("cafes")
-    .select(CAFE_COLUMNS)
+    .select(CAFE_COLUMNS.join(", "))
     .eq("ativo", true)
-    .returns<Cafe[]>();
+    .overrideTypes<Cafe[], { merge: false }>();
 
   if (error) {
     throw new Error(`Falha ao listar cafés: ${error.message}`);

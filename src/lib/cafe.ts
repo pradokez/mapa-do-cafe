@@ -59,3 +59,32 @@ export interface Cafe {
   fotos: string[];
   ativo: boolean;
 }
+
+/** Colunas da tabela `cafes` que formam um `Cafe` (sem `location` e timestamps). */
+export const CAFE_COLUMNS = [
+  "id",
+  "slug",
+  "nome",
+  "bairro",
+  "bairro_slug",
+  "endereco",
+  "cidade",
+  "lat",
+  "lng",
+  "selo_ascape",
+  "aceita_pets",
+  "tem_estacionamento",
+  "permite_coffee_office",
+  "faixa_preco",
+  "comodidades",
+  "horario_funcionamento",
+  "instagram",
+  "telefone",
+  "fotos",
+  "ativo",
+] as const satisfies ReadonlyArray<keyof Cafe>;
+
+// Falha de compilação se um campo de `Cafe` ficar fora de CAFE_COLUMNS.
+type MissingColumns = Exclude<keyof Cafe, (typeof CAFE_COLUMNS)[number]>;
+const _allColumns: [MissingColumns] extends [never] ? true : MissingColumns = true;
+void _allColumns;

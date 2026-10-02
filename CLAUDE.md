@@ -18,6 +18,19 @@ O produto se chama **Mapa do Café**, com "(Recife!)" como parte do logo — nun
 
 Única dependência externa com chave na Fase 1: **Mapbox**. Não há API paga no caminho crítico.
 
+## Comandos
+
+```bash
+pnpm dev          # servidor local (precisa de .env.local — veja .env.example)
+pnpm test         # Vitest
+pnpm lint         # next lint
+pnpm typecheck    # tsc --noEmit
+pnpm seed:build   # regenera supabase/seed.sql a partir de supabase/seed/cafes.json
+npx supabase db push --include-seed   # aplica migrations + seed no projeto linkado
+```
+
+Node 24 (`.nvmrc`), pnpm.
+
 ## Duas regras invioláveis
 
 1. **Mapbox só dentro de `<CafeMap />`.** Nenhum outro arquivo importa `mapbox-gl`. Isso mantém uma eventual migração para Leaflet isolada em um arquivo.
@@ -48,25 +61,33 @@ PostGIS fica no schema para a Fase 3 (busca por raio). Mover filtragem para o se
 
 ## Schema
 
-Tabela `cafes` (PostgreSQL + PostGIS):
+Tabela `cafes` (PostgreSQL + PostGIS), migration em `supabase/migrations/`:
 
 ```sql
-id, slug, nome, descricao,
-endereco, bairro, lat, lng,
-location geography(Point, 4326),   -- Fase 3: busca por raio
-telefone, instagram, site,
-horario_funcionamento jsonb,       -- 7 dias, Segunda → Domingo
-faixa_preco text,                  -- '$' | '$$' | '$$$'
-associado_ascape boolean,          -- filtro "Recife Coffee"
+id uuid, slug text unique,
+nome, bairro,                      -- bairro: exibição ("Graças")
+bairro_slug,                       -- filtro ("gracas")
+endereco, cidade,                  -- cidade: 'Recife' | 'Olinda'
+lat, lng,
+location geography(Point, 4326),   -- gerado de lat/lng; Fase 3: busca por raio
+selo_ascape boolean,               -- filtro "Recife Coffee"
 aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
+faixa_preco text,                  -- '$' | '$$' | '$$$'
+comodidades text[],                -- union fechada `Comodidade` (16 valores)
+horario_funcionamento jsonb,       -- 7 chaves segunda…domingo; "HH:MM – HH:MM", turnos por ", ", ou "Fechado"
+instagram, telefone,               -- nullable; instagram é URL completa
 fotos text[],                      -- vazio na Fase 1; Storage na Fase 2
 ativo boolean,
-criado_em, atualizado_em
+criado_em, atualizado_em           -- metadado técnico, fora do tipo `Cafe`
 ```
 
-Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]`.
+O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `slug` único, `cidade` e `faixa_preco` com `check`, `horario_funcionamento` com as 7 chaves, `comodidades` dentro da lista fechada.
+
+Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`).
+
+**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (29 cafés: 27 ativos, 3 em Olinda). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia.
 
 ## Filtros e URL
 
@@ -155,7 +176,7 @@ Vem do design. Não reinventar na implementação.
 
 ## Horário e distância
 
-`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
+`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
 
 O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora e sem timezone. **"Aberto agora"** (com hora corrente e fuso) é Fase 3; não confundir.
 
@@ -192,7 +213,7 @@ E2E está fora da Fase 1.
 
 | Fase | Escopo |
 |---|---|
-| **Fase 1 — MVP** | Seed 33 ASCAPE · Listagem · Mapa · 6 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · estado vazio · mobile · deploy |
+| **Fase 1 — MVP** | Seed 29 cafés (27 ativos) · Listagem · Mapa · 6 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
 | **Fase 3 — Comunidade** | Avaliações · "Aberto agora" · sugestão de café · busca por raio (PostGIS) |
 
@@ -202,11 +223,12 @@ Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, aut
 
 - **Supabase free hiberna após ~1 semana sem uso.** Num site de portfólio que pode ficar dias sem visita, o primeiro acesso depois disso é lento. Saiba disso antes de mandar o link para alguém.
 - **Risco de dado:** horário, faixa de preço, pets e coffee office mudam e não têm fonte oficial. Sem admin (Fase 2), corrigir exige deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
-- O filtro **Recife Coffee é redundante no lançamento** (todos os 33 do seed são ASCAPE). É intencional: passa a discriminar conforme o diretório crescer. O badge nos cards continua comunicando o selo.
+- O filtro **Recife Coffee é redundante no lançamento** (todos os 29 do seed são ASCAPE). É intencional: passa a discriminar conforme o diretório crescer. O badge nos cards continua comunicando o selo.
 
 ## Links
 
 - **PRD:** https://github.com/pradokez/mapa-do-cafe/issues/1
 - **Design aprovado:** projeto Claude Design `Mapa do Café.dc.html` — 4 telas + variantes de logo (2d aprovada)
 - **Seed:** https://www.ascape.com.br/cafeterias-associadas
-- **Tarefas:** Trello board `portfolio`, label `coador` (11 slices) — Slices 1–7 = Fase 1 | 8–11 = Fase 2
+- **Plano da Fase 1:** [`plans/mapa-do-cafe.md`](./plans/mapa-do-cafe.md)
+- **Tarefas:** issues do GitHub (#3–#14 = Fase 1), uma por fase do plano

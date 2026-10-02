@@ -40,7 +40,7 @@ Decisões duráveis que valem para todas as fases:
 
 ### What to build
 
-O primeiro caminho completo de ponta a ponta: projeto Next.js com Tailwind e os tokens da identidade, fontes, header com o logo 2d ("Mapa do Café" + adesivo "Recife!" a -5°), `CLAUDE.md` reescrito para o PRD v2.0 (com as duas regras críticas e a seção de testes), migration do schema `cafes` com o seed real de `plans/cafes-seed.json` (29 cafés: 27 ativos e 2 inativos; 26 em Recife e 3 em Olinda), `cafe-repository` listando cafés ativos, e a home `/` renderizando a grade de cards (foto placeholder, nome, bairro, faixa de preço, badge Recife Coffee, ícones de comodidade) com o contador. Setup de testes com `cafe-photos` coberto. Deploy na Vercel funcionando.
+O primeiro caminho completo de ponta a ponta: projeto Next.js com Tailwind e os tokens da identidade, fontes, header com o logo 2d ("Mapa do Café" + adesivo "Recife!" a -5°), `CLAUDE.md` reescrito para o PRD v2.0 (com as duas regras críticas e a seção de testes), migration do schema `cafes` com o seed real de `supabase/seed/cafes.json` (29 cafés: 27 ativos e 2 inativos; 26 em Recife e 3 em Olinda), `cafe-repository` listando cafés ativos, e a home `/` renderizando a grade de cards (foto placeholder, nome, bairro, faixa de preço, badge Recife Coffee, ícones de comodidade) com o contador. Setup de testes com `cafe-photos` coberto. Deploy na Vercel funcionando.
 
 ### Acceptance criteria
 

@@ -76,11 +76,12 @@ export function CafeCard({ cafe }: { cafe: Cafe }) {
               height="13"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#B5562F"
+              stroke="currentColor"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              className="text-terracotta"
             >
               <path d="M10 2v2" />
               <path d="M14 2v2" />

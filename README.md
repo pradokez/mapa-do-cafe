@@ -34,7 +34,7 @@ pnpm install
 
 # 2. Configure as variáveis de ambiente
 cp .env.example .env.local
-# Preencha NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+# Preencha SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY
 
 # 3. Inicie o servidor de desenvolvimento
 pnpm dev
@@ -64,9 +64,13 @@ Rodar o seed de novo atualiza os registros em vez de duplicá-los.
 
 | Variável | Descrição |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable key do Supabase (`sb_publishable_...`; a RLS só expõe cafés ativos). A secret key não é usada no app |
+| `SUPABASE_URL` | URL do projeto Supabase |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`); a RLS só expõe cafés ativos |
+| `SUPABASE_SECRET_KEY` | Secret key — reservada para o admin (Fase 2), ignora a RLS |
+| `SUPABASE_JWKS_URL` | JWKS para validar JWTs — reservada para o admin (Fase 2) |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox — entra com o mapa (#6) |
+
+As variáveis do Supabase são só de servidor (sem `NEXT_PUBLIC_`): a leitura acontece no `cafe-repository`, dentro de Server Components.
 
 Na Vercel, configure as mesmas variáveis em Project Settings › Environment Variables.
 

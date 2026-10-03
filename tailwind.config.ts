@@ -26,7 +26,7 @@ const config: Config = {
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],
-        display: ["var(--font-playfair)", "Georgia", "serif"],
+        display: ["var(--font-caprasimo)", "Georgia", "serif"],
         sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
       },
     },

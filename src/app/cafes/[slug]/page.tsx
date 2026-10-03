@@ -68,7 +68,7 @@ export default async function CafePage({ params }: Props) {
                 Selo Recife Coffee
               </span>
             )}
-            <h1 className="text-balance font-display text-[36px] font-bold leading-[1.05] tracking-[-0.015em] text-espresso lg:text-[58px]">
+            <h1 className="text-balance font-display text-[36px] leading-[1.05] tracking-[-0.015em] text-espresso lg:text-[58px]">
               {cafe.nome}
             </h1>
             <p className="mt-3.5 flex items-start gap-2 text-[15px] text-ink-2">
@@ -115,7 +115,7 @@ export default async function CafePage({ params }: Props) {
 
             <section aria-labelledby="avaliacoes">
               <div className="mb-4 flex items-center gap-2.5">
-                <h2 id="avaliacoes" className="font-display text-[26px] font-bold text-espresso">
+                <h2 id="avaliacoes" className="font-display text-[26px] text-espresso">
                   Avaliações
                 </h2>
                 <span className="inline-flex h-[22px] items-center rounded-full border border-line-strong px-[9px] text-[11.5px] font-semibold text-ink-3">

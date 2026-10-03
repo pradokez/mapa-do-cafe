@@ -40,7 +40,7 @@ export function CafeCard({ cafe }: { cafe: Cafe }) {
 
         <div className="flex flex-col gap-1.5 px-1">
           <div className="flex items-baseline justify-between gap-2.5">
-            <h2 className="text-pretty font-display text-[19px] font-bold leading-[1.2] text-espresso">
+            <h2 className="text-pretty font-display text-[19px] leading-[1.2] text-espresso">
               {cafe.nome}
             </h2>
             <span className="flex-none text-[13px] font-semibold tracking-[.05em] text-espresso">

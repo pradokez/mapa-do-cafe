@@ -57,11 +57,18 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
         </CafePhotoFrame>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1 pb-0.5 pr-1 pt-[3px] lg:gap-1.5 lg:px-1 lg:py-0">
-          <div className="flex items-baseline justify-between gap-2 lg:gap-2.5">
-            <h2 className="line-clamp-2 text-pretty font-display text-[16.5px] leading-[1.2] text-espresso lg:line-clamp-none lg:text-[19px]">
+          <div className="flex items-start justify-between gap-2 lg:gap-2.5">
+            {/* Duas linhas no máximo; no desktop, reservadas mesmo com nome curto:
+                bairro e ícones ficam na mesma altura em todos os cards. O corte é
+                só visual; o nome inteiro continua no DOM para leitor de tela e
+                aparece no hover. */}
+            <h2
+              title={cafe.nome}
+              className="line-clamp-2 text-pretty font-display text-[16.5px] leading-[1.2] text-espresso lg:min-h-[2.4em] lg:text-[19px]"
+            >
               {cafe.nome}
             </h2>
-            <span className="flex-none text-xs font-semibold tracking-[.05em] text-espresso lg:text-[13px]">
+            <span className="flex-none pt-[3px] text-xs font-semibold tracking-[.05em] text-espresso lg:pt-1 lg:text-[13px]">
               <FaixaPrecoSimbolos faixa={cafe.faixa_preco} />
               <span className="sr-only">Faixa de preço: {faixaPrecoNome(cafe.faixa_preco)}</span>
             </span>
@@ -70,7 +77,7 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
-          <ul className="mt-auto flex min-h-4 items-center gap-2.5 text-ink-2 lg:mt-1 lg:gap-3">
+          <ul className="mt-auto flex min-h-4 items-center gap-2.5 text-ink-2 lg:gap-3 lg:pt-1">
             {cafe.selo_ascape && (
               <li className="inline-flex h-[22px] items-center gap-1 rounded-full bg-seal-bg px-2 text-[11px] font-semibold text-seal-fg lg:hidden">
                 <CoffeeIcon size={11} strokeWidth={2.4} />

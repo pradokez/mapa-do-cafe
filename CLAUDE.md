@@ -42,7 +42,7 @@ Node 24 (`.nvmrc`), pnpm.
 |---|---|---|
 | `cafe-filter` | `src/lib/cafe-filter.ts` | **Puro.** Aplica estado de filtro sobre lista de cafés, e serializa/desserializa esse estado para `URLSearchParams`. Não importa React, Supabase nem Mapbox. |
 | `cafe-hours` | `src/lib/cafe-hours.ts` | **Puro.** `(jsonb de horário, data)` → aberto hoje, horário de hoje, lista dos 7 dias com hoje marcado. |
-| `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`). Trata explicitamente "sem origem conhecida". |
+| `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`) + ordenação por proximidade. Trata explicitamente "sem origem conhecida". |
 | `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. |
 | `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta para o Supabase: `listCafesAtivos()`, `getCafeBySlug(slug)`. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
@@ -207,7 +207,9 @@ Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em U
 
 Distância depende de geolocalização do navegador. Negada, indisponível ou não decidida: a distância **não aparece** e o card mostra só o bairro — sem erro, sem insistir. O layout precisa ficar correto nos dois estados.
 
-A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamento de página (a posição sobrevive à navegação client-side). Se a Permissions API já diz `denied`, nem chamamos o navegador. A ordem da lista **não** muda com a posição — ordenar por proximidade é Fase 3.
+A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamento de página (a posição sobrevive à navegação client-side). Se a Permissions API já diz `denied`, nem chamamos o navegador. Com posição, a lista da home sai **do mais perto ao mais longe**, já com filtros e busca aplicados (`ordenarPorDistancia`, em `cafe-distance`); empate e café sem coordenada válida (vai para o fim) mantêm a ordem alfabética do `cafe-repository`. Sem posição, a ordem é a alfabética. É automático: sem controle "Mais perto" e sem param na URL — quem recebe o link não está no mesmo lugar.
+
+**Desvio consciente — a lista reordena quando a posição chega.** O HTML sai do servidor sem posição, em ordem alfabética; a reordenação acontece depois da hidratação, sem animação nem trava. Aceito porque, com permissão já concedida, a posição chega antes da primeira interação, e na primeira visita chega logo depois do "Permitir", quando a pessoa espera uma reação.
 
 **Desvio consciente no formato** — o design só mostra `0,8 km`…`9,3 km`: abaixo de 1 km, a distância sai em **metros, de 10 em 10** (`850 m`), com piso de `10 m` (nunca `0 m`); o que arredonda para 1000 m já sai como `1,0 km`. Longe de Recife, separador de milhar: `2.130,4 km`.
 
@@ -230,7 +232,7 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 |---|---|---|
 | `cafe-filter` | Unitário puro — 6 filtros, interseção, multi-select, busca, ida e volta de URL | **Alta** |
 | `cafe-hours` | Unitário puro — aberto/fechado, índice de hoje (atenção a domingo), jsonb incompleto | **Alta** |
-| `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem | **Alta** |
+| `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem, ordenação (crescente, sem origem, desempate estável) | **Alta** |
 | `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder | **Alta** |
 | `cafe-repository` | Integração — instância de teste do Supabase, **não mock** | Média (pós-MVP) |
 | `cafe-card`, `filter-bar` | Componente — interação visível (clique no chip muda a URL) | Média |
@@ -242,7 +244,7 @@ E2E está fora da Fase 1.
 
 | Fase | Escopo |
 |---|---|
-| **Fase 1 — MVP** | Seed 29 cafés (27 ativos) · Listagem · Mapa · 6 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · estado vazio · mobile · deploy |
+| **Fase 1 — MVP** | Seed 29 cafés (27 ativos) · Listagem · Mapa · 6 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
 | **Fase 3 — Comunidade** | Avaliações · "Aberto agora" · sugestão de café · busca por raio (PostGIS) |
 

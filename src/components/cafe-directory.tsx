@@ -10,23 +10,31 @@ import { MapFab } from "@/components/map-fab";
 import { SearchField } from "@/components/search-field";
 import { SiteHeader } from "@/components/site-header";
 import { useFilterParams } from "@/hooks/use-filter-params";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import type { Cafe } from "@/lib/cafe";
+import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
- * recorte dos filtros e da busca (na URL), hover nos dois sentidos, o café
- * selecionado (preview aberto) e, no mobile, a visão lista ou mapa do FAB —
- * estado local, fora da URL: a home sempre abre na lista. Tudo no cliente,
- * sem round-trip.
+ * recorte dos filtros e da busca (na URL), a ordem por distância (com
+ * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
+ * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
+ * sempre abre na lista. Tudo no cliente, sem round-trip.
  */
 export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
   const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, aplicar, limpar } =
     useFilterParams(slugs);
-  // Memo: o mapa refaz os pins quando a lista muda de identidade.
-  const filtrados = useMemo(() => filtrarCafes(cafes, filters), [cafes, filters]);
+  // Com posição, do mais perto ao mais longe; sem ela (e no HTML do servidor),
+  // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
+  // lista muda de identidade.
+  const { coords } = useGeolocation();
+  const filtrados = useMemo(
+    () => ordenarPorDistancia(filtrarCafes(cafes, filters), coords),
+    [cafes, filters, coords],
+  );
 
   const [hovered, setHovered] = useState<Hovered | null>(null);
   const [selected, setSelected] = useState<string | null>(null);

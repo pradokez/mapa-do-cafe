@@ -1,5 +1,5 @@
 import { ChevronDownIcon, ClockIcon } from "@/components/icons";
-import { proximaAberturaLabel, type ResumoHorario } from "@/lib/cafe-hours";
+import { formatarHorario, proximaAberturaLabel, type ResumoHorario } from "@/lib/cafe-hours";
 
 /**
  * "Horário de funcionamento": status de hoje no cabeçalho e os 7 dias ao
@@ -30,7 +30,7 @@ export function CafeHoursPanel({ resumo }: { resumo: ResumoHorario }) {
             }`}
           >
             <span>{label}</span>
-            <span className="text-right">{horario ?? "Não informado"}</span>
+            <span className="text-right">{horario === null ? "Não informado" : formatarHorario(horario)}</span>
           </li>
         ))}
       </ul>
@@ -43,7 +43,7 @@ function StatusHoje({ hoje }: { hoje: ResumoHorario["hoje"] }) {
 
   const complemento =
     hoje.status === "aberto"
-      ? hoje.horario
+      ? formatarHorario(hoje.horario)
       : hoje.proximaAbertura && proximaAberturaLabel(hoje.proximaAbertura);
 
   return (

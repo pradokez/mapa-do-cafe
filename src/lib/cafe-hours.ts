@@ -101,3 +101,11 @@ export function proximaAberturaLabel(proxima: "amanha" | DiaSemana): string {
   if (proxima === "amanha") return "abre amanhã";
   return `abre ${LABEL[proxima].toLocaleLowerCase("pt-BR")}`;
 }
+
+/**
+ * Horário do jsonb no formato do design: "08:00 – 18:00" → "8h – 18h",
+ * "08:30" → "8h30", turno a turno. O resto do texto (e "Fechado") passa intacto.
+ */
+export function formatarHorario(horario: string): string {
+  return horario.replace(/\b(\d{2}):(\d{2})\b/g, (_, h: string, m: string) => `${Number(h)}h${m === "00" ? "" : m}`);
+}

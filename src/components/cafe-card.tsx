@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { atributosDo } from "@/components/cafe-atributos";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
+import { Distancia } from "@/components/distancia";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
 import { CoffeeIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
@@ -58,7 +59,10 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
               <span className="sr-only">Faixa de preço: {faixaPrecoNome(cafe.faixa_preco)}</span>
             </span>
           </div>
-          <span className="text-[13px] text-ink-3">{localLabel(cafe)}</span>
+          <span className="text-[13px] text-ink-3">
+            {localLabel(cafe)}
+            <Distancia destino={cafe} />
+          </span>
           <ul className="mt-1 flex min-h-4 items-center gap-3 text-ink-2">
             {atributos.map(({ key, label, Icon }) => (
               <li key={key} title={label} className="inline-flex">

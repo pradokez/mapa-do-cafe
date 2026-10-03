@@ -10,7 +10,7 @@ export default async function Home() {
   const cafes = await listCafesAtivos();
 
   return (
-    <div className="flex min-h-screen flex-col lg:h-screen">
+    <div className="flex h-dvh flex-col">
       <CafeDirectory cafes={cafes} />
     </div>
   );

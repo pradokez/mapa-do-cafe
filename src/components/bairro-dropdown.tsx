@@ -30,7 +30,7 @@ export function BairroDropdown({ bairros, selecionados, onToggle, onLimpar }: Pr
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={ativo ? `Bairro: ${label}` : undefined}
-        className={chipClass(ativo, "gap-2 pl-[15px] pr-3 font-medium")}
+        className={chipClass(ativo, "hidden gap-2 pl-[15px] pr-3 font-medium lg:inline-flex")}
       >
         <MapPinIcon size={16} strokeWidth={2} />
         {label}

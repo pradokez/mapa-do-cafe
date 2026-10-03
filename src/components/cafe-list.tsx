@@ -41,10 +41,10 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
       ref={sectionRef}
       tabIndex={-1}
       aria-label="Cafés"
-      className="flex min-h-full flex-col px-7 pb-8 pt-5 focus:outline-none"
+      className="flex min-h-full flex-col px-4 pb-[110px] pt-3.5 focus:outline-none lg:px-7 lg:pb-8 lg:pt-5"
     >
-      <div className="mb-4 flex min-h-6 items-center justify-between gap-4">
-        <p aria-live="polite" className="text-[13px] text-ink-3">{contadorLabel(cafes.length)}</p>
+      <div className="mb-2.5 flex min-h-6 items-center justify-between gap-4 px-0.5 lg:mb-4 lg:px-0">
+        <p aria-live="polite" className="text-[12.5px] text-ink-3 lg:text-[13px]">{contadorLabel(cafes.length)}</p>
         {limpar && (
           <button
             type="button"
@@ -58,7 +58,7 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
       {cafes.length === 0 ? (
         <EmptyState onLimpar={limpar} />
       ) : (
-        <ul className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:gap-[18px]">
           {cafes.map((cafe) => (
             <li
               key={cafe.id}

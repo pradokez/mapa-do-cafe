@@ -6,6 +6,7 @@ import { cafe } from "./cafe.fixture";
 import {
   bairroChipLabel,
   bairrosDisponiveis,
+  contarFiltrosAtivos,
   FILTROS_VAZIOS,
   filtrarCafes,
   parseFilters,
@@ -305,6 +306,28 @@ describe("temFiltroAtivo", () => {
 
   it("busca preenchida conta como filtro ativo (\"Limpar filtros\" também a limpa)", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, q: "fiore" })).toBe(true);
+  });
+});
+
+describe("contarFiltrosAtivos", () => {
+  it("sem filtro, o badge não tem o que contar", () => {
+    expect(contarFiltrosAtivos(FILTROS_VAZIOS)).toBe(0);
+  });
+
+  it("cada booleano, cada bairro e cada faixa de preço contam 1", () => {
+    const filters: CafeFilters = {
+      ...FILTROS_VAZIOS,
+      pets: true,
+      coffeeOffice: true,
+      bairros: ["gracas", "espinheiro"],
+      precos: ["$", "$$"],
+    };
+
+    expect(contarFiltrosAtivos(filters)).toBe(6);
+  });
+
+  it("a busca não entra no badge: ela aparece no próprio campo", () => {
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, q: "fiore" })).toBe(0);
   });
 });
 

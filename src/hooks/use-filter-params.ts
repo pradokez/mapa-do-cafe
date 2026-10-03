@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 
 import type { FaixaPreco } from "@/lib/cafe";
 import {
+  alternar,
   FILTROS_VAZIOS,
   parseFilters,
   serializeFilters,
@@ -44,6 +45,8 @@ export function useFilterParams(bairrosValidos: readonly string[]) {
     limparBairros: () => navigate({ ...filters, bairros: [] }),
     togglePreco: (faixa: FaixaPreco) => navigate({ ...filters, precos: alternar(filters.precos, faixa) }),
     buscar,
+    /** Aplica um estado inteiro de uma vez (os bottom sheets): uma entrada no histórico. */
+    aplicar: navigate,
     limpar: () => navigate(FILTROS_VAZIOS),
   };
 }
@@ -53,9 +56,4 @@ function escrever(atual: ReadonlyURLSearchParams, next: CafeFilters, modo: "push
   const url = query ? `?${query}` : window.location.pathname;
   if (modo === "replace") window.history.replaceState(null, "", url);
   else window.history.pushState(null, "", url);
-}
-
-/** Tira o valor se está na lista, põe se não está. A ordem canônica é do `serializeFilters`. */
-function alternar<T>(lista: T[], valor: T): T[] {
-  return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
 }

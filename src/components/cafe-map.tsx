@@ -21,6 +21,8 @@ type Props = {
   onSelect?: (id: string) => void;
   /** Fecha o preview do café selecionado (X, Esc ou clique no mapa vazio). */
   onClose?: () => void;
+  /** `pin`: preview flutuando junto ao pin (desktop). `bottom`: card preso embaixo (mobile). */
+  previewPlacement?: "pin" | "bottom";
   className?: string;
 };
 
@@ -90,6 +92,7 @@ export function CafeMap({
   onHover,
   onSelect,
   onClose,
+  previewPlacement = "pin",
   className = "",
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -207,8 +210,9 @@ export function CafeMap({
   const [anchor, setAnchor] = useState<PreviewAnchor | null>(null);
 
   // O preview acompanha o pin em pan e zoom; a regra de virar é recalculada a cada quadro.
+  const acompanhaPin = previewPlacement === "pin";
   useEffect(() => {
-    if (!map || !previewCafe) {
+    if (!map || !previewCafe || !acompanhaPin) {
       setAnchor(null);
       return;
     }
@@ -225,7 +229,7 @@ export function CafeMap({
       map.off("move", update);
       map.off("resize", update);
     };
-  }, [map, previewCafe]);
+  }, [map, previewCafe, acompanhaPin]);
 
   // Clique no mapa vazio fecha o preview. O Mapbox só dispara `click` sem
   // arrasto; clique em pin também chega aqui e é ignorado.
@@ -259,7 +263,15 @@ export function CafeMap({
     >
       {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
       <div ref={containerRef} className="size-full" />
-      {previewCafe && placement && (
+      {previewCafe && !acompanhaPin && (
+        // Card do pin no mobile, acima do FAB (o design o põe a 92 px do pé).
+        <CafeMapPreview
+          cafe={previewCafe}
+          onClose={closePreview}
+          style={{ left: 14, right: 14, bottom: 92, width: "auto" }}
+        />
+      )}
+      {previewCafe && acompanhaPin && placement && (
         <CafeMapPreview
           cafe={previewCafe}
           onClose={closePreview}

@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 
 import { CafeList, type Hovered } from "@/components/cafe-list";
 import { FilterBar } from "@/components/filter-bar";
+import { FiltrosSheet } from "@/components/filtros-sheet";
 import { HomeMap } from "@/components/home-map";
+import { MapFab } from "@/components/map-fab";
 import { SearchField } from "@/components/search-field";
 import { SiteHeader } from "@/components/site-header";
 import { useFilterParams } from "@/hooks/use-filter-params";
@@ -16,13 +18,14 @@ import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-fil
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
  * recorte dos filtros e da busca (na URL), a ordem por distância (com
- * posição), hover nos dois sentidos e o café selecionado (preview aberto).
- * Tudo no cliente, sem round-trip.
+ * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
+ * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
+ * sempre abre na lista. Tudo no cliente, sem round-trip.
  */
 export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
-  const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, limpar } =
+  const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, aplicar, limpar } =
     useFilterParams(slugs);
   // Com posição, do mais perto ao mais longe; sem ela (e no HTML do servidor),
   // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
@@ -35,6 +38,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
 
   const [hovered, setHovered] = useState<Hovered | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useState<"lista" | "mapa">("lista");
 
   // Café que saiu do recorte não fica em hover nem com o preview aberto.
   const visivel = (id: string | null | undefined) =>
@@ -45,24 +49,32 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
   const hoverFrom = (source: Hovered["source"]) => (id: string | null) =>
     setHovered(id ? { id, source } : null);
 
+  // Voltar para a lista fecha o card do pin.
+  const alternarView = () => {
+    if (view === "mapa") setSelected(null);
+    setView(view === "lista" ? "mapa" : "lista");
+  };
+
   return (
     <>
-      <SiteHeader>
+      <SiteHeader actions={<FiltrosSheet cafes={cafes} filters={filters} onAplicar={aplicar} />}>
         <SearchField value={filters.q} onSearch={buscar} />
       </SiteHeader>
       <main className="flex min-h-0 flex-1 flex-col">
         <FilterBar
+          cafes={cafes}
           filters={filters}
           bairros={bairros}
           onToggle={toggle}
           onToggleBairro={toggleBairro}
           onLimparBairros={limparBairros}
           onTogglePreco={togglePreco}
+          onAplicar={aplicar}
         />
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[45%_55%]">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[45%_55%]">
           {/* relative: containing block dos sr-only (absolute) dos cards — sem
               isso eles escapam do scroll e esticam a página além da viewport. */}
-          <div className="relative lg:overflow-y-auto">
+          <div className={`relative overflow-y-auto lg:block ${view === "mapa" ? "hidden" : ""}`}>
             <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
             <CafeList
               cafes={filtrados}
@@ -72,9 +84,10 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
               onLimpar={temFiltroAtivo(filters) ? limpar : undefined}
             />
           </div>
-          {/* Fixo: só a coluna da lista rola. */}
-          <div className="hidden bg-map-bg lg:block">
+          {/* Fixo: só a coluna da lista rola. No mobile, o mapa em tela cheia da visão "mapa". */}
+          <div className={`bg-map-bg lg:block ${view === "lista" ? "hidden" : ""}`}>
             <HomeMap
+              visivelNoMobile={view === "mapa"}
               cafes={filtrados}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
@@ -85,6 +98,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
           </div>
         </div>
       </main>
+      <MapFab view={view} onToggle={alternarView} />
     </>
   );
 }

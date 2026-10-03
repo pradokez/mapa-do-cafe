@@ -1,60 +1,64 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
-import { ATRIBUTOS } from "@/components/cafe-atributos";
+import { BairroSheet } from "@/components/bairro-sheet";
+import { FILTROS_DE_ATRIBUTO } from "@/components/cafe-atributos";
 import { chipClass } from "@/components/filter-chip";
-import { CoffeeIcon } from "@/components/icons";
-import type { FaixaPreco } from "@/lib/cafe";
+import type { Cafe, FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import { faixaPrecoNome } from "@/lib/format";
 
-/** Chips na ordem do design: o selo e os atributos, com os mesmos rótulos do card. */
-const CHIPS = [{ filtro: "ascape", label: "Recife Coffee", Icon: CoffeeIcon }, ...ATRIBUTOS] as const;
-
 type Props = {
+  /** Todos os cafés: o sheet de bairro conta o resultado do rascunho. */
+  cafes: Cafe[];
   filters: CafeFilters;
   bairros: BairroOpcao[];
   onToggle: (chave: FiltroBooleano) => void;
   onToggleBairro: (slug: string) => void;
   onLimparBairros: () => void;
   onTogglePreco: (faixa: FaixaPreco) => void;
+  onAplicar: (next: CafeFilters) => void;
 };
 
 /**
- * Barra de filtros da home: 64 px, chips em pílula. Abaixo de `lg` rola de
- * lado até o bottom sheet do mobile (#13) substituí-la.
+ * Barra de filtros da home: chips em pílula com scroll lateral, sem quebrar
+ * linha. Desktop: 64 px, bairro em dropdown. Mobile: chips de 36 px, bairro
+ * em bottom sheet.
  */
 export function FilterBar({
+  cafes,
   filters,
   bairros,
   onToggle,
   onToggleBairro,
   onLimparBairros,
   onTogglePreco,
+  onAplicar,
 }: Props) {
   return (
     <div
       role="group"
       aria-label="Filtros"
-      className="flex h-16 flex-none items-center gap-2 overflow-x-auto border-b border-line px-7 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex flex-none items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
     >
-      {CHIPS.map(({ filtro, label, Icon }) => (
+      {FILTROS_DE_ATRIBUTO.map(({ filtro, label, Icon }) => (
         <button
           key={filtro}
           type="button"
           aria-pressed={filters[filtro]}
           onClick={() => onToggle(filtro)}
-          className={chipClass(filters[filtro], "gap-2 px-[15px] font-medium")}
+          className={chipClass(filters[filtro], "gap-1.5 px-[13px] font-medium lg:gap-2 lg:px-[15px]")}
         >
           <Icon size={16} strokeWidth={2} />
           {label}
         </button>
       ))}
+      <BairroSheet cafes={cafes} bairros={bairros} filters={filters} onAplicar={onAplicar} />
       <BairroDropdown
         bairros={bairros}
         selecionados={filters.bairros}
         onToggle={onToggleBairro}
         onLimpar={onLimparBairros}
       />
-      <span aria-hidden="true" className="mx-1.5 h-[22px] w-px flex-none bg-line-strong" />
+      <span aria-hidden="true" className="mx-1.5 hidden h-[22px] w-px flex-none bg-line-strong lg:block" />
       {FAIXAS.map((faixa) => {
         const ativo = filters.precos.includes(faixa);
         return (
@@ -65,7 +69,7 @@ export function FilterBar({
             aria-label={faixaPrecoNome(faixa)}
             aria-pressed={ativo}
             onClick={() => onTogglePreco(faixa)}
-            className={chipClass(ativo, "min-w-[46px] justify-center px-[13px] font-semibold tracking-[.04em]")}
+            className={chipClass(ativo, "min-w-[42px] justify-center px-[11px] font-semibold tracking-[.04em] lg:min-w-[46px] lg:px-[13px]")}
           >
             {faixa}
           </button>

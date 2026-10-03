@@ -75,7 +75,7 @@ aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
 faixa_preco text,                  -- '$' | '$$' | '$$$'
-comodidades text[],                -- union fechada `Comodidade` (16 valores)
+comodidades text[],                -- union fechada `Comodidade` (16 valores); não exibido nem filtrado na Fase 1
 horario_funcionamento jsonb,       -- 7 chaves segunda…domingo; "HH:MM – HH:MM", turnos por ", ", ou "Fechado"
 instagram, telefone,               -- nullable; instagram é URL completa
 fotos text[],                      -- vazio na Fase 1; Storage na Fase 2
@@ -174,11 +174,22 @@ Vem do design. Não reinventar na implementação.
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Comodidades" · "Horário de funcionamento"
 - Distância: `1,2 km` (vírgula); no detalhe, "1,2 km de você"
 
+**Desvios conscientes no detalhe** (#4) — o design não cobria esses casos:
+
+- Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
+- Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
+- "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
+- 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
+- Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. O array `comodidades` **não é exibido**
+- Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título
+
 ## Horário e distância
 
 `horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
 
-O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora e sem timezone. **"Aberto agora"** (com hora corrente e fuso) é Fase 3; não confundir.
+O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora. **"Aberto agora"** (com hora corrente) é Fase 3; não confundir.
+
+Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em UTC e, das 21h à meia-noite, já estaria no dia seguinte. Por isso `/cafes/[slug]` é **dinâmica** (`force-dynamic`), não ISR — HTML cacheado atravessaria a meia-noite com o dia errado. O Vitest roda com `TZ=UTC` para pegar esse tipo de bug.
 
 Distância depende de geolocalização do navegador. Negada, indisponível ou não decidida: a distância **não aparece** e o card mostra só o bairro — sem erro, sem insistir. O layout precisa ficar correto nos dois estados.
 

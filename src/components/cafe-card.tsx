@@ -4,7 +4,7 @@ import { atributosDo, selosDo } from "@/components/cafe-atributos";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { Distancia } from "@/components/distancia";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
-import type { Cafe } from "@/lib/cafe";
+import { caminhoDoCafe, type Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
 
@@ -32,7 +32,7 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
   const atributos = atributosDo(cafe);
 
   return (
-    <Link href={`/cafes/${cafe.slug}`} className="block h-full rounded-[14px] lg:rounded-2xl">
+    <Link href={caminhoDoCafe(cafe)} className="block h-full rounded-[14px] lg:rounded-2xl">
       <article
         className={`flex h-full gap-3 rounded-[14px] border bg-white p-2 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none lg:flex-col lg:rounded-2xl lg:px-2.5 lg:pb-3.5 lg:pt-2.5 ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
       >

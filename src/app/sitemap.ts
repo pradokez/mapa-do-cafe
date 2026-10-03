@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { caminhoDoCafe } from "@/lib/cafe";
 import { listCafesAtivos } from "@/lib/cafe-repository";
 import { siteUrl } from "@/lib/site-url";
 
@@ -13,6 +14,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cafes = await listCafesAtivos();
   return [
     { url: new URL("/", base).href },
-    ...cafes.map((cafe) => ({ url: new URL(`/cafes/${cafe.slug}`, base).href })),
+    ...cafes.map((cafe) => ({ url: new URL(caminhoDoCafe(cafe), base).href })),
   ];
 }

@@ -117,15 +117,16 @@ A Fase 1 lança **inteiramente com placeholder** — gradiente listrado diagonal
 
 ## Identidade Visual
 
-### Tipografia — três famílias
+### Tipografia — duas famílias
 
-| Família | Uso |
-|---|---|
-| **Caprasimo** | Exclusivamente o logo (as duas linhas) |
-| **Playfair Display** (600/700/800) | Nome de café nos cards, `<h1>` do detalhe, títulos de seção |
-| **DM Sans** (400/500/600/700) | Toda a UI, corpo, chips, labels |
+| Família | Token | Uso |
+|---|---|---|
+| **Caprasimo** (só 400) | `font-logo` / `font-display` | Logo (as duas linhas) e todos os títulos: nome de café nos cards e no preview do mapa, `<h1>` do detalhe e do 404, títulos de seção ("Avaliações"), estado vazio, título do bottom sheet |
+| **DM Sans** (400/500/600/700) | `font-sans` | Toda a UI, corpo, chips, labels — inclusive rótulos de seção em caixa alta ("Comodidades", "Horário de funcionamento") |
 
-Yellowtail e Special Elite aparecem no design apenas em variantes de logo descartadas. **Não entram no projeto.**
+`font-display` e `font-logo` apontam para a mesma família, mas são tokens separados: título não é logo. A Caprasimo **só tem peso 400** — `font-display` nunca leva `font-bold`/`font-semibold`, senão o navegador gera negrito sintético (borrado e mais largo).
+
+Playfair Display (usada nos títulos até o design trocá-la pela Caprasimo), Yellowtail e Special Elite (variantes de logo descartadas) **estão mortas**. Se aparecerem no código, é bug.
 
 ### Logo — variante 2d, "etiqueta adesiva"
 

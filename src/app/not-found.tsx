@@ -9,7 +9,7 @@ export default function NotFound() {
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <main className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-20 text-center">
-        <h1 className="text-balance font-display text-[32px] font-bold leading-[1.1] text-espresso">
+        <h1 className="text-balance font-display text-[32px] leading-[1.1] text-espresso">
           Esse café não está no mapa
         </h1>
         <p className="max-w-[380px] text-pretty text-[15px] leading-[1.55] text-ink-2">

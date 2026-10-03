@@ -1,4 +1,9 @@
+"use client";
+
+import { useRef } from "react";
+
 import { CafeCard, type CardHighlight } from "@/components/cafe-card";
+import { EmptyCupIllustration } from "@/components/empty-cup-illustration";
 import type { Cafe } from "@/lib/cafe";
 import { contadorLabel } from "@/lib/format";
 
@@ -22,33 +27,77 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
     if (id === hovered?.id) return "lifted";
   };
 
+  // O botão clicado some junto com o recorte; sem isso o foco cairia no <body>.
+  const sectionRef = useRef<HTMLElement>(null);
+  const limpar =
+    onLimpar &&
+    (() => {
+      onLimpar();
+      sectionRef.current?.focus();
+    });
+
   return (
-    <section aria-label="Cafés" className="px-7 pb-8 pt-5">
+    <section
+      ref={sectionRef}
+      tabIndex={-1}
+      aria-label="Cafés"
+      className="flex min-h-full flex-col px-7 pb-8 pt-5 focus:outline-none"
+    >
       <div className="mb-4 flex min-h-6 items-center justify-between gap-4">
         <p aria-live="polite" className="text-[13px] text-ink-3">{contadorLabel(cafes.length)}</p>
-        {onLimpar && (
+        {limpar && (
           <button
             type="button"
-            onClick={onLimpar}
+            onClick={limpar}
             className="text-[13px] font-medium text-espresso underline underline-offset-[3px]"
           >
             Limpar filtros
           </button>
         )}
       </div>
-      <ul className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-        {cafes.map((cafe) => (
-          <li
-            key={cafe.id}
-            onMouseEnter={() => onHover?.(cafe.id)}
-            onMouseLeave={() => onHover?.(null)}
-            onFocus={() => onHover?.(cafe.id)}
-            onBlur={() => onHover?.(null)}
-          >
-            <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} />
-          </li>
-        ))}
-      </ul>
+      {cafes.length === 0 ? (
+        <EmptyState onLimpar={limpar} />
+      ) : (
+        <ul className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+          {cafes.map((cafe) => (
+            <li
+              key={cafe.id}
+              onMouseEnter={() => onHover?.(cafe.id)}
+              onMouseLeave={() => onHover?.(null)}
+              onFocus={() => onHover?.(cafe.id)}
+              onBlur={() => onHover?.(null)}
+            >
+              <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
+  );
+}
+
+/**
+ * "Xícara vazia por aqui": o recorte não achou nada. Medidas da tela 04 do
+ * design (centralizado na coluna, com respiro maior embaixo). Abaixo de `lg`
+ * o design não tem título; aqui fica a mesma composição, menor e no topo.
+ */
+function EmptyState({ onLimpar }: { onLimpar?: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col items-center gap-3.5 py-12 text-center lg:justify-center lg:px-5 lg:pb-[120px] lg:pt-0">
+      <EmptyCupIllustration className="w-[110px] text-espresso lg:w-[148px]" />
+      <h2 className="font-display text-2xl text-espresso lg:text-[28px]">Xícara vazia por aqui</h2>
+      <p className="max-w-[360px] text-[15px] leading-[1.55] text-ink-2">
+        Nenhum café encontrado com esses filtros. Que tal explorar outros bairros?
+      </p>
+      {onLimpar && (
+        <button
+          type="button"
+          onClick={onLimpar}
+          className="mt-2 h-11 rounded-full bg-terracotta px-[22px] text-[14.5px] font-semibold text-on-terracotta transition-colors hover:bg-terracotta-hover"
+        >
+          Limpar filtros
+        </button>
+      )}
+    </div>
   );
 }

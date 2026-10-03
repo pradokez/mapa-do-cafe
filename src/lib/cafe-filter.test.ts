@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Cafe } from "./cafe";
+import { cafe } from "./cafe.fixture";
 
 import {
   bairroChipLabel,
@@ -12,40 +13,6 @@ import {
   temFiltroAtivo,
   type CafeFilters,
 } from "./cafe-filter";
-
-function cafe(id: string, atributos: Partial<Cafe> = {}): Cafe {
-  return {
-    id,
-    slug: id,
-    nome: id,
-    bairro: "Graças",
-    bairro_slug: "gracas",
-    endereco: "Rua X, 1",
-    cidade: "Recife",
-    lat: -8.05,
-    lng: -34.9,
-    selo_ascape: false,
-    aceita_pets: false,
-    tem_estacionamento: false,
-    permite_coffee_office: false,
-    faixa_preco: "$$",
-    comodidades: [],
-    horario_funcionamento: {
-      segunda: "Fechado",
-      terca: "Fechado",
-      quarta: "Fechado",
-      quinta: "Fechado",
-      sexta: "Fechado",
-      sabado: "Fechado",
-      domingo: "Fechado",
-    },
-    instagram: null,
-    telefone: null,
-    fotos: [],
-    ativo: true,
-    ...atributos,
-  };
-}
 
 const ids = (cafes: Cafe[]) => cafes.map((c) => c.id);
 

@@ -34,21 +34,27 @@ export function FilterBar({
   onAplicar,
 }: Props) {
   return (
+    // O chip focado rola para dentro com a folga do padding (scroll-px). O
+    // scrollIntoView é explícito porque o Chrome não rola chip já visível em parte.
     <div
       role="group"
       aria-label="Filtros"
-      className="flex flex-none items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
+      onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
+      className="flex flex-none scroll-px-[18px] items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:scroll-px-7 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
     >
-      {FILTROS_DE_ATRIBUTO.map(({ filtro, label, Icon }) => (
+      {FILTROS_DE_ATRIBUTO.map(({ filtro, label, curto, Icon }) => (
         <button
           key={filtro}
           type="button"
+          // O nome acessível é sempre o rótulo inteiro, que contém o curto visível.
+          aria-label={label}
           aria-pressed={filters[filtro]}
           onClick={() => onToggle(filtro)}
           className={chipClass(filters[filtro], "gap-1.5 px-[13px] font-medium lg:gap-2 lg:px-[15px]")}
         >
           <Icon size={16} strokeWidth={2} />
-          {label}
+          <span className="lg:hidden">{curto}</span>
+          <span className="hidden lg:inline">{label}</span>
         </button>
       ))}
       <BairroSheet cafes={cafes} bairros={bairros} filters={filters} onAplicar={onAplicar} />

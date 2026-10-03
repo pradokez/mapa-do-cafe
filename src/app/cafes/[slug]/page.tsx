@@ -8,7 +8,7 @@ import { CafeCarousel } from "@/components/cafe-carousel";
 import { CafeDetailAside } from "@/components/cafe-detail-aside";
 import { CafeHoursPanel } from "@/components/cafe-hours-panel";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
-import { ArrowLeftIcon, CoffeeIcon, MapPinIcon, StarIcon } from "@/components/icons";
+import { ArrowLeftIcon, CoffeeIcon, InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
 import { NotifyButton } from "@/components/notify-button";
 import { SiteHeader } from "@/components/site-header";
 import { resumoHorario } from "@/lib/cafe-hours";
@@ -111,7 +111,13 @@ export default async function CafePage({ params }: Props) {
 
             <hr className="mb-2 mt-[30px] border-line" />
             <CafeHoursPanel resumo={horario} />
-            <hr className="mb-[30px] mt-2 border-line" />
+            <hr className="mt-2 border-line" />
+            {/* Desvio consciente: o design não tem a nota. Sem fonte oficial, horário,
+                preço e comodidades mudam sem aviso (PRD › Risco de dado). */}
+            <p className="mb-[30px] mt-3.5 flex items-start gap-1.5 text-[12.5px] leading-[1.45] text-ink-3">
+              <InfoIcon size={14} strokeWidth={2} className="mt-px flex-none text-ink-3/60" />
+              Informações podem mudar. Na dúvida, confira com o café antes de ir.
+            </p>
 
             <section aria-labelledby="avaliacoes">
               <div className="mb-4 flex items-center gap-2.5">

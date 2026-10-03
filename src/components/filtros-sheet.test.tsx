@@ -65,7 +65,7 @@ describe("FiltrosSheet", () => {
       "Permite coffee office",
       "$ Econômico",
       "$$ Moderado",
-      "$$$ Especial",
+      "$$$ Elevado",
     ]);
   });
 

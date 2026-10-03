@@ -76,6 +76,12 @@ const PIN_SCALE = {
 
 const LABEL = { full: "Mapa dos cafés", mini: "Mapa com a localização do café" };
 
+// O canvas ocupa o contêiner inteiro: o anel de foco por fora seria cortado.
+// Os controles do Mapbox (atribuição) trocam o brilho azul dele pelo anel da paleta;
+// `!` porque o seletor do CSS do Mapbox empata em especificidade e a ordem de carga não é garantida.
+const FOCO_NA_PALETA =
+  "[&_canvas:focus-visible]:-outline-offset-2 [&_.mapboxgl-ctrl_button:focus-visible]:!shadow-none [&_.mapboxgl-ctrl_button:focus-visible]:!outline [&_.mapboxgl-ctrl_button:focus-visible]:!outline-2 [&_.mapboxgl-ctrl_button:focus-visible]:!outline-terracotta";
+
 const ZOOM_BUTTON =
   "flex size-[38px] items-center justify-center text-lg leading-none text-map-control-fg transition-colors hover:bg-map-control-hover focus-visible:-outline-offset-2";
 
@@ -254,9 +260,20 @@ export function CafeMap({
 
   const placement = anchor && placePreview(anchor.pin, anchor.size);
 
+  // Enter no pin abre o preview e leva o foco até ele: no DOM, o preview vem
+  // depois de todos os pins, e o Tab seguinte os percorreria antes de chegar.
+  const previewLink = useRef<HTMLAnchorElement>(null);
+  const previewAbertoId = previewCafe && (!acompanhaPin || placement) ? previewCafe.id : null;
+  useEffect(() => {
+    if (!previewAbertoId) return;
+    if (document.activeElement === markers.current.get(previewAbertoId)?.getElement()) {
+      previewLink.current?.focus();
+    }
+  }, [previewAbertoId]);
+
   return (
     <div
-      className={`relative overflow-hidden bg-map-bg ${className}`}
+      className={`relative overflow-hidden bg-map-bg ${FOCO_NA_PALETA} ${className}`}
       onKeyDown={(e) => {
         if (e.key === "Escape") closePreview();
       }}
@@ -267,6 +284,7 @@ export function CafeMap({
         // Card do pin no mobile, acima do FAB (o design o põe a 92 px do pé).
         <CafeMapPreview
           cafe={previewCafe}
+          linkRef={previewLink}
           onClose={closePreview}
           style={{ left: 14, right: 14, bottom: 92, width: "auto" }}
         />
@@ -274,6 +292,7 @@ export function CafeMap({
       {previewCafe && acompanhaPin && placement && (
         <CafeMapPreview
           cafe={previewCafe}
+          linkRef={previewLink}
           onClose={closePreview}
           style={{
             left: placement.left,

@@ -86,7 +86,9 @@ O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `
 
 Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`).
 
-**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (29 cafés: 27 ativos, 3 em Olinda). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia.
+**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (29 cafés: 27 ativos, 3 em Olinda). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro de Recife/Olinda, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
+
+Revisão de lançamento (#14): **O Melhor Cantinho da Cidade** e **A Vida é Bela** dividem de fato o endereço R. Francisco Lacerda, 394 (Várzea) — as coordenadas estão afastadas ~44 m **de propósito**, para os pins não se sobreporem. O `palatsi-ilha-do-leite` tem bairro "Ilha do Leite" e endereço terminando em "- Paissandu": revisado e **mantido**.
 
 ## Filtros e URL
 
@@ -110,7 +112,7 @@ Ida e volta precisa ser estável: estado → params → estado devolve o mesmo e
 
 ## Mobile (abaixo de `lg`)
 
-Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral, cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
+Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral (rótulos curtos do design — "Pets", "Estacionamento", "Coffee office" —, com o rótulo inteiro como nome acessível), cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
 
 - **Visão lista/mapa é estado local**, fora da URL e do histórico: a home sempre abre na lista. Os filtros (na URL) sobrevivem à troca; voltar para a lista fecha o card do pin.
 - **Bottom sheets com rascunho** (Radix Dialog, `ui/sheet.tsx`): marcar opções não mexe na URL; "Ver N cafés" conta o resultado do rascunho e é o único que aplica (uma entrada no histórico). Esc ou toque no fundo descartam. Sem arrasto: a alça é decorativa.
@@ -157,7 +159,7 @@ Duas linhas alinhadas à direita, formando uma unidade:
 | `on-terracotta` | `#FFF8F1` | Texto sobre terracota |
 | `ink-2` | `#5C4636` | Texto secundário |
 | `ink-3` | `#7A6352` | Meta, contador, legenda |
-| `placeholder` | `#8A7563` | Placeholder de input |
+| `placeholder` | `#8A7563` | Placeholder de input — 4,37:1 sobre branco, **abaixo do AA por decisão** (fiel ao design) |
 | `line` | `#EDE4D8` | Divisores, borda de header |
 | `line-strong` | `#E2D7C9` | Borda de input e botão |
 | `chip-line` | `#DDD1C2` | Borda de chip inativo |
@@ -179,8 +181,8 @@ Vem do design. Não reinventar na implementação.
 - Contador: `1 café encontrado` / `N cafés encontrados`
 - Estado vazio: **"Xícara vazia por aqui"** + "Nenhum café encontrado com esses filtros. Que tal explorar outros bairros?"
 - Busca: placeholder "Buscar café ou bairro"
-- Horário: "Aberto hoje" (`open`) / "Fechado hoje" (`terracotta`); quando fechado, complemento "abre amanhã"
-- Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Especial
+- Horário: "Aberto hoje" (`open`) / "Fechado hoje" (`terracotta`); quando fechado, complemento "abre amanhã". Horas como no design: `8h – 18h`, `8h30` (`formatarHorario`; o `jsonb` segue `HH:MM`)
+- Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Elevado — desvio consciente: o design dizia "Especial", que num diretório de cafés especiais soava como qualidade, não preço
 - Avaliações: "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." + botão "Avise-me quando abrir"
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Comodidades" · "Horário de funcionamento"
@@ -190,6 +192,7 @@ Vem do design. Não reinventar na implementação.
 
 - Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
 - Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
+- Nota depois do horário, antes de "Avaliações": "Informações podem mudar. Na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
 - "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
@@ -219,8 +222,8 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 - Mutations via Server Actions, não API Routes
 - Componentes shadcn/ui não devem regredir em acessibilidade (teclado + ARIA vêm por padrão) ao customizar estilo
 - Ícones de comodidade nos cards são **informação, não decoração**: precisam de rótulo acessível — `title` sozinho não basta
-- Foco visível em toda superfície clicável
-- `ink-3` sobre `cream` é o par de contraste mais fraco da paleta: verificar nos tamanhos pequenos em que é usado
+- Foco visível em toda superfície clicável, sem anel cortado: contêiner com scroll leva `scroll-padding`; canvas e controles do Mapbox usam o anel da paleta (por dentro do canvas)
+- Contraste verificado (#14): `ink-3` dá 5,26:1 sobre `cream` e 4,89:1 sobre `hover-soft` — passa AA. Exceções conscientes: `placeholder` (acima) e, por serem `aria-hidden`, os `$` apagados (`price-off`) e as legendas "foto · {nome}"
 - Sem menu hamburger até existir destino de navegação real
 
 ## Testes

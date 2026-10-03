@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe, DiaSemana } from "./cafe";
 
-import { proximaAberturaLabel, resumoHorario } from "./cafe-hours";
+import { formatarHorario, proximaAberturaLabel, resumoHorario } from "./cafe-hours";
 
 // 2026-10-05 é uma segunda-feira. Meio-dia em Recife (UTC−3) = 15:00Z.
 const em = (dia: number) => new Date(Date.UTC(2026, 9, 5 + dia, 15));
@@ -201,4 +201,19 @@ describe("resumoHorario › seed real", () => {
       expect(dias.some((d) => d.horario !== "Fechado")).toBe(true);
     },
   );
+});
+
+describe("formatarHorario", () => {
+  it("exibe hora cheia como no design: '08:00 – 18:00' → '8h – 18h'", () => {
+    expect(formatarHorario("08:00 – 18:00")).toBe("8h – 18h");
+  });
+
+  it("mantém os minutos quando não é hora cheia, e cada turno: '08:30 – 12:30, 15:00 – 20:00' → '8h30 – 12h30, 15h – 20h'", () => {
+    expect(formatarHorario("08:30 – 12:30, 15:00 – 20:00")).toBe("8h30 – 12h30, 15h – 20h");
+  });
+
+  it("deixa 'Fechado' e texto fora do formato como estão", () => {
+    expect(formatarHorario("Fechado")).toBe("Fechado");
+    expect(formatarHorario("sob consulta")).toBe("sob consulta");
+  });
 });

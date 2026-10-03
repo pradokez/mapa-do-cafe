@@ -66,6 +66,8 @@ const PIN_SCALE = {
   mini: "group-data-[active=true]:scale-[1.2]",
 };
 
+const LABEL = { full: "Mapa dos cafés", mini: "Mapa com a localização do café" };
+
 const ZOOM_BUTTON =
   "flex size-[38px] items-center justify-center text-lg leading-none text-map-control-fg transition-colors hover:bg-map-control-hover focus-visible:-outline-offset-2";
 
@@ -125,6 +127,12 @@ export function CafeMap({
           language: "pt",
           interactive: !isMini,
           attributionControl: false,
+          // O canvas já é a `region` acessível do mapa; os textos da UI do Mapbox vêm em inglês.
+          locale: {
+            "Map.Title": LABEL[variant],
+            "AttributionControl.ToggleAttribution": "Mostrar atribuição",
+            "LogoControl.Title": "Site do Mapbox",
+          },
           ...(bounds
             ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: 15 } }
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
@@ -187,11 +195,7 @@ export function CafeMap({
   }, [map, cafes, hoveredId, selectedId]);
 
   return (
-    <div
-      role="region"
-      aria-label={variant === "mini" ? "Mapa com a localização do café" : "Mapa dos cafés"}
-      className={`relative overflow-hidden bg-map-bg ${className}`}
-    >
+    <div className={`relative overflow-hidden bg-map-bg ${className}`}>
       {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
       <div ref={containerRef} className="size-full" />
       {variant === "full" && map && (

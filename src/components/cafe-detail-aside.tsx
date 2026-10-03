@@ -14,7 +14,7 @@ export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; classNam
       aria-label="Como chegar"
       className={`flex flex-col gap-4 rounded-[18px] border border-card-line bg-white p-3.5 shadow-[0_1px_2px_rgba(44,26,14,.06),0_12px_30px_-16px_rgba(44,26,14,.2)] ${className}`}
     >
-      <div className="flex flex-col gap-1 px-1 pt-1">
+      <div className="flex flex-col gap-1 px-1">
         <span className="text-[14.5px] font-semibold text-espresso">{cafe.endereco}</span>
         <span className="text-[13px] text-ink-3">
           {cafe.bairro}, {cafe.cidade} – PE

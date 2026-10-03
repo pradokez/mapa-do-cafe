@@ -8,7 +8,7 @@ import { proximaAberturaLabel, type ResumoHorario } from "@/lib/cafe-hours";
 export function CafeHoursPanel({ resumo }: { resumo: ResumoHorario }) {
   return (
     <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 py-3.5 text-espresso [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-3 py-3.5 [&::-webkit-details-marker]:hidden">
         <ClockIcon size={18} strokeWidth={2} className="flex-none" />
         <span className="flex min-w-0 flex-1 flex-col gap-x-3 gap-y-0.5 sm:flex-row sm:items-center">
           <h2 className="text-base font-semibold">Horário de funcionamento</h2>

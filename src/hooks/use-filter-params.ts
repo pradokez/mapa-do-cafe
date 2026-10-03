@@ -45,6 +45,8 @@ export function useFilterParams(bairrosValidos: readonly string[]) {
     limparBairros: () => navigate({ ...filters, bairros: [] }),
     togglePreco: (faixa: FaixaPreco) => navigate({ ...filters, precos: alternar(filters.precos, faixa) }),
     buscar,
+    /** Aplica um estado inteiro de uma vez (os bottom sheets): uma entrada no histórico. */
+    aplicar: navigate,
     limpar: () => navigate(FILTROS_VAZIOS),
   };
 }

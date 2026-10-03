@@ -14,9 +14,9 @@ type Props = {
 };
 
 /**
- * Campo de busca do header da home (440×42). O texto é local — digitar não
- * mexe na URL a cada tecla —, e o termo sobe para `onSearch` com debounce.
- * Abaixo de `lg` some: a busca do mobile vem com o layout mobile (#13).
+ * Campo de busca do header da home (440×42; largura total no mobile, desvio
+ * consciente do design). O texto é local — digitar não mexe na URL a cada
+ * tecla —, e o termo sobe para `onSearch` com debounce.
  */
 export function SearchField({ value, onSearch }: Props) {
   const [texto, setTexto] = useState(value);
@@ -46,7 +46,7 @@ export function SearchField({ value, onSearch }: Props) {
   }, [texto, enviado, onSearch]);
 
   return (
-    <label className="hidden h-[42px] w-[440px] cursor-text items-center gap-2.5 rounded-full border border-line-strong bg-white px-[18px] text-ink-3 shadow-[0_1px_2px_rgba(44,26,14,.05)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta lg:flex">
+    <label className="flex h-[42px] w-full cursor-text items-center gap-2.5 rounded-full border border-line-strong bg-white px-[18px] text-ink-3 shadow-[0_1px_2px_rgba(44,26,14,.05)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta lg:w-[440px]">
       <SearchIcon size={16} strokeWidth={2} />
       <input
         type="search"

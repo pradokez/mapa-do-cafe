@@ -14,7 +14,7 @@ type Props = {
 };
 
 /**
- * Chip + bottom sheet de bairro do mobile — o par do `BairroDropdown`.
+ * Chip + bottom sheet de bairro do mobile (abaixo de `lg`) — o par do `BairroDropdown`.
  * Multi-select (desvio consciente do design, que tinha escolha única):
  * "Todos os bairros" limpa a seleção do rascunho.
  */
@@ -32,7 +32,7 @@ export function BairroSheet({ cafes, bairros, filters, onAplicar }: Props) {
         <button
           type="button"
           aria-label={ativo ? `Bairro: ${label}` : undefined}
-          className={chipClass(ativo, "gap-1.5 pl-[13px] pr-[11px] font-medium")}
+          className={chipClass(ativo, "gap-1.5 pl-[13px] pr-[11px] font-medium lg:hidden")}
         >
           {label}
           <ChevronDownIcon size={14} strokeWidth={2} />

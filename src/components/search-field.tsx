@@ -57,7 +57,7 @@ export function SearchField({ value, onSearch }: Props) {
         enterKeyHint="search"
         autoComplete="off"
         // O anel de foco fica na pílula (focus-within), não num retângulo interno.
-        className="min-w-0 flex-1 bg-transparent text-sm text-espresso outline-none placeholder:text-placeholder focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+        className="min-w-0 flex-1 bg-transparent text-sm text-espresso outline-none placeholder:text-placeholder [&::-webkit-search-cancel-button]:hidden"
       />
     </label>
   );

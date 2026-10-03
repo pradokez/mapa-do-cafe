@@ -13,24 +13,6 @@ export type DiaSemana =
   | "sabado"
   | "domingo";
 
-export type Comodidade =
-  | "24-horas"
-  | "acessivel"
-  | "area-externa"
-  | "brunch"
-  | "cursos"
-  | "delivery"
-  | "jardim"
-  | "kids"
-  | "livraria"
-  | "loja"
-  | "manobrista"
-  | "musica-ao-vivo"
-  | "opcoes-veganas"
-  | "reservas"
-  | "torrefacao"
-  | "wifi";
-
 export interface Cafe {
   id: string;
   slug: string;
@@ -48,7 +30,6 @@ export interface Cafe {
   tem_estacionamento: boolean;
   permite_coffee_office: boolean;
   faixa_preco: FaixaPreco;
-  comodidades: Comodidade[];
   /** "HH:MM – HH:MM", turnos separados por ", ", ou "Fechado". */
   horario_funcionamento: Record<DiaSemana, string>;
   /** URL completa. */
@@ -76,7 +57,6 @@ export const CAFE_COLUMNS = [
   "tem_estacionamento",
   "permite_coffee_office",
   "faixa_preco",
-  "comodidades",
   "horario_funcionamento",
   "instagram",
   "telefone",

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import type { Cafe } from "../src/lib/cafe";
+import { CAFE_COLUMNS, type Cafe } from "../src/lib/cafe";
 import { buildSeedSql } from "./build-seed";
 
 const read = (path: string) =>
@@ -26,6 +26,15 @@ describe("seed do Supabase", () => {
       "versado-derby",
     ]);
     expect(cafes.filter((c) => c.cidade === "Olinda")).toHaveLength(3);
+  });
+
+  it("cada café do JSON tem exatamente as colunas de `Cafe` — chave a mais seria ignorada em silêncio", () => {
+    const cafes: Record<string, unknown>[] = JSON.parse(read("supabase/seed/cafes.json"));
+    const colunas = [...CAFE_COLUMNS].sort();
+
+    for (const cafe of cafes) {
+      expect(Object.keys(cafe).sort(), String(cafe.slug)).toEqual(colunas);
+    }
   });
 
   it("recusa JSON que fecharia o literal do SQL antes da hora", () => {

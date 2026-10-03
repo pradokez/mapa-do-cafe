@@ -75,7 +75,6 @@ aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
 faixa_preco text,                  -- '$' | '$$' | '$$$'
-comodidades text[],                -- union fechada `Comodidade` (16 valores); não exibido nem filtrado na Fase 1
 horario_funcionamento jsonb,       -- 7 chaves segunda…domingo; "HH:MM – HH:MM", turnos por ", ", ou "Fechado"
 instagram, telefone,               -- nullable; instagram é URL completa
 fotos text[],                      -- vazio na Fase 1; Storage na Fase 2
@@ -83,7 +82,7 @@ ativo boolean,
 criado_em, atualizado_em           -- metadado técnico, fora do tipo `Cafe`
 ```
 
-O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `slug` único, `cidade` e `faixa_preco` com `check`, `horario_funcionamento` com as 7 chaves, `comodidades` dentro da lista fechada.
+O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `slug` único, `cidade` e `faixa_preco` com `check` e `horario_funcionamento` com as 7 chaves.
 
 Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`).
 
@@ -193,7 +192,7 @@ Vem do design. Não reinventar na implementação.
 - Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
 - "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
-- Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. O array `comodidades` **não é exibido**
+- Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
 - Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título
 - Carrossel: `max(4, fotos)` slots — fotos reais nunca são cortadas. Placeholder tem legenda "foto · {nome}", não as legendas por slot do design ("Salão", "Fachada"…), que prometeriam fotos inexistentes. Abaixo de `lg`, 260 px de altura e swipe
 

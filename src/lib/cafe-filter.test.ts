@@ -202,6 +202,12 @@ describe("serializeFilters", () => {
     expect(atual.toString()).toBe("utm_source=instagram&pets=1&ascape=true");
   });
 
+  it("lista esvaziada some da URL atual (\"Todos os bairros\" limpa o param)", () => {
+    const atual = new URLSearchParams("bairro=gracas,pina&preco=$&utm_source=instagram");
+
+    expect(serializeFilters(FILTROS_VAZIOS, atual)).toBe("utm_source=instagram");
+  });
+
   // As 16 combinações dos 4 booleanos.
   const combinacoes: CafeFilters[] = Array.from({ length: 16 }, (_, i) => ({
     ...FILTROS_VAZIOS,

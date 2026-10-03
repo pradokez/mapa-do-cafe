@@ -1,7 +1,7 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
 import { BairroSheet } from "@/components/bairro-sheet";
 import { FILTROS_DA_BARRA } from "@/components/cafe-atributos";
-import { chipClass } from "@/components/filter-chip";
+import { AtributoChip, chipClass } from "@/components/filter-chip";
 import { MaisFiltrosDropdown } from "@/components/mais-filtros-dropdown";
 import type { Cafe, FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
@@ -44,20 +44,13 @@ export function FilterBar({
       onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
       className="flex flex-none scroll-px-[18px] items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:scroll-px-7 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
     >
-      {FILTROS_DA_BARRA.map(({ filtro, label, curto, Icon }) => (
-        <button
-          key={filtro}
-          type="button"
-          // O nome acessível é sempre o rótulo inteiro, que contém o curto visível.
-          aria-label={label}
-          aria-pressed={filters[filtro]}
-          onClick={() => onToggle(filtro)}
-          className={chipClass(filters[filtro], "gap-1.5 px-[13px] font-medium lg:gap-2 lg:px-[15px]")}
-        >
-          <Icon size={16} strokeWidth={2} />
-          <span className="lg:hidden">{curto}</span>
-          <span className="hidden lg:inline">{label}</span>
-        </button>
+      {FILTROS_DA_BARRA.map((opcao) => (
+        <AtributoChip
+          key={opcao.filtro}
+          opcao={opcao}
+          ativo={filters[opcao.filtro]}
+          onToggle={() => onToggle(opcao.filtro)}
+        />
       ))}
       <BairroSheet cafes={cafes} bairros={bairros} filters={filters} onAplicar={onAplicar} />
       <BairroDropdown

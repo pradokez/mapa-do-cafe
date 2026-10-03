@@ -3,7 +3,7 @@
 import { useId } from "react";
 
 import { ATRIBUTOS, SELOS } from "@/components/cafe-atributos";
-import { chipClass } from "@/components/filter-chip";
+import { AtributoChip } from "@/components/filter-chip";
 import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
@@ -101,22 +101,16 @@ type ChipsProps = {
   onToggle: (filtro: FiltroBooleano) => void;
 };
 
-/** Chips de 36 px da barra, com o rótulo curto visível e o inteiro como nome acessível. */
 function Chips({ opcoes, rascunho, onToggle }: ChipsProps) {
   return (
     <div className="flex flex-wrap gap-[7px]">
-      {opcoes.map(({ filtro, label, curto, Icon }) => (
-        <button
-          key={filtro}
-          type="button"
-          aria-label={label}
-          aria-pressed={rascunho[filtro]}
-          onClick={() => onToggle(filtro)}
-          className={chipClass(rascunho[filtro], "gap-1.5 px-[13px] font-medium")}
-        >
-          <Icon size={15} strokeWidth={2} />
-          {curto}
-        </button>
+      {opcoes.map((opcao) => (
+        <AtributoChip
+          key={opcao.filtro}
+          opcao={opcao}
+          ativo={rascunho[opcao.filtro]}
+          onToggle={() => onToggle(opcao.filtro)}
+        />
       ))}
     </div>
   );

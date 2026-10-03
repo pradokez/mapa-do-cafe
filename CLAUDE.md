@@ -193,7 +193,7 @@ Vem do design. Não reinventar na implementação.
 
 - Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
 - Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
-- Nota depois do horário, antes de "Avaliações": "Informações podem mudar; na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
+- Nota depois do horário, antes de "Avaliações": "Informações podem mudar. Na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
 - "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. O array `comodidades` **não é exibido**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { distanciaKm, distanciaLabel, formatarDistancia } from "./cafe-distance";
+import { distanciaKm, distanciaLabel, formatarDistancia, ordenarPorDistancia } from "./cafe-distance";
 
 const MARCO_ZERO = { lat: -8.0631, lng: -34.8711 };
 
@@ -71,5 +71,59 @@ describe("distanciaLabel", () => {
 
   it("sem origem conhecida, nada a exibir", () => {
     expect(distanciaLabel(null, ALTO_DA_SE)).toBeNull();
+  });
+});
+
+describe("ordenarPorDistancia", () => {
+  // Ao norte do Marco Zero, a 0,01°, 0,02° e 0,03° de latitude.
+  const perto = { nome: "perto", lat: -8.0531, lng: -34.8711 };
+  const meio = { nome: "meio", lat: -8.0431, lng: -34.8711 };
+  const longe = { nome: "longe", lat: -8.0331, lng: -34.8711 };
+  const nomes = (itens: { nome: string }[]) => itens.map((i) => i.nome);
+
+  it("com origem, do mais perto ao mais longe", () => {
+    expect(nomes(ordenarPorDistancia([longe, perto, meio], MARCO_ZERO))).toEqual([
+      "perto",
+      "meio",
+      "longe",
+    ]);
+  });
+
+  it("sem origem conhecida, a ordem de entrada fica como está", () => {
+    expect(nomes(ordenarPorDistancia([longe, perto, meio], null))).toEqual(["longe", "perto", "meio"]);
+  });
+
+  it("café com coordenada inválida vai para o fim, sem bagunçar os demais", () => {
+    const semLugar = { nome: "sem lugar", lat: Number.NaN, lng: -34.8711 };
+    expect(nomes(ordenarPorDistancia([semLugar, longe, perto, meio], MARCO_ZERO))).toEqual([
+      "perto",
+      "meio",
+      "longe",
+      "sem lugar",
+    ]);
+  });
+
+  it("empate mantém a ordem de entrada: mesma entrada, mesma ordem", () => {
+    const vizinho = { ...perto, nome: "vizinho" };
+    const semLugarA = { nome: "sem lugar A", lat: Number.NaN, lng: 0 };
+    const semLugarB = { nome: "sem lugar B", lat: 0, lng: Number.NaN };
+    expect(nomes(ordenarPorDistancia([semLugarA, vizinho, semLugarB, perto], MARCO_ZERO))).toEqual([
+      "vizinho",
+      "perto",
+      "sem lugar A",
+      "sem lugar B",
+    ]);
+    expect(nomes(ordenarPorDistancia([semLugarB, perto, semLugarA, vizinho], MARCO_ZERO))).toEqual([
+      "perto",
+      "vizinho",
+      "sem lugar B",
+      "sem lugar A",
+    ]);
+  });
+
+  it("não altera a lista recebida", () => {
+    const entrada = [longe, perto, meio];
+    ordenarPorDistancia(entrada, MARCO_ZERO);
+    expect(nomes(entrada)).toEqual(["longe", "perto", "meio"]);
   });
 });

@@ -37,3 +37,20 @@ export function distanciaLabel(origem: Coordenadas | null, destino: Coordenadas)
   const km = distanciaKm(origem, destino);
   return km === null ? null : formatarDistancia(km);
 }
+
+/**
+ * Do mais perto ao mais longe, sem mutar a entrada. Sem origem, a ordem de
+ * entrada fica como está; empate também a mantém (sort estável), e item sem
+ * coordenada válida vai para o fim.
+ */
+export function ordenarPorDistancia<T extends Coordenadas>(
+  itens: readonly T[],
+  origem: Coordenadas | null,
+): T[] {
+  // Sem origem, toda distância é Infinity: tudo empata e nada sai do lugar.
+  return itens
+    .map((item) => ({ item, km: distanciaKm(origem, item) ?? Infinity }))
+    // `===` antes da subtração: Infinity − Infinity é NaN, não empate.
+    .sort((a, b) => (a.km === b.km ? 0 : a.km - b.km))
+    .map(({ item }) => item);
+}

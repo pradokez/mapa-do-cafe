@@ -1,4 +1,5 @@
 import type { Cafe } from "./cafe";
+import { isHttpUrl } from "./url";
 
 export type PhotoSource =
   | { kind: "url"; src: string }
@@ -20,7 +21,7 @@ const TONES = [
  * café tem sempre a mesma cara.
  */
 export function resolveCafePhotos(cafe: Pick<Cafe, "id" | "fotos">): PhotoSource[] {
-  const urls = Array.isArray(cafe.fotos) ? cafe.fotos.filter(isPhotoUrl) : [];
+  const urls = Array.isArray(cafe.fotos) ? cafe.fotos.filter(isHttpUrl) : [];
   if (urls.length > 0) {
     return urls.map((src) => ({ kind: "url", src }));
   }
@@ -31,16 +32,6 @@ export function resolveCafePhotos(cafe: Pick<Cafe, "id" | "fotos">): PhotoSource
       background: `repeating-linear-gradient(135deg, ${a} 0 14px, ${b} 14px 28px)`,
     },
   ];
-}
-
-function isPhotoUrl(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  try {
-    const { protocol } = new URL(value);
-    return protocol === "https:" || protocol === "http:";
-  } catch {
-    return false;
-  }
 }
 
 // FNV-1a 32 bits: estável entre runtimes, sem dependência.

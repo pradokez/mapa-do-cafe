@@ -15,7 +15,7 @@ export function EmptyCupIllustration({ className }: { className?: string }) {
       aria-hidden="true"
       className={className}
     >
-      <g className="text-terracotta" stroke="currentColor" strokeDasharray="2 5">
+      <g className="text-terracotta" strokeDasharray="2 5">
         <path d="M54 30c-5-6 5-10 0-17" />
         <path d="M66 26c-5-6 5-10 0-17" />
         <path d="M78 30c-5-6 5-10 0-17" />

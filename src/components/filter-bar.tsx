@@ -3,6 +3,7 @@ import { BairroSheet } from "@/components/bairro-sheet";
 import { FILTROS_DA_BARRA } from "@/components/cafe-atributos";
 import { AtributoChip, chipClass } from "@/components/filter-chip";
 import { MaisFiltrosDropdown } from "@/components/mais-filtros-dropdown";
+import { BARRA_FILTROS } from "@/components/medidas";
 import type { Cafe, FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import { faixaPrecoNome } from "@/lib/format";
@@ -42,7 +43,7 @@ export function FilterBar({
       role="group"
       aria-label="Filtros"
       onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
-      className="flex flex-none scroll-px-[18px] items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:scroll-px-7 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
+      className={`${BARRA_FILTROS} scroll-px-[18px] overflow-x-auto [scrollbar-width:none] lg:scroll-px-7 [&::-webkit-scrollbar]:hidden`}
     >
       {FILTROS_DA_BARRA.map((opcao) => (
         <AtributoChip

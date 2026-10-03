@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -41,7 +41,8 @@ describe("FiltrosSheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
 
     expect(screen.getByRole("dialog", { name: "Filtros" })).toBeDefined();
-    await userEvent.click(screen.getByRole("checkbox", { name: "Aceita pets" }));
+    await userEvent.click(screen.getByRole("button", { name: "Aceita pets" }));
+    expect(screen.getByRole("button", { name: "Aceita pets" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "Ver 2 cafés" })).toBeDefined();
     await userEvent.click(screen.getByRole("checkbox", { name: "Econômico" }));
     expect(onAplicar).not.toHaveBeenCalled();
@@ -53,34 +54,37 @@ describe("FiltrosSheet", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("oferece os dois selos e os seis atributos, mas não o bairro (que tem sheet próprio)", async () => {
+  it("organiza em seções: selos e comodidades em chips, faixa de preço em linhas; sem bairro (que tem sheet próprio)", async () => {
     renderSheet();
     await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
 
-    const opcoes = screen.getAllByRole("checkbox").map((el) => el.textContent?.trim());
-    expect(opcoes).toEqual([
-      "Recife Coffee",
-      "Eu Amo Café",
+    const chips = (secao: string) =>
+      within(screen.getByRole("group", { name: secao }))
+        .getAllByRole("button")
+        .map((el) => el.getAttribute("aria-label"));
+    expect(chips("Selos")).toEqual(["Recife Coffee", "Eu Amo Café"]);
+    expect(chips("Comodidades")).toEqual([
       "Aceita pets",
       "Tem estacionamento",
       "Permite coffee office",
       "Acessível para PcD",
       "Opções vegetarianas",
       "Ar-condicionado",
-      "$ Econômico",
-      "$$ Moderado",
-      "$$$ Elevado",
     ]);
+    const faixas = within(screen.getByRole("group", { name: "Faixa de preço" }))
+      .getAllByRole("checkbox")
+      .map((el) => el.textContent?.trim());
+    expect(faixas).toEqual(["$ Econômico", "$$ Moderado", "$$$ Elevado"]);
   });
 
   it("Esc descarta o rascunho", async () => {
     const onAplicar = renderSheet({ ...FILTROS_VAZIOS, pets: true });
     await userEvent.click(screen.getByRole("button", { name: "Filtros, 1 ativo" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Aceita pets" }));
+    await userEvent.click(screen.getByRole("button", { name: "Aceita pets" }));
     await userEvent.keyboard("{Escape}");
 
     expect(onAplicar).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Filtros, 1 ativo" }));
-    expect(screen.getByRole("checkbox", { name: "Aceita pets" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("button", { name: "Aceita pets" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

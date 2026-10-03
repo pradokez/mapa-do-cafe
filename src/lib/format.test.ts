@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contadorLabel, faixaPrecoNome, localLabel } from "./format";
+import { contadorLabel, faixaPrecoNome, googleMapsUrl, localLabel } from "./format";
 
 describe("contadorLabel", () => {
   it.each([
@@ -30,5 +30,17 @@ describe("faixaPrecoNome", () => {
     ["$$$", "Especial"],
   ] as const)("%s → %s", (faixa, nome) => {
     expect(faixaPrecoNome(faixa)).toBe(nome);
+  });
+});
+
+describe("googleMapsUrl", () => {
+  it("busca o café pelo nome, endereço e cidade no Google Maps", () => {
+    const url = new URL(
+      googleMapsUrl({ nome: "Café & Cia", endereco: "R. da Hora, 100", cidade: "Olinda" }),
+    );
+
+    expect(`${url.origin}${url.pathname}`).toBe("https://www.google.com/maps/search/");
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("query")).toBe("Café & Cia, R. da Hora, 100, Olinda - PE");
   });
 });

@@ -23,3 +23,9 @@ const NOMES_FAIXA_PRECO: Record<FaixaPreco, string> = {
 export function faixaPrecoNome(faixa: FaixaPreco): string {
   return NOMES_FAIXA_PRECO[faixa];
 }
+
+/** "Como chegar": busca do Google Maps (link comum, sem API nem chave). */
+export function googleMapsUrl(cafe: Pick<Cafe, "nome" | "endereco" | "cidade">): string {
+  const query = `${cafe.nome}, ${cafe.endereco}, ${cafe.cidade} - PE`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}

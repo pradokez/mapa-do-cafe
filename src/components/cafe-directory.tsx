@@ -7,6 +7,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { FiltrosSheet } from "@/components/filtros-sheet";
 import { HomeMap } from "@/components/home-map";
 import { MapFab } from "@/components/map-fab";
+import { HOME_COLUNAS, LISTA_ROLAGEM } from "@/components/medidas";
 import { SearchField } from "@/components/search-field";
 import { SiteHeader } from "@/components/site-header";
 import { useFilterParams } from "@/hooks/use-filter-params";
@@ -71,12 +72,12 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
           onTogglePreco={togglePreco}
           onAplicar={aplicar}
         />
-        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[45%_55%]">
+        <div className={HOME_COLUNAS}>
           {/* relative: containing block dos sr-only (absolute) dos cards — sem
               isso eles escapam do scroll e esticam a página além da viewport.
               scroll-py: o card focado por Tab rola até a borda; sem folga, o
               anel de foco (e o card elevado) saem cortados. */}
-          <div className={`relative scroll-py-3 overflow-y-auto lg:block ${view === "mapa" ? "hidden" : ""}`}>
+          <div className={`${LISTA_ROLAGEM} ${view === "mapa" ? "hidden" : ""}`}>
             <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
             <CafeList
               cafes={filtrados}

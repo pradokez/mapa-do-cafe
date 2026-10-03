@@ -21,7 +21,7 @@ type Props = {
 /**
  * Bottom sheet de filtro do mobile, com rascunho: marcar opções não mexe na
  * URL, e "Ver N cafés" já conta o resultado do rascunho. Só o botão aplica
- * (uma entrada no histórico); Esc ou toque no fundo descartam.
+ * (uma entrada no histórico); Esc, toque no fundo ou arrasto para baixo descartam.
  */
 export function RascunhoSheet({ titulo, trigger, cafes, filters, onAplicar, children }: Props) {
   const [aberto, setAberto] = useState(false);

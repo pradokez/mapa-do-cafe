@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Caprasimo, DM_Sans } from "next/font/google";
+import { SITE_DESCRICAO, SITE_NOME } from "@/lib/cafe-seo";
+import { siteUrl } from "@/lib/site-url";
+
 import "./globals.css";
 
 const caprasimo = Caprasimo({
@@ -14,8 +17,10 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Mapa do Café",
-  description: "Diretório de cafés especiais em Recife e Olinda.",
+  // Base das URLs absolutas: canonical (e Open Graph, #49) saem relativos.
+  metadataBase: siteUrl(),
+  title: SITE_NOME,
+  description: SITE_DESCRICAO,
 };
 
 export default function RootLayout({

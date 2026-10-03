@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { compararPorNome } from "./cafe";
+import { caminhoDoCafe, compararPorNome } from "./cafe";
 
 describe("compararPorNome", () => {
   it("ordena alfabeticamente em pt-BR, ignorando caixa e acento", () => {
@@ -14,5 +14,11 @@ describe("compararPorNome", () => {
       "Café Jardim",
       "Xêro Café e Arte",
     ]);
+  });
+});
+
+describe("caminhoDoCafe", () => {
+  it("é /cafes/{slug}", () => {
+    expect(caminhoDoCafe({ slug: "borsoi-cafe-riomar" })).toBe("/cafes/borsoi-cafe-riomar");
   });
 });

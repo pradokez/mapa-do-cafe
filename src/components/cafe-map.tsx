@@ -254,9 +254,11 @@ export function CafeMap({
 
   const placement = anchor && placePreview(anchor.pin, anchor.size);
 
+
   return (
     <div
-      className={`relative overflow-hidden bg-map-bg ${className}`}
+      // O canvas ocupa o contêiner inteiro: o anel de foco por fora seria cortado.
+      className={`relative overflow-hidden bg-map-bg [&_canvas:focus-visible]:-outline-offset-2 ${className}`}
       onKeyDown={(e) => {
         if (e.key === "Escape") closePreview();
       }}

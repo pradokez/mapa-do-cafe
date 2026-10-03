@@ -73,8 +73,10 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
         />
         <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[45%_55%]">
           {/* relative: containing block dos sr-only (absolute) dos cards — sem
-              isso eles escapam do scroll e esticam a página além da viewport. */}
-          <div className={`relative overflow-y-auto lg:block ${view === "mapa" ? "hidden" : ""}`}>
+              isso eles escapam do scroll e esticam a página além da viewport.
+              scroll-py: o card focado por Tab rola até a borda; sem folga, o
+              anel de foco (e o card elevado) saem cortados. */}
+          <div className={`relative scroll-py-3 overflow-y-auto lg:block ${view === "mapa" ? "hidden" : ""}`}>
             <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
             <CafeList
               cafes={filtrados}

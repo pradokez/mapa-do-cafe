@@ -14,6 +14,8 @@ import { SiteHeader } from "@/components/site-header";
 import { resumoHorario } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { getCafeBySlug } from "@/lib/cafe-repository";
+import { descricaoCafe, jsonLdCafe, SITE_NOME, tituloCafe } from "@/lib/cafe-seo";
+import { siteUrl } from "@/lib/site-url";
 import { faixaPrecoNome } from "@/lib/format";
 
 // Dinâmico: "hoje" no horário precisa ser o dia da visita. Com ISR, a página
@@ -25,9 +27,16 @@ type Props = { params: { slug: string } };
 // Uma query por request, compartilhada entre a página e o metadata.
 const getCafe = cache(getCafeBySlug);
 
+const caminho = (slug: string) => `/cafes/${slug}`;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cafe = await getCafe(params.slug);
-  return { title: cafe ? `${cafe.nome} · Mapa do Café` : "Café não encontrado · Mapa do Café" };
+  if (!cafe) return { title: `Café não encontrado · ${SITE_NOME}`, robots: { index: false } };
+  return {
+    title: tituloCafe(cafe),
+    description: descricaoCafe(cafe),
+    alternates: { canonical: caminho(cafe.slug) },
+  };
 }
 
 // Slots do carrossel do hero (design); faltas viram placeholder.
@@ -42,9 +51,15 @@ export default async function CafePage({ params }: Props) {
 
   const horario = resumoHorario(cafe.horario_funcionamento, new Date());
   const selos = selosDo(cafe);
+  const jsonLd = jsonLdCafe(cafe, new URL(caminho(cafe.slug), siteUrl()).href);
 
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        // `<` escapado: um "</script>" vindo do banco não fecha a tag antes da hora.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
       <SiteHeader />
       <main className="mx-auto max-w-[1200px] px-4 pb-20 pt-[22px] sm:px-7 xl:px-0">
         <nav aria-label="Trilha" className="mb-[18px] flex items-center gap-3.5 text-[13.5px] text-ink-3">

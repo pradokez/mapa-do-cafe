@@ -23,7 +23,7 @@ export default async function AdminHome() {
       {/* Desktop: tabela. */}
       <table className="hidden w-full border-collapse text-left text-[14px] md:table">
         <thead>
-          <tr className="border-b border-line-strong text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">
+          <tr className="border-b border-line-strong text-[12px] uppercase tracking-[0.06em] text-ink-3">
             <th scope="col" className="py-2.5 pr-4 font-semibold">Nome</th>
             <th scope="col" className="py-2.5 pr-4 font-semibold">Bairro</th>
             <th scope="col" className="py-2.5 pr-4 font-semibold">Cidade</th>

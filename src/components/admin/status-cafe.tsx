@@ -1,14 +1,11 @@
+const ETIQUETA = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold";
+
 /** Etiqueta "No ar" / "Fora do ar" do admin. */
 export function StatusCafe({ ativo }: { ativo: boolean }) {
-  return ativo ? (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-open/10 px-2.5 py-0.5 text-[12.5px] font-semibold text-open">
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-open" />
-      No ar
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-seal-bg px-2.5 py-0.5 text-[12.5px] font-semibold text-seal-fg">
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-seal-fg" />
-      Fora do ar
+  return (
+    <span className={`${ETIQUETA} ${ativo ? "bg-open/10 text-open" : "bg-seal-bg text-seal-fg"}`}>
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      {ativo ? "No ar" : "Fora do ar"}
     </span>
   );
 }

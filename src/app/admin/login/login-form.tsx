@@ -175,7 +175,7 @@ function CampoCodigo() {
 
 function Erro({ erro }: { erro: string | null }) {
   return (
-    <p role="alert" className="min-h-0 text-[14px] font-medium text-terracotta empty:hidden">
+    <p role="alert" className="text-[14px] font-medium text-terracotta empty:hidden">
       {erro}
     </p>
   );

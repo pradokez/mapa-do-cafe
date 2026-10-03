@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contadorLabel, faixaPrecoNome, localLabel } from "./format";
+import { contadorLabel, faixaPrecoNome, googleMapsUrl, instagramUrl, localLabel } from "./format";
 
 describe("contadorLabel", () => {
   it.each([
@@ -30,5 +30,34 @@ describe("faixaPrecoNome", () => {
     ["$$$", "Especial"],
   ] as const)("%s → %s", (faixa, nome) => {
     expect(faixaPrecoNome(faixa)).toBe(nome);
+  });
+});
+
+describe("googleMapsUrl", () => {
+  it("busca o café pelo nome, endereço e cidade no Google Maps", () => {
+    const url = new URL(
+      googleMapsUrl({ nome: "Café & Cia", endereco: "R. da Hora, 100", cidade: "Olinda" }),
+    );
+
+    expect(`${url.origin}${url.pathname}`).toBe("https://www.google.com/maps/search/");
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("query")).toBe("Café & Cia, R. da Hora, 100, Olinda - PE");
+  });
+});
+
+describe("instagramUrl", () => {
+  it("devolve a URL do perfil", () => {
+    const instagram = "https://www.instagram.com/cafecomdengo/";
+
+    expect(instagramUrl({ instagram })).toBe(instagram);
+  });
+
+  it.each([
+    ["nulo", null],
+    ["vazio", ""],
+    ["sem protocolo", "instagram.com/cafe"],
+    ["javascript:", "javascript:alert(1)"],
+  ])("%s → sem link", (_, instagram) => {
+    expect(instagramUrl({ instagram })).toBeNull();
   });
 });

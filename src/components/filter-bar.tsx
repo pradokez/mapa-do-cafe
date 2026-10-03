@@ -55,22 +55,22 @@ export function FilterBar({
         onLimpar={onLimparBairros}
       />
       <span aria-hidden="true" className="mx-1.5 h-[22px] w-px flex-none bg-line-strong" />
-      {FAIXAS.map((faixa) => (
-        <button
-          key={faixa}
-          type="button"
-          // "$" seria lido como "dólar": o nome da faixa é o rótulo.
-          aria-label={faixaPrecoNome(faixa)}
-          aria-pressed={filters.precos.includes(faixa)}
-          onClick={() => onTogglePreco(faixa)}
-          className={chipClass(
-            filters.precos.includes(faixa),
-            "min-w-[46px] justify-center px-[13px] font-semibold tracking-[.04em]",
-          )}
-        >
-          {faixa}
-        </button>
-      ))}
+      {FAIXAS.map((faixa) => {
+        const ativo = filters.precos.includes(faixa);
+        return (
+          <button
+            key={faixa}
+            type="button"
+            // "$" seria lido como "dólar": o nome da faixa é o rótulo.
+            aria-label={faixaPrecoNome(faixa)}
+            aria-pressed={ativo}
+            onClick={() => onTogglePreco(faixa)}
+            className={chipClass(ativo, "min-w-[46px] justify-center px-[13px] font-semibold tracking-[.04em]")}
+          >
+            {faixa}
+          </button>
+        );
+      })}
     </div>
   );
 }

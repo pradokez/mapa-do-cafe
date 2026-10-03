@@ -11,15 +11,17 @@ import type { DiaSemana } from "./cafe";
 const FECHADO = "Fechado";
 
 /** Ordem de exibição. Nunca vem de `Object.keys`: o jsonb não preserva ordem. */
-const DIAS: ReadonlyArray<{ dia: DiaSemana; label: string }> = [
-  { dia: "segunda", label: "Segunda" },
-  { dia: "terca", label: "Terça" },
-  { dia: "quarta", label: "Quarta" },
-  { dia: "quinta", label: "Quinta" },
-  { dia: "sexta", label: "Sexta" },
-  { dia: "sabado", label: "Sábado" },
-  { dia: "domingo", label: "Domingo" },
-];
+const ORDEM: readonly DiaSemana[] = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
+
+const LABEL: Record<DiaSemana, string> = {
+  segunda: "Segunda",
+  terca: "Terça",
+  quarta: "Quarta",
+  quinta: "Quinta",
+  sexta: "Sexta",
+  sabado: "Sábado",
+  domingo: "Domingo",
+};
 
 // Abreviação em inglês (estável entre runtimes) → índice com Segunda = 0.
 const INDICE_WEEKDAY: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
@@ -57,9 +59,9 @@ export interface ResumoHorario {
 export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
   const registro = isRegistro(horario) ? horario : {};
   const iHoje = INDICE_WEEKDAY[weekdayEmRecife.format(data)];
-  const dias = DIAS.map(({ dia, label }, i) => ({
+  const dias = ORDEM.map((dia, i) => ({
     dia,
-    label,
+    label: LABEL[dia],
     horario: valorDoDia(registro[dia]),
     hoje: i === iHoje,
   }));
@@ -97,6 +99,5 @@ function valorDoDia(value: unknown): string | null {
 /** Complemento de "Fechado hoje": "abre amanhã" (microcopy fixado) ou "abre sábado". */
 export function proximaAberturaLabel(proxima: "amanha" | DiaSemana): string {
   if (proxima === "amanha") return "abre amanhã";
-  const { label } = DIAS.find(({ dia }) => dia === proxima)!;
-  return `abre ${label.toLocaleLowerCase("pt-BR")}`;
+  return `abre ${LABEL[proxima].toLocaleLowerCase("pt-BR")}`;
 }

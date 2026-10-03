@@ -16,7 +16,6 @@ insert into public.cafes (
   tem_estacionamento,
   permite_coffee_office,
   faixa_preco,
-  comodidades,
   horario_funcionamento,
   instagram,
   telefone,
@@ -38,7 +37,6 @@ select
   tem_estacionamento,
   permite_coffee_office,
   faixa_preco,
-  comodidades,
   horario_funcionamento,
   instagram,
   telefone,
@@ -60,13 +58,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "brunch"
-    ],
     "horario_funcionamento": {
       "segunda": "12:00 – 20:00",
       "terca": "12:00 – 20:00",
@@ -96,10 +87,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "acessivel",
-      "opcoes-veganas"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "10:00 – 19:00",
@@ -129,14 +116,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "opcoes-veganas",
-      "brunch",
-      "kids"
-    ],
     "horario_funcionamento": {
       "segunda": "11:30 – 20:00",
       "terca": "11:30 – 20:00",
@@ -166,11 +145,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "jardim",
-      "livraria",
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "09:00 – 19:00",
       "terca": "09:00 – 19:00",
@@ -200,14 +174,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "jardim",
-      "livraria",
-      "acessivel",
-      "kids",
-      "reservas",
-      "brunch"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "12:00 – 21:00",
@@ -237,14 +203,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "kids",
-      "opcoes-veganas",
-      "torrefacao",
-      "cursos"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "14:00 – 20:00",
@@ -274,13 +232,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "opcoes-veganas",
-      "kids"
-    ],
     "horario_funcionamento": {
       "segunda": "11:00 – 20:30",
       "terca": "11:00 – 20:30",
@@ -310,10 +261,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$",
-    "comodidades": [
-      "24-horas",
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "00:00 – 24:00",
       "terca": "00:00 – 24:00",
@@ -343,13 +290,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "kids",
-      "brunch"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "11:00 – 20:00",
@@ -379,13 +319,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "torrefacao",
-      "opcoes-veganas"
-    ],
     "horario_funcionamento": {
       "segunda": "07:00 – 20:00",
       "terca": "07:00 – 20:00",
@@ -415,11 +348,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "loja"
-    ],
     "horario_funcionamento": {
       "segunda": "11:00 – 20:30",
       "terca": "11:00 – 20:30",
@@ -449,9 +377,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$",
-    "comodidades": [
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "09:00 – 22:00",
       "terca": "09:00 – 22:00",
@@ -481,13 +406,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$$$",
-    "comodidades": [
-      "area-externa",
-      "reservas",
-      "opcoes-veganas",
-      "kids",
-      "manobrista"
-    ],
     "horario_funcionamento": {
       "segunda": "09:00 – 21:00",
       "terca": "09:00 – 22:00",
@@ -517,11 +435,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "reservas",
-      "kids"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "12:00 – 20:00",
@@ -551,10 +464,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "12:00 – 20:30",
       "terca": "12:00 – 20:30",
@@ -584,11 +493,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "livraria",
-      "wifi",
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "09:00 – 20:00",
       "terca": "09:00 – 20:00",
@@ -618,10 +522,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "kids"
-    ],
     "horario_funcionamento": {
       "segunda": "16:00 – 21:00",
       "terca": "16:00 – 21:00",
@@ -651,9 +551,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$",
-    "comodidades": [
-      "wifi"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "10:00 – 20:00",
@@ -683,14 +580,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "kids",
-      "brunch"
-    ],
     "horario_funcionamento": {
       "segunda": "08:00 – 21:00",
       "terca": "08:00 – 21:00",
@@ -720,10 +609,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$",
-    "comodidades": [
-      "torrefacao",
-      "delivery"
-    ],
     "horario_funcionamento": {
       "segunda": "07:00 – 20:00",
       "terca": "07:00 – 20:00",
@@ -753,14 +638,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "kids",
-      "musica-ao-vivo"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "16:00 – 21:00",
@@ -790,12 +667,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "jardim",
-      "reservas",
-      "brunch",
-      "opcoes-veganas"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "09:00 – 20:30",
@@ -825,12 +696,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "opcoes-veganas"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "Fechado",
@@ -860,11 +725,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "acessivel",
-      "torrefacao",
-      "cursos"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "13:00 – 19:00",
@@ -894,9 +754,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "09:30 – 20:00",
       "terca": "09:30 – 20:00",
@@ -926,10 +783,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "12:00 – 20:00",
@@ -959,13 +812,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$$",
-    "comodidades": [
-      "area-externa",
-      "acessivel",
-      "reservas",
-      "delivery",
-      "brunch"
-    ],
     "horario_funcionamento": {
       "segunda": "08:00 – 21:00",
       "terca": "08:00 – 21:00",
@@ -995,12 +841,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": true,
     "permite_coffee_office": true,
     "faixa_preco": "$",
-    "comodidades": [
-      "wifi",
-      "area-externa",
-      "acessivel",
-      "kids"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "Fechado",
@@ -1030,10 +870,6 @@ from jsonb_to_recordset($seed$[
     "tem_estacionamento": false,
     "permite_coffee_office": false,
     "faixa_preco": "$$",
-    "comodidades": [
-      "jardim",
-      "opcoes-veganas"
-    ],
     "horario_funcionamento": {
       "segunda": "Fechado",
       "terca": "15:00 – 21:00",
@@ -1064,7 +900,6 @@ $seed$::jsonb) as c (
   tem_estacionamento boolean,
   permite_coffee_office boolean,
   faixa_preco text,
-  comodidades text[],
   horario_funcionamento jsonb,
   instagram text,
   telefone text,
@@ -1085,7 +920,6 @@ on conflict (id) do update set
   tem_estacionamento = excluded.tem_estacionamento,
   permite_coffee_office = excluded.permite_coffee_office,
   faixa_preco = excluded.faixa_preco,
-  comodidades = excluded.comodidades,
   horario_funcionamento = excluded.horario_funcionamento,
   instagram = excluded.instagram,
   telefone = excluded.telefone,

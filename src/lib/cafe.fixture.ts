@@ -17,7 +17,6 @@ export function cafe(id: string, atributos: Partial<Cafe> = {}): Cafe {
     tem_estacionamento: false,
     permite_coffee_office: false,
     faixa_preco: "$$",
-    comodidades: [],
     horario_funcionamento: {
       segunda: "Fechado",
       terca: "Fechado",

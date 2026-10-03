@@ -31,7 +31,6 @@ const SQL_TYPES: Record<(typeof CAFE_COLUMNS)[number], string> = {
   tem_estacionamento: "boolean",
   permite_coffee_office: "boolean",
   faixa_preco: "text",
-  comodidades: "text[]",
   horario_funcionamento: "jsonb",
   instagram: "text",
   telefone: "text",

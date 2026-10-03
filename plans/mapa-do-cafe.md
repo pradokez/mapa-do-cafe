@@ -21,7 +21,7 @@ Decisões duráveis que valem para todas as fases:
   - identificação: `id`, `slug` (único), `nome`, `bairro`, `bairro_slug`, `endereco`, `cidade` (Recife | Olinda)
   - geo: `lat`, `lng`, `location geography(Point,4326)` derivado de `lat`/`lng` (reservado para a Fase 3)
   - atributos de filtro: `selo_ascape boolean`, `aceita_pets boolean`, `tem_estacionamento boolean`, `permite_coffee_office boolean`, `faixa_preco` (`$` | `$$` | `$$$`)
-  - conteúdo: `comodidades text[]`, `horario_funcionamento jsonb` (7 dias, Segunda → Domingo, valor pode ser `"Fechado"`), `instagram`, `telefone`
+  - conteúdo: `horario_funcionamento jsonb` (7 dias, Segunda → Domingo, valor pode ser `"Fechado"`), `instagram`, `telefone`
   - mídia: `fotos text[]` — vazio na Fase 1, não muda de forma na Fase 2
   - `ativo boolean` — inativo nunca aparece publicamente
 - **Leitura de dados**: o Server Component carrega todos os cafés ativos uma vez (ISR); filtro, busca e hover rodam no cliente.
@@ -257,7 +257,7 @@ Experiência mobile completa (referência 390×844):
 
 ### What to build
 
-Revisão do seed de 29 cafés (27 ativos, Recife e Olinda) carregado na fase 1: conferir endereço, bairro, coordenadas, horário, comodidades, preço e atributos. Passada de acessibilidade em todo o app: rótulos acessíveis nos ícones de comodidade, foco visível na paleta, navegação por teclado e verificação de contraste de `ink-3` sobre `cream` nos tamanhos pequenos. Nota discreta "informações podem mudar" no detalhe. Verificação manual completa em produção.
+Revisão do seed de 29 cafés (27 ativos, Recife e Olinda) carregado na fase 1: conferir endereço, bairro, coordenadas, horário, preço e atributos. Passada de acessibilidade em todo o app: rótulos acessíveis nos ícones de comodidade, foco visível na paleta, navegação por teclado e verificação de contraste de `ink-3` sobre `cream` nos tamanhos pequenos. Nota discreta "informações podem mudar" no detalhe. Verificação manual completa em produção.
 
 ### Acceptance criteria
 

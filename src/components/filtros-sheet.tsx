@@ -1,7 +1,7 @@
 "use client";
 
 import { FILTROS_DE_ATRIBUTO } from "@/components/cafe-atributos";
-import { FilterSheet, SheetOption } from "@/components/filter-sheet";
+import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { alternar, contarFiltrosAtivos, FAIXAS, type CafeFilters } from "@/lib/cafe-filter";
@@ -22,7 +22,7 @@ export function FiltrosSheet({ cafes, filters, onAplicar }: Props) {
   const ativos = contarFiltrosAtivos(filters);
 
   return (
-    <FilterSheet
+    <RascunhoSheet
       titulo="Filtros"
       cafes={cafes}
       filters={filters}
@@ -75,6 +75,6 @@ export function FiltrosSheet({ cafes, filters, onAplicar }: Props) {
           ))}
         </>
       )}
-    </FilterSheet>
+    </RascunhoSheet>
   );
 }

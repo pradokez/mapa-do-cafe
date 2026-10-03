@@ -17,16 +17,16 @@ function subscribe(onChange: () => void) {
 
 type Props = Omit<React.ComponentProps<typeof CafeMap>, "variant" | "className" | "previewPlacement"> & {
   /** Visão "mapa" do mobile ligada. */
-  noMobile: boolean;
+  visivelNoMobile: boolean;
 };
 
-export function HomeMap({ noMobile, ...props }: Props) {
+export function HomeMap({ visivelNoMobile, ...props }: Props) {
   const isDesktop = useSyncExternalStore(
     subscribe,
     () => window.matchMedia(DESKTOP).matches,
     () => false,
   );
 
-  if (!isDesktop && !noMobile) return null;
+  if (!isDesktop && !visivelNoMobile) return null;
   return <CafeMap {...props} previewPlacement={isDesktop ? "pin" : "bottom"} className="h-full" />;
 }

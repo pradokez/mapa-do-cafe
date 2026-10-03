@@ -23,7 +23,7 @@ type Props = {
  * URL, e "Ver N cafés" já conta o resultado do rascunho. Só o botão aplica
  * (uma entrada no histórico); Esc ou toque no fundo descartam.
  */
-export function FilterSheet({ titulo, trigger, cafes, filters, onAplicar, children }: Props) {
+export function RascunhoSheet({ titulo, trigger, cafes, filters, onAplicar, children }: Props) {
   const [aberto, setAberto] = useState(false);
   const [rascunho, setRascunho] = useState(filters);
 

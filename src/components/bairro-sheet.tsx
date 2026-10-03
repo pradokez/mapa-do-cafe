@@ -1,7 +1,7 @@
 "use client";
 
 import { chipClass } from "@/components/filter-chip";
-import { FilterSheet, SheetOption } from "@/components/filter-sheet";
+import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { ChevronDownIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { alternar, bairroChipLabel, type BairroOpcao, type CafeFilters } from "@/lib/cafe-filter";
@@ -23,7 +23,7 @@ export function BairroSheet({ cafes, bairros, filters, onAplicar }: Props) {
   const ativo = filters.bairros.length > 0;
 
   return (
-    <FilterSheet
+    <RascunhoSheet
       titulo="Bairro"
       cafes={cafes}
       filters={filters}
@@ -58,6 +58,6 @@ export function BairroSheet({ cafes, bairros, filters, onAplicar }: Props) {
           ))}
         </>
       )}
-    </FilterSheet>
+    </RascunhoSheet>
   );
 }

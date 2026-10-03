@@ -79,7 +79,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
           {/* Fixo: só a coluna da lista rola. No mobile, o mapa em tela cheia da visão "mapa". */}
           <div className={`bg-map-bg lg:block ${view === "lista" ? "hidden" : ""}`}>
             <HomeMap
-              noMobile={view === "mapa"}
+              visivelNoMobile={view === "mapa"}
               cafes={filtrados}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}

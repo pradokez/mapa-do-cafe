@@ -23,18 +23,25 @@ const LIFT_ON_HOVER =
  */
 export type CardHighlight = "lifted" | "linked";
 
+/**
+ * Card da lista. Abaixo de `lg`, o compacto do mobile (thumb lateral 92×92,
+ * selo em pílula junto dos ícones); a partir de `lg`, foto 16/10 em cima.
+ */
 export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHighlight }) {
   const [photo] = resolveCafePhotos(cafe);
   const atributos = atributosDo(cafe);
 
   return (
-    <Link href={`/cafes/${cafe.slug}`} className="block rounded-2xl">
+    <Link href={`/cafes/${cafe.slug}`} className="block h-full rounded-[14px] lg:rounded-2xl">
       <article
-        className={`flex flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
+        className={`flex h-full gap-3 rounded-[14px] border bg-white p-2 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none lg:flex-col lg:rounded-2xl lg:px-2.5 lg:pb-3.5 lg:pt-2.5 ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
       >
-        <CafePhotoFrame photo={photo} className="aspect-[16/10] rounded-[11px]">
+        <CafePhotoFrame
+          photo={photo}
+          className="size-[92px] flex-none rounded-[10px] lg:aspect-[16/10] lg:size-auto lg:rounded-[11px]"
+        >
           {cafe.selo_ascape && (
-            <span className="absolute left-2.5 top-2.5 inline-flex h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)]">
+            <span className="absolute left-2.5 top-2.5 hidden h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)] lg:inline-flex">
               <CoffeeIcon size={13} strokeWidth={2.2} className="text-terracotta" />
               Recife Coffee
             </span>
@@ -42,28 +49,34 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
           {photo.kind === "placeholder" && (
             <span
               aria-hidden="true"
-              className="absolute bottom-[9px] left-[11px] text-[10.5px] uppercase tracking-[.08em] text-espresso/50"
+              className="absolute bottom-[9px] left-[11px] hidden text-[10.5px] uppercase tracking-[.08em] text-espresso/50 lg:block"
             >
               foto · {cafe.nome}
             </span>
           )}
         </CafePhotoFrame>
 
-        <div className="flex flex-col gap-1.5 px-1">
-          <div className="flex items-baseline justify-between gap-2.5">
-            <h2 className="text-pretty font-display text-[19px] leading-[1.2] text-espresso">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 pb-0.5 pr-1 pt-[3px] lg:gap-1.5 lg:px-1 lg:py-0">
+          <div className="flex items-baseline justify-between gap-2 lg:gap-2.5">
+            <h2 className="line-clamp-2 text-pretty font-display text-[16.5px] leading-[1.2] text-espresso lg:line-clamp-none lg:text-[19px]">
               {cafe.nome}
             </h2>
-            <span className="flex-none text-[13px] font-semibold tracking-[.05em] text-espresso">
+            <span className="flex-none text-xs font-semibold tracking-[.05em] text-espresso lg:text-[13px]">
               <FaixaPrecoSimbolos faixa={cafe.faixa_preco} />
               <span className="sr-only">Faixa de preço: {faixaPrecoNome(cafe.faixa_preco)}</span>
             </span>
           </div>
-          <span className="text-[13px] text-ink-3">
+          <span className="text-[12.5px] text-ink-3 lg:text-[13px]">
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
-          <ul className="mt-1 flex min-h-4 items-center gap-3 text-ink-2">
+          <ul className="mt-auto flex min-h-4 items-center gap-2.5 text-ink-2 lg:mt-1 lg:gap-3">
+            {cafe.selo_ascape && (
+              <li className="inline-flex h-[22px] items-center gap-1 rounded-full bg-seal-bg px-2 text-[11px] font-semibold text-seal-fg lg:hidden">
+                <CoffeeIcon size={11} strokeWidth={2.4} />
+                Recife Coffee
+              </li>
+            )}
             {atributos.map(({ key, label, Icon }) => (
               <li key={key} title={label} className="inline-flex">
                 <Icon />

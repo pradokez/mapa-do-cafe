@@ -21,18 +21,37 @@ describe("seed do Supabase", () => {
     );
   });
 
-  it("carrega os 29 cafés da issue #3: 27 ativos, 3 em Olinda, ids e slugs únicos", () => {
-    const cafes: Cafe[] = JSON.parse(read("supabase/seed/cafes.json"));
+  it("carrega os 29 cafés: 27 ativos, 3 em Olinda, ids e slugs únicos", () => {
+    const todos = cafes();
 
-    expect(cafes).toHaveLength(29);
-    expect(new Set(cafes.map((c) => c.id)).size).toBe(29);
-    expect(new Set(cafes.map((c) => c.slug)).size).toBe(29);
-    expect(cafes.filter((c) => c.ativo)).toHaveLength(27);
-    expect(cafes.filter((c) => !c.ativo).map((c) => c.slug).sort()).toEqual([
+    expect(todos).toHaveLength(29);
+    expect(new Set(todos.map((c) => c.id)).size).toBe(29);
+    expect(new Set(todos.map((c) => c.slug)).size).toBe(29);
+    expect(todos.filter((c) => c.ativo)).toHaveLength(27);
+    expect(todos.filter((c) => !c.ativo).map((c) => c.slug).sort()).toEqual([
       "castigliani",
       "versado-derby",
     ]);
-    expect(cafes.filter((c) => c.cidade === "Olinda")).toHaveLength(3);
+    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(3);
+  });
+
+  it("todo café tem coordenadas dentro de Recife/Olinda", () => {
+    const fora = cafes().filter(
+      ({ lat, lng }) => !(lat > -8.2 && lat < -7.95 && lng > -35.05 && lng < -34.8),
+    );
+
+    expect(fora.map((c) => c.slug)).toEqual([]);
+  });
+
+  it("todo café tem os 7 dias de horário, cada um 'Fechado' ou turnos 'HH:MM – HH:MM'", () => {
+    const turno = "\\d{2}:\\d{2} – \\d{2}:\\d{2}";
+    const valido = new RegExp(`^(Fechado|${turno}(, ${turno})*)$`);
+    const dias = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
+
+    for (const { slug, horario_funcionamento: h } of cafes()) {
+      expect(Object.keys(h).sort(), slug).toEqual([...dias].sort());
+      for (const dia of dias) expect(h[dia as keyof typeof h], `${slug}.${dia}`).toMatch(valido);
+    }
   });
 
   it("nenhum café ativo fica a menos de 30 m de outro: um pin esconderia o outro no mapa", () => {

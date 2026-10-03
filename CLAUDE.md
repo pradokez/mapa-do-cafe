@@ -118,7 +118,7 @@ Ida e volta precisa ser estável: estado → params → estado devolve o mesmo e
 
 **Barra de filtros (#38):** só os dois selos, "Tem estacionamento", bairro e preço viram chip. No desktop, os outros cinco booleanos (pets, coffee office, PcD, vegetariano, ar-condicionado) ficam no dropdown **"Mais filtros"** — checkbox que aplica na hora, como o de bairro; rótulo `Mais filtros` → `Mais filtros · N`. No mobile não há "Mais filtros": o sheet do botão de filtros tem todos.
 
-**Card desktop (#42, design v2):** selos em pílula sobre a foto; comodidades em **fichas redondas** de 28 px (`hover-soft`, ícone 15 px `ink-2`, gap 6 px), na ordem fixa de `cafe-atributos`. As 6 cabem numa linha (198 px), de **altura fixa** e reservada mesmo vazia — todos os cards da grade têm a mesma altura. Para caber em toda largura, a grade tem **1 coluna de 1024 a 1179 px** e 2 a partir de 1180 px (abaixo disso, meia coluna dá ~163 px úteis).
+**Card desktop (#42, design v2):** selos em pílula sobre a foto; comodidades em **fichas redondas** de 28 px (`hover-soft`, ícone 15 px `ink-2`, gap 6 px), na ordem fixa de `cafe-atributos`. As 6 cabem numa linha (198 px), de **altura fixa** e reservada mesmo vazia — todos os cards da grade têm a mesma altura. Para caber em toda largura, a grade tem **1 coluna de 1024 a 1219 px** e 2 a partir de 1220 px (em 1024 px, meia coluna dá ~163 px úteis; 1180 px bastaria com barra de rolagem sobreposta, mas a permanente do Windows come ~15 px).
 
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
 

@@ -58,9 +58,10 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
       {cafes.length === 0 ? (
         <EmptyState onLimpar={limpar} />
       ) : (
-        // De `lg` até 1180 px, 1 coluna: abaixo disso as 6 fichas de comodidade
-        // (198 px) não cabem numa linha num card de meia coluna.
-        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:gap-[18px] min-[1180px]:grid-cols-2">
+        // De `lg` até 1220 px, 1 coluna: abaixo disso as 6 fichas de comodidade
+        // (198 px) não cabem numa linha num card de meia coluna — 1180 px bastaria
+        // com barra de rolagem sobreposta, mas não com a permanente (~15 px).
+        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:gap-[18px] min-[1220px]:grid-cols-2">
           {cafes.map((cafe) => (
             <li
               key={cafe.id}

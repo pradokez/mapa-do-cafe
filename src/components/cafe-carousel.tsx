@@ -59,8 +59,9 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
             aria-roledescription="slide"
             aria-label={`${k + 1} de ${total}`}
             aria-hidden={k !== index}
-            className="flex h-full flex-[0_0_100%] items-end px-[26px] py-[22px]"
+            className="flex h-full flex-[0_0_100%] items-end px-[26px] pb-10 pt-[22px] lg:pb-[22px]"
           >
+            {/* Abaixo de lg a legenda sobe acima dos dots: na largura do celular, os dois se encostariam. */}
             {photo.kind === "placeholder" && (
               <span aria-hidden="true" className="text-[11.5px] uppercase tracking-[.1em] text-espresso/55">
                 foto · {nome}

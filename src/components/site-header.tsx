@@ -29,7 +29,7 @@ export function SiteHeader({ children, actions }: Props) {
   }
 
   return (
-    <header className="grid flex-none grid-cols-[1fr_auto] items-center gap-x-3 gap-y-3 px-[18px] pb-2.5 pt-[22px] lg:h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:gap-0 lg:border-b lg:border-line lg:px-7 lg:py-0">
+    <header className="grid flex-none grid-cols-[1fr_auto] items-center gap-3 px-[18px] pb-2.5 pt-[22px] lg:h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:gap-0 lg:border-b lg:border-line lg:px-7 lg:py-0">
       {logo}
       {actions && <div className="justify-self-end lg:hidden">{actions}</div>}
       {children && <div className="col-span-2 lg:col-span-1">{children}</div>}

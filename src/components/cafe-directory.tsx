@@ -35,7 +35,9 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
     <main className="flex min-h-0 flex-1 flex-col">
       <FilterBar filters={filters} onToggle={toggle} />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[45%_55%]">
-        <div className="lg:overflow-y-auto">
+        {/* relative: containing block dos sr-only (absolute) dos cards — sem
+            isso eles escapam do scroll e esticam a página além da viewport. */}
+        <div className="relative lg:overflow-y-auto">
           <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
           <CafeList
             cafes={filtrados}

@@ -16,6 +16,8 @@ function publicClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+const SELECT_CAFE = CAFE_COLUMNS.join(", ");
+
 /** Tag do cache da listagem pública — o admin a invalida (`revalidarCafe`). */
 export const CAFES_TAG = "cafes";
 
@@ -36,7 +38,7 @@ export const listCafesAtivos = unstable_cache(
 async function fetchCafesAtivos(): Promise<Cafe[]> {
   const { data, error } = await publicClient()
     .from("cafes")
-    .select(CAFE_COLUMNS.join(", "))
+    .select(SELECT_CAFE)
     .eq("ativo", true)
     .overrideTypes<Cafe[], { merge: false }>();
 
@@ -50,7 +52,7 @@ async function fetchCafesAtivos(): Promise<Cafe[]> {
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   const { data, error } = await publicClient()
     .from("cafes")
-    .select(CAFE_COLUMNS.join(", "))
+    .select(SELECT_CAFE)
     .eq("slug", slug)
     .eq("ativo", true)
     .maybeSingle()
@@ -70,7 +72,7 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
 export async function listTodosCafes(): Promise<Cafe[]> {
   const { data, error } = await createSessionClient()
     .from("cafes")
-    .select(CAFE_COLUMNS.join(", "))
+    .select(SELECT_CAFE)
     .overrideTypes<Cafe[], { merge: false }>();
 
   if (error) {
@@ -85,7 +87,7 @@ export async function getCafeById(id: string): Promise<Cafe | null> {
 
   const { data, error } = await createSessionClient()
     .from("cafes")
-    .select(CAFE_COLUMNS.join(", "))
+    .select(SELECT_CAFE)
     .eq("id", id)
     .maybeSingle()
     .overrideTypes<Cafe, { merge: false }>();

@@ -77,7 +77,8 @@ const PIN_SCALE = {
 const LABEL = { full: "Mapa dos cafés", mini: "Mapa com a localização do café" };
 
 // O canvas ocupa o contêiner inteiro: o anel de foco por fora seria cortado.
-// Os controles do Mapbox (atribuição) trocam o brilho azul dele pelo anel da paleta.
+// Os controles do Mapbox (atribuição) trocam o brilho azul dele pelo anel da paleta;
+// `!` porque o seletor do CSS do Mapbox empata em especificidade e a ordem de carga não é garantida.
 const FOCO_NA_PALETA =
   "[&_canvas:focus-visible]:-outline-offset-2 [&_.mapboxgl-ctrl_button:focus-visible]:!shadow-none [&_.mapboxgl-ctrl_button:focus-visible]:!outline [&_.mapboxgl-ctrl_button:focus-visible]:!outline-2 [&_.mapboxgl-ctrl_button:focus-visible]:!outline-terracotta";
 

@@ -12,9 +12,11 @@ type Props = {
   selectedId?: string | null;
   /** Hover ou foco num card (`null` ao sair). */
   onHover?: (id: string | null) => void;
+  /** Presente só com filtro ativo: mostra "Limpar filtros" ao lado do contador. */
+  onLimpar?: () => void;
 };
 
-export function CafeList({ cafes, hovered = null, selectedId = null, onHover }: Props) {
+export function CafeList({ cafes, hovered = null, selectedId = null, onHover, onLimpar }: Props) {
   const highlightOf = (id: string): CardHighlight | undefined => {
     if (id === selectedId || (id === hovered?.id && hovered.source === "pin")) return "linked";
     if (id === hovered?.id) return "lifted";
@@ -22,9 +24,18 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover }: 
 
   return (
     <section aria-label="Cafés" className="px-7 pb-8 pt-5">
-      <p className="mb-4 flex min-h-6 items-center text-[13px] text-ink-3">
-        {contadorLabel(cafes.length)}
-      </p>
+      <div className="mb-4 flex min-h-6 items-center justify-between gap-4">
+        <p aria-live="polite" className="text-[13px] text-ink-3">{contadorLabel(cafes.length)}</p>
+        {onLimpar && (
+          <button
+            type="button"
+            onClick={onLimpar}
+            className="text-[13px] font-medium text-espresso underline underline-offset-[3px]"
+          >
+            Limpar filtros
+          </button>
+        )}
+      </div>
       <ul className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
         {cafes.map((cafe) => (
           <li

@@ -35,8 +35,8 @@ export function Sheet({ onOpenChange, ...props }: ComponentPropsWithoutRef<typeo
 
 export const SheetTrigger = DialogPrimitive.Trigger;
 
-/** Marca as áreas de onde o arrasto pode começar. */
-const ZONA_DE_ARRASTO = "data-sheet-arrasto";
+/** Áreas de onde o arrasto pode começar: a alça e o título (`data-sheet-arrasto`). */
+const ZONA_DE_ARRASTO = "[data-sheet-arrasto]";
 
 export const SheetTitle = forwardRef<
   ElementRef<typeof DialogPrimitive.Title>,
@@ -44,7 +44,7 @@ export const SheetTitle = forwardRef<
 >(({ className = "", ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    {...{ [ZONA_DE_ARRASTO]: "" }}
+    data-sheet-arrasto=""
     className={`mb-1.5 touch-none font-display text-[21px] text-espresso ${className}`}
     {...props}
   />
@@ -72,7 +72,7 @@ export const SheetContent = forwardRef<
   const [puxado, setPuxado] = useState<{ dy: number; altura: number } | null>(null);
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (arrasto.current || e.button !== 0 || !(e.target as Element).closest(`[${ZONA_DE_ARRASTO}]`)) return;
+    if (arrasto.current || e.button !== 0 || !(e.target as Element).closest(ZONA_DE_ARRASTO)) return;
     const altura = e.currentTarget.getBoundingClientRect().height;
     arrasto.current = { pointerId: e.pointerId, inicioY: e.clientY, altura, y: e.clientY, t: performance.now(), velocidade: 0 };
     e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -119,7 +119,7 @@ export const SheetContent = forwardRef<
         {/* Alça 40×4 com área de toque de 24 px de altura, colada ao título (também arrastável). */}
         <div
           aria-hidden="true"
-          {...{ [ZONA_DE_ARRASTO]: "" }}
+          data-sheet-arrasto=""
           className="-mx-[18px] -mt-2.5 flex flex-none touch-none justify-center py-2.5"
         >
           <span className="h-1 w-10 rounded-full bg-chip-line" />

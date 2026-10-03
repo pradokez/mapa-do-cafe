@@ -53,16 +53,20 @@ describe("FiltrosSheet", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("oferece o selo e os três atributos, mas não o bairro (que tem sheet próprio)", async () => {
+  it("oferece os dois selos e os seis atributos, mas não o bairro (que tem sheet próprio)", async () => {
     renderSheet();
     await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
 
     const opcoes = screen.getAllByRole("checkbox").map((el) => el.textContent?.trim());
     expect(opcoes).toEqual([
       "Recife Coffee",
+      "Eu Amo Café",
       "Aceita pets",
       "Tem estacionamento",
       "Permite coffee office",
+      "Acessível para PcD",
+      "Opções vegetarianas",
+      "Ar-condicionado",
       "$ Econômico",
       "$$ Moderado",
       "$$$ Elevado",

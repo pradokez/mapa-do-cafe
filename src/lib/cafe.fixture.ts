@@ -13,9 +13,13 @@ export function cafe(id: string, atributos: Partial<Cafe> = {}): Cafe {
     lat: -8.05,
     lng: -34.9,
     selo_ascape: false,
+    selo_eu_amo_cafe: false,
     aceita_pets: false,
     tem_estacionamento: false,
     permite_coffee_office: false,
+    acessivel_pcd: false,
+    opcoes_vegetarianas: false,
+    tem_ar_condicionado: null,
     faixa_preco: "$$",
     horario_funcionamento: {
       segunda: "Fechado",

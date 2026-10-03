@@ -1,7 +1,8 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
 import { BairroSheet } from "@/components/bairro-sheet";
-import { FILTROS_DE_ATRIBUTO } from "@/components/cafe-atributos";
+import { FILTROS_DA_BARRA } from "@/components/cafe-atributos";
 import { chipClass } from "@/components/filter-chip";
+import { MaisFiltrosDropdown } from "@/components/mais-filtros-dropdown";
 import type { Cafe, FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import { faixaPrecoNome } from "@/lib/format";
@@ -20,8 +21,9 @@ type Props = {
 
 /**
  * Barra de filtros da home: chips em pílula com scroll lateral, sem quebrar
- * linha. Desktop: 64 px, bairro em dropdown. Mobile: chips de 36 px, bairro
- * em bottom sheet.
+ * linha — os selos e o estacionamento; os outros atributos ficam em "Mais
+ * filtros" (desktop) e no sheet do botão de filtros (mobile). Desktop: 64 px,
+ * bairro em dropdown. Mobile: chips de 36 px, bairro em bottom sheet.
  */
 export function FilterBar({
   cafes,
@@ -42,7 +44,7 @@ export function FilterBar({
       onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
       className="flex flex-none scroll-px-[18px] items-center gap-[7px] overflow-x-auto border-b border-line px-[18px] pb-3 pt-1.5 [scrollbar-width:none] lg:h-16 lg:scroll-px-7 lg:gap-2 lg:px-7 lg:py-0 [&::-webkit-scrollbar]:hidden"
     >
-      {FILTROS_DE_ATRIBUTO.map(({ filtro, label, curto, Icon }) => (
+      {FILTROS_DA_BARRA.map(({ filtro, label, curto, Icon }) => (
         <button
           key={filtro}
           type="button"
@@ -64,6 +66,7 @@ export function FilterBar({
         onToggle={onToggleBairro}
         onLimpar={onLimparBairros}
       />
+      <MaisFiltrosDropdown filters={filters} onToggle={onToggle} />
       <span aria-hidden="true" className="mx-1.5 hidden h-[22px] w-px flex-none bg-line-strong lg:block" />
       {FAIXAS.map((faixa) => {
         const ativo = filters.precos.includes(faixa);

@@ -1,10 +1,9 @@
 import Link from "next/link";
 
-import { atributosDo } from "@/components/cafe-atributos";
+import { atributosDo, selosDo } from "@/components/cafe-atributos";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { Distancia } from "@/components/distancia";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
-import { CoffeeIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
@@ -29,6 +28,7 @@ export type CardHighlight = "lifted" | "linked";
  */
 export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHighlight }) {
   const [photo] = resolveCafePhotos(cafe);
+  const selos = selosDo(cafe);
   const atributos = atributosDo(cafe);
 
   return (
@@ -40,10 +40,17 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
           photo={photo}
           className="size-[92px] flex-none rounded-[10px] lg:aspect-[16/10] lg:size-auto lg:rounded-[11px]"
         >
-          {cafe.selo_ascape && (
-            <span className="absolute left-2.5 top-2.5 hidden h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)] lg:inline-flex">
-              <CoffeeIcon size={13} strokeWidth={2.2} className="text-terracotta" />
-              Recife Coffee
+          {selos.length > 0 && (
+            <span className="absolute left-2.5 top-2.5 hidden flex-col items-start gap-1.5 lg:flex">
+              {selos.map(({ key, label, Icon }) => (
+                <span
+                  key={key}
+                  className="inline-flex h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)]"
+                >
+                  <Icon size={13} strokeWidth={2.2} className="text-terracotta" />
+                  {label}
+                </span>
+              ))}
             </span>
           )}
           {photo.kind === "placeholder" && (
@@ -77,13 +84,16 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
-          <ul className="mt-auto flex min-h-4 items-center gap-2.5 text-ink-2 lg:gap-3 lg:pt-1">
-            {cafe.selo_ascape && (
-              <li className="inline-flex h-[22px] items-center gap-1 rounded-full bg-seal-bg px-2 text-[11px] font-semibold text-seal-fg lg:hidden">
-                <CoffeeIcon size={11} strokeWidth={2.4} />
-                Recife Coffee
+          <ul className="mt-auto flex min-h-4 flex-wrap items-center gap-x-2.5 gap-y-1.5 text-ink-2 lg:gap-3 lg:pt-1">
+            {selos.map(({ key, label, Icon }) => (
+              <li
+                key={key}
+                className="inline-flex h-[22px] items-center gap-1 rounded-full bg-seal-bg px-2 text-[11px] font-semibold text-seal-fg lg:hidden"
+              >
+                <Icon size={11} strokeWidth={2.4} />
+                {label}
               </li>
-            )}
+            ))}
             {atributos.map(({ key, label, Icon }) => (
               <li key={key} title={label} className="inline-flex">
                 <Icon />

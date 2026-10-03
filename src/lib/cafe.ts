@@ -2,7 +2,7 @@
 
 export type FaixaPreco = "$" | "$$" | "$$$";
 
-export type Cidade = "Recife" | "Olinda";
+export type Cidade = "Recife" | "Olinda" | "Jaboatão dos Guararapes";
 
 export type DiaSemana =
   | "segunda"
@@ -26,9 +26,15 @@ export interface Cafe {
   lat: number;
   lng: number;
   selo_ascape: boolean;
+  /** Participante do festival Eu Amo Café (6ª edição, 2026). */
+  selo_eu_amo_cafe: boolean;
   aceita_pets: boolean;
   tem_estacionamento: boolean;
   permite_coffee_office: boolean;
+  acessivel_pcd: boolean;
+  opcoes_vegetarianas: boolean;
+  /** `null` = sem informação: não conta como "tem". */
+  tem_ar_condicionado: boolean | null;
   faixa_preco: FaixaPreco;
   /** "HH:MM – HH:MM", turnos separados por ", ", ou "Fechado". */
   horario_funcionamento: Record<DiaSemana, string>;
@@ -53,9 +59,13 @@ export const CAFE_COLUMNS = [
   "lat",
   "lng",
   "selo_ascape",
+  "selo_eu_amo_cafe",
   "aceita_pets",
   "tem_estacionamento",
   "permite_coffee_office",
+  "acessivel_pcd",
+  "opcoes_vegetarianas",
+  "tem_ar_condicionado",
   "faixa_preco",
   "horario_funcionamento",
   "instagram",

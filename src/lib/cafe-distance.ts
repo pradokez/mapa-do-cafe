@@ -40,9 +40,8 @@ export function distanciaLabel(origem: Coordenadas | null, destino: Coordenadas)
 
 /**
  * Do mais perto ao mais longe, sem mutar a entrada. Sem origem, a ordem de
- * entrada fica como está. Empate mantém a ordem de entrada (sort estável) —
- * a alfabética do `cafe-repository` — e item sem coordenada válida vai para
- * o fim.
+ * entrada fica como está; empate também a mantém (sort estável), e item sem
+ * coordenada válida vai para o fim.
  */
 export function ordenarPorDistancia<T extends Coordenadas>(
   itens: readonly T[],

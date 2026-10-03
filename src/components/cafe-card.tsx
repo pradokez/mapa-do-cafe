@@ -6,7 +6,7 @@ import { DICA, DICA_ACIMA } from "@/components/dica";
 import { Distancia } from "@/components/distancia";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
 import { MaisComodidades } from "@/components/mais-comodidades";
-import type { Cafe } from "@/lib/cafe";
+import { caminhoDoCafe, type Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
 
@@ -105,7 +105,7 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
             className="line-clamp-2 text-pretty font-display text-[16.5px] leading-[1.2] text-espresso lg:min-h-[2.4em] lg:text-[19px]"
           >
             <Link
-              href={`/cafes/${cafe.slug}`}
+              href={caminhoDoCafe(cafe)}
               className="after:absolute after:inset-0 after:rounded-[13px] focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-terracotta lg:after:rounded-[15px]"
             >
               {cafe.nome}

@@ -7,7 +7,9 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type { Map as MapboxMap, Marker } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 
+import { CafeMapPreview } from "@/components/cafe-map-preview";
 import type { Cafe } from "@/lib/cafe";
+import { placePreview } from "@/lib/map-preview-placement";
 
 type Props = {
   cafes: Cafe[];
@@ -17,8 +19,12 @@ type Props = {
   selectedId?: string | null;
   onHover?: (id: string | null) => void;
   onSelect?: (id: string) => void;
+  /** Fecha o preview do café selecionado (X, Esc ou clique no mapa vazio). */
+  onClose?: () => void;
   className?: string;
 };
+
+type PreviewAnchor = { pin: { x: number; y: number }; size: { width: number; height: number } };
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -83,6 +89,7 @@ export function CafeMap({
   selectedId = null,
   onHover,
   onSelect,
+  onClose,
   className = "",
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -91,8 +98,8 @@ export function CafeMap({
   const mapboxRef = useRef<typeof import("mapbox-gl").default | null>(null);
 
   // Callbacks mais recentes sem recriar os pins a cada render do pai.
-  const handlers = useRef({ onHover, onSelect });
-  handlers.current = { onHover, onSelect };
+  const handlers = useRef({ onHover, onSelect, onClose });
+  handlers.current = { onHover, onSelect, onClose };
 
   // Enquadramento só na criação: filtrar não deve fazer o mapa pular.
   const initialCafes = useRef(cafes);
@@ -194,10 +201,75 @@ export function CafeMap({
     });
   }, [map, cafes, hoveredId, selectedId]);
 
+  // Preview só no mapa navegável da home: o mini mapa usa `selectedId` só para pintar o pin.
+  const previewCafe =
+    variant === "full" && onSelect ? cafes.find((c) => c.id === selectedId) : undefined;
+  const [anchor, setAnchor] = useState<PreviewAnchor | null>(null);
+
+  // O preview acompanha o pin em pan e zoom; a regra de virar é recalculada a cada quadro.
+  useEffect(() => {
+    if (!map || !previewCafe) {
+      setAnchor(null);
+      return;
+    }
+    const { lng, lat } = previewCafe;
+    const update = () => {
+      const { x, y } = map.project([lng, lat]);
+      const { clientWidth: width, clientHeight: height } = map.getContainer();
+      setAnchor({ pin: { x, y }, size: { width, height } });
+    };
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    return () => {
+      map.off("move", update);
+      map.off("resize", update);
+    };
+  }, [map, previewCafe]);
+
+  // Clique no mapa vazio fecha o preview. O Mapbox só dispara `click` sem
+  // arrasto; clique em pin também chega aqui e é ignorado.
+  useEffect(() => {
+    if (!map) return;
+    const close = (e: { originalEvent: MouseEvent }) => {
+      if ((e.originalEvent.target as Element | null)?.closest(".mapboxgl-marker")) return;
+      handlers.current.onClose?.();
+    };
+    map.on("click", close);
+    return () => {
+      map.off("click", close);
+    };
+  }, [map]);
+
+  // X e Esc devolvem o foco ao pin que abriu o preview.
+  function closePreview() {
+    if (!previewCafe) return;
+    markers.current.get(previewCafe.id)?.getElement().focus();
+    onClose?.();
+  }
+
+  const placement = anchor && placePreview(anchor.pin, anchor.size);
+
   return (
-    <div className={`relative overflow-hidden bg-map-bg ${className}`}>
+    <div
+      className={`relative overflow-hidden bg-map-bg ${className}`}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") closePreview();
+      }}
+    >
       {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
       <div ref={containerRef} className="size-full" />
+      {previewCafe && placement && (
+        <CafeMapPreview
+          cafe={previewCafe}
+          onClose={closePreview}
+          style={{
+            left: placement.left,
+            top: placement.y,
+            transform: placement.placement === "above" ? "translateY(-100%)" : undefined,
+          }}
+        />
+      )}
       {variant === "full" && map && (
         <div className="absolute right-[18px] top-[18px] flex flex-col overflow-hidden rounded-[10px] border border-map-control-line bg-map-control">
           <button
@@ -220,7 +292,7 @@ export function CafeMap({
 function createPinElement(
   cafe: Cafe,
   variant: "full" | "mini",
-  handlers: { current: Pick<Props, "onHover" | "onSelect"> },
+  handlers: { current: Pick<Props, "onHover" | "onSelect" | "onClose"> },
 ): HTMLElement {
   const interactive = Boolean(handlers.current.onSelect);
   const el = document.createElement(interactive ? "button" : "div");
@@ -232,8 +304,11 @@ function createPinElement(
   } else {
     el.setAttribute("role", "img");
   }
-  el.addEventListener("mouseenter", () => handlers.current.onHover?.(cafe.id));
-  el.addEventListener("mouseleave", () => handlers.current.onHover?.(null));
+  // Foco equivale a hover: quem navega por teclado também vê o card destacado.
+  for (const [on, off] of [["mouseenter", "mouseleave"], ["focus", "blur"]] as const) {
+    el.addEventListener(on, () => handlers.current.onHover?.(cafe.id));
+    el.addEventListener(off, () => handlers.current.onHover?.(null));
+  }
 
   const inner = document.createElement("span");
   inner.className = `block origin-bottom drop-shadow-[0_4px_6px_rgba(0,0,0,.5)] transition-transform duration-[180ms] ${PIN_SCALE[variant]}`;

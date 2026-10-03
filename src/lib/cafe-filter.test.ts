@@ -28,10 +28,24 @@ describe("filtrarCafes", () => {
     ["ascape", "selo_ascape"],
     ["estacionamento", "tem_estacionamento"],
     ["coffeeOffice", "permite_coffee_office"],
+    ["euAmoCafe", "selo_eu_amo_cafe"],
+    ["pcd", "acessivel_pcd"],
+    ["vegetariano", "opcoes_vegetarianas"],
+    ["arCondicionado", "tem_ar_condicionado"],
   ] as const)("filtro %s deixa só os cafés com %s", (filtro, atributo) => {
     const cafes = [cafe("a"), cafe("b", { [atributo]: true }), cafe("c")];
 
     expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, [filtro]: true }))).toEqual(["b"]);
+  });
+
+  it("ar-condicionado sem informação (null) não passa no filtro, igual a false", () => {
+    const cafes = [
+      cafe("sim", { tem_ar_condicionado: true }),
+      cafe("nao", { tem_ar_condicionado: false }),
+      cafe("sem-info", { tem_ar_condicionado: null }),
+    ];
+
+    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, arCondicionado: true }))).toEqual(["sim"]);
   });
 
   it("filtros combinados retornam a interseção, não a união", () => {
@@ -169,14 +183,21 @@ describe("filtrarCafes — busca", () => {
 
 describe("parseFilters", () => {
   it("lê cada param `=true` como filtro ligado", () => {
-    const params = new URLSearchParams("ascape=true&pets=true&estacionamento=true&coffee_office=true");
+    const params = new URLSearchParams(
+      "ascape=true&eu_amo_cafe=true&pets=true&estacionamento=true&coffee_office=true" +
+        "&pcd=true&vegetariano=true&ar_condicionado=true",
+    );
 
     expect(parseFilters(params)).toEqual({
       ...FILTROS_VAZIOS,
       ascape: true,
+      euAmoCafe: true,
       pets: true,
       estacionamento: true,
       coffeeOffice: true,
+      pcd: true,
+      vegetariano: true,
+      arCondicionado: true,
     });
   });
 
@@ -267,12 +288,19 @@ describe("serializeFilters", () => {
   });
 
   // As 16 combinações dos 4 booleanos.
-  const combinacoes: CafeFilters[] = Array.from({ length: 16 }, (_, i) => ({
+  const booleanos = [
+    "ascape",
+    "euAmoCafe",
+    "pets",
+    "estacionamento",
+    "coffeeOffice",
+    "pcd",
+    "vegetariano",
+    "arCondicionado",
+  ] as const;
+  const combinacoes: CafeFilters[] = Array.from({ length: 2 ** booleanos.length }, (_, i) => ({
     ...FILTROS_VAZIOS,
-    ascape: Boolean(i & 1),
-    pets: Boolean(i & 2),
-    estacionamento: Boolean(i & 4),
-    coffeeOffice: Boolean(i & 8),
+    ...Object.fromEntries(booleanos.map((chave, bit) => [chave, Boolean(i & (1 << bit))])),
   }));
 
   it.each<Partial<CafeFilters>>([
@@ -288,8 +316,10 @@ describe("serializeFilters", () => {
     expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
   });
 
-  it.each(combinacoes)("ida e volta estado → params → estado é estável: %o", (filters) => {
-    expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
+  it("ida e volta estado → params → estado é estável em toda combinação dos booleanos", () => {
+    for (const filters of combinacoes) {
+      expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
+    }
   });
 });
 
@@ -319,11 +349,13 @@ describe("contarFiltrosAtivos", () => {
       ...FILTROS_VAZIOS,
       pets: true,
       coffeeOffice: true,
+      pcd: true,
+      arCondicionado: true,
       bairros: ["gracas", "espinheiro"],
       precos: ["$", "$$"],
     };
 
-    expect(contarFiltrosAtivos(filters)).toBe(6);
+    expect(contarFiltrosAtivos(filters)).toBe(8);
   });
 
   it("a busca não entra no badge: ela aparece no próprio campo", () => {

@@ -13,7 +13,7 @@ export default async function PainelLayout({ children }: { children: React.React
   return (
     <div className="min-h-dvh">
       <header className="flex h-[72px] items-center justify-between gap-4 border-b border-line px-4 sm:px-7">
-        <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex items-end gap-3">
+        <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex items-end gap-5">
           <Logo />
           <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 sm:inline">
             Admin

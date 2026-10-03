@@ -5,7 +5,7 @@
 
 /** O pedaço das claims do JWT do Supabase que decide o acesso. */
 export type AdminClaims = {
-  app_metadata?: { role?: unknown } | null;
+  app_metadata?: { [chave: string]: unknown } | null;
   aal?: unknown;
 };
 

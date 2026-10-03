@@ -47,7 +47,6 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
       className="relative h-[260px] overflow-hidden rounded-[18px] lg:h-[500px]"
     >
       <div
-        aria-live="polite"
         className="flex size-full transition-transform duration-[450ms] ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none"
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
@@ -92,6 +91,12 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
             <ChevronRightIcon size={18} strokeWidth={2} />
           </button>
 
+          {/* O contador visual fica fora da árvore de acessibilidade: quem
+              anuncia a troca é o live region, já que slide de placeholder
+              não tem texto acessível (legenda decorativa, img com alt=""). */}
+          <span aria-live="polite" className="sr-only">
+            Foto {index + 1} de {total}
+          </span>
           <span
             aria-hidden="true"
             className="absolute right-[18px] top-[18px] flex h-7 items-center rounded-full bg-espresso/[.78] px-3 text-[12.5px] font-semibold text-cream"

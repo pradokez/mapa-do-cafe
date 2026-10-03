@@ -174,7 +174,7 @@ Vem do design. Não reinventar na implementação.
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Comodidades" · "Horário de funcionamento"
 - Distância: `1,2 km` (vírgula); no detalhe, "1,2 km de você"
 
-**Desvios conscientes no detalhe** (#4) — o design não cobria esses casos:
+**Desvios conscientes no detalhe** (#4, #5) — o design não cobria esses casos:
 
 - Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
 - Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
@@ -182,6 +182,7 @@ Vem do design. Não reinventar na implementação.
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. O array `comodidades` **não é exibido**
 - Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título
+- Carrossel: `max(4, fotos)` slots — fotos reais nunca são cortadas. Placeholder tem legenda "foto · {nome}", não as legendas por slot do design ("Salão", "Fachada"…), que prometeriam fotos inexistentes. Abaixo de `lg`, 260 px de altura e swipe
 
 ## Horário e distância
 

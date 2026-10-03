@@ -3,41 +3,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Cafe } from "@/lib/cafe";
+import { cafe } from "@/lib/cafe.fixture";
 
 import { CafeList } from "./cafe-list";
-
-const FECHADO = "Fechado";
-const CAFE: Cafe = {
-  id: "1",
-  slug: "cafe-um",
-  nome: "Café Um",
-  bairro: "Graças",
-  bairro_slug: "gracas",
-  endereco: "Rua X, 1",
-  cidade: "Recife",
-  lat: -8.05,
-  lng: -34.9,
-  selo_ascape: true,
-  aceita_pets: false,
-  tem_estacionamento: false,
-  permite_coffee_office: false,
-  faixa_preco: "$$",
-  comodidades: [],
-  horario_funcionamento: {
-    segunda: FECHADO,
-    terca: FECHADO,
-    quarta: FECHADO,
-    quinta: FECHADO,
-    sexta: FECHADO,
-    sabado: FECHADO,
-    domingo: FECHADO,
-  },
-  instagram: null,
-  telefone: null,
-  fotos: [],
-  ativo: true,
-};
 
 afterEach(cleanup);
 
@@ -65,7 +33,10 @@ describe("CafeList — estado vazio", () => {
     expect(screen.queryByRole("button", { name: "Limpar filtros" })).toBeNull();
   });
 
-  it.each([0, 1])("limpar (botão %i) leva o foco para a lista, não para o topo da página", async (i) => {
+  it.each([
+    ["link junto ao contador", 0],
+    ["botão do estado vazio", 1],
+  ])("limpar pelo %s leva o foco para a lista, não para o topo da página", async (_, i) => {
     render(<CafeList cafes={[]} onLimpar={() => {}} />);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Limpar filtros" })[i]);
@@ -74,7 +45,7 @@ describe("CafeList — estado vazio", () => {
   });
 
   it("com cafés no recorte, mostra a lista e não a xícara vazia", () => {
-    render(<CafeList cafes={[CAFE]} onLimpar={() => {}} />);
+    render(<CafeList cafes={[cafe("1", { nome: "Café Um" })]} onLimpar={() => {}} />);
 
     expect(screen.getByText("Café Um")).toBeDefined();
     expect(screen.queryByRole("heading", { name: "Xícara vazia por aqui" })).toBeNull();

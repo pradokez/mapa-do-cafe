@@ -3,6 +3,7 @@
  * Nenhum outro arquivo importa o client do Supabase para ler.
  */
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 
@@ -17,8 +18,21 @@ function client() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-/** Cafés ativos em ordem alfabética (pt-BR, ignorando acento e caixa). */
-export async function listCafesAtivos(): Promise<Cafe[]> {
+/**
+ * Cafés ativos em ordem alfabética (pt-BR, ignorando acento e caixa).
+ *
+ * Em cache por 1 h: a home é dinâmica (lê os params de filtro), mas o seed só
+ * muda com deploy — não há por que ir ao Supabase a cada visita. O Data Cache
+ * da Vercel sobrevive a deploys, então o commit entra na chave: deploy novo,
+ * cache novo.
+ */
+export const listCafesAtivos = unstable_cache(
+  fetchCafesAtivos,
+  ["cafes-ativos", process.env.VERCEL_GIT_COMMIT_SHA ?? "local"],
+  { revalidate: 3600 },
+);
+
+async function fetchCafesAtivos(): Promise<Cafe[]> {
   const { data, error } = await client()
     .from("cafes")
     .select(CAFE_COLUMNS.join(", "))

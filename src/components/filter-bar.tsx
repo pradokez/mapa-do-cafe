@@ -1,13 +1,9 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
-import { ATRIBUTOS } from "@/components/cafe-atributos";
+import { FILTROS_DE_ATRIBUTO } from "@/components/cafe-atributos";
 import { chipClass } from "@/components/filter-chip";
-import { CoffeeIcon } from "@/components/icons";
 import type { FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import { faixaPrecoNome } from "@/lib/format";
-
-/** Chips na ordem do design: o selo e os atributos, com os mesmos rótulos do card. */
-const CHIPS = [{ filtro: "ascape", label: "Recife Coffee", Icon: CoffeeIcon }, ...ATRIBUTOS] as const;
 
 type Props = {
   filters: CafeFilters;
@@ -36,7 +32,7 @@ export function FilterBar({
       aria-label="Filtros"
       className="flex h-16 flex-none items-center gap-2 overflow-x-auto border-b border-line px-7 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {CHIPS.map(({ filtro, label, Icon }) => (
+      {FILTROS_DE_ATRIBUTO.map(({ filtro, label, Icon }) => (
         <button
           key={filtro}
           type="button"

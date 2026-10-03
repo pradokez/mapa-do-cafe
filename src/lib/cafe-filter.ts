@@ -139,6 +139,11 @@ export function contarFiltrosAtivos(filters: CafeFilters): number {
   );
 }
 
+/** Tira o valor se está na lista, põe se não está. A ordem canônica é do `serializeFilters`. */
+export function alternar<T>(lista: readonly T[], valor: T): T[] {
+  return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
+}
+
 export type BairroOpcao = { slug: string; nome: string };
 
 /** Opções do filtro de bairro: cada bairro dos cafés uma vez, em ordem alfabética pt-BR. */

@@ -1,4 +1,4 @@
-import { CarIcon, LaptopIcon, PawIcon } from "@/components/icons";
+import { CarIcon, CoffeeIcon, LaptopIcon, PawIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import type { FiltroBooleano } from "@/lib/cafe-filter";
 
@@ -20,3 +20,9 @@ export const ATRIBUTOS = [
 export function atributosDo(cafe: Cafe) {
   return ATRIBUTOS.filter(({ key }) => cafe[key]);
 }
+
+/** Filtros booleanos na ordem do design: o selo e os atributos, com os mesmos rótulos do card. */
+export const FILTROS_DE_ATRIBUTO = [
+  { filtro: "ascape", label: "Recife Coffee", Icon: CoffeeIcon },
+  ...ATRIBUTOS,
+] as const;

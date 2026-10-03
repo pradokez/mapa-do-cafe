@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { atributosDo } from "@/components/cafe-atributos";
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
 import { CoffeeIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
@@ -14,14 +15,7 @@ export function CafeCard({ cafe, highlighted = false }: { cafe: Cafe; highlighte
   return (
     <Link href={`/cafes/${cafe.slug}`} className="block rounded-2xl">
       <article className={`flex flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 ${highlighted ? "border-terracotta" : "border-card-line"} hover:-translate-y-[3px] hover:shadow-[0_14px_28px_-10px_rgba(44,26,14,.22),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:transition-none motion-reduce:hover:translate-y-0`}>
-        <div
-          className="relative aspect-[16/10] overflow-hidden rounded-[11px]"
-          style={photo.kind === "placeholder" ? { background: photo.background } : undefined}
-        >
-          {photo.kind === "url" && (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos do Storage chegam na Fase 2
-            <img src={photo.src} alt="" className="absolute inset-0 size-full object-cover" />
-          )}
+        <CafePhotoFrame photo={photo} className="aspect-[16/10] rounded-[11px]">
           {cafe.selo_ascape && (
             <span className="absolute left-2.5 top-2.5 inline-flex h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)]">
               <CoffeeIcon size={13} strokeWidth={2.2} className="text-terracotta" />
@@ -36,7 +30,7 @@ export function CafeCard({ cafe, highlighted = false }: { cafe: Cafe; highlighte
               foto · {cafe.nome}
             </span>
           )}
-        </div>
+        </CafePhotoFrame>
 
         <div className="flex flex-col gap-1.5 px-1">
           <div className="flex items-baseline justify-between gap-2.5">

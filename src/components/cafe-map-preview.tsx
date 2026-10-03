@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronRightIcon, XIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
@@ -26,15 +27,7 @@ export function CafeMapPreview({ cafe, onClose, style }: Props) {
       className="absolute z-20 rounded-[14px] bg-white shadow-[0_18px_40px_-12px_rgba(0,0,0,.55)]"
     >
       <Link href={`/cafes/${cafe.slug}`} className="group flex gap-3 rounded-[14px] p-2 pr-3">
-        <div
-          className="relative size-[72px] flex-none overflow-hidden rounded-[9px]"
-          style={photo.kind === "placeholder" ? { background: photo.background } : undefined}
-        >
-          {photo.kind === "url" && (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos do Storage chegam na Fase 2
-            <img src={photo.src} alt="" className="absolute inset-0 size-full object-cover" />
-          )}
-        </div>
+        <CafePhotoFrame photo={photo} className="size-[72px] flex-none rounded-[9px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-[3px] pr-5 pt-0.5">
           <span className="font-display text-base leading-[1.2] text-espresso">{cafe.nome}</span>
           <span className="text-[12.5px] text-ink-3">{localLabel(cafe)}</span>

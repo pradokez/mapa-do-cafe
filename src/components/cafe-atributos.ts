@@ -49,7 +49,7 @@ export function atributosDo(cafe: Cafe) {
 }
 
 /** Filtros booleanos na ordem do design: os selos e os atributos, com os mesmos rótulos do card. */
-export const FILTROS_DE_ATRIBUTO = [...SELOS, ...ATRIBUTOS];
+const FILTROS_DE_ATRIBUTO = [...SELOS, ...ATRIBUTOS];
 
 /** Chips da barra (desktop e mobile); os outros ficam em "Mais filtros" (desktop) e no sheet (mobile). */
 const NA_BARRA: readonly FiltroBooleano[] = ["ascape", "euAmoCafe", "estacionamento"];

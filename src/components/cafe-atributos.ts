@@ -19,7 +19,7 @@ type Booleano = {
   Icon: unknown;
 };
 
-/** Selos, na ordem de exibição: pílula no card, badge e tag no detalhe. */
+/** Selos, na ordem de exibição: pílula no card desktop, selinho de ícone no mobile, badge e tag no detalhe. */
 export const SELOS = [
   { key: "selo_ascape", filtro: "ascape", label: "Recife Coffee", curto: "Recife Coffee", Icon: CoffeeIcon },
   { key: "selo_eu_amo_cafe", filtro: "euAmoCafe", label: "Eu Amo Café", curto: "Eu Amo Café", Icon: HeartIcon },

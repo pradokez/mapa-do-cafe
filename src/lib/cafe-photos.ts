@@ -16,22 +16,28 @@ const TONES = [
 
 /**
  * Resolve um café para as imagens a exibir, escondendo de quem chama se elas
- * vêm do Storage ou do placeholder gerado. Fotos reais têm precedência; sem
- * nenhuma, o café ganha um placeholder com tom derivado do `id` — o mesmo
- * café tem sempre a mesma cara.
+ * vêm do Storage ou do placeholder gerado. Fotos reais vêm primeiro, na
+ * ordem; placeholders completam até `minSlots` (padrão 1), para quem exibe
+ * vários slots nunca ter um vazio. O tom do placeholder deriva do `id` e
+ * avança um por slot — o mesmo café tem sempre a mesma cara, e o slot 0 é
+ * o mesmo no card e no carrossel.
  */
-export function resolveCafePhotos(cafe: Pick<Cafe, "id" | "fotos">): PhotoSource[] {
+export function resolveCafePhotos(
+  cafe: Pick<Cafe, "id" | "fotos">,
+  { minSlots = 1 }: { minSlots?: number } = {},
+): PhotoSource[] {
   const urls = Array.isArray(cafe.fotos) ? cafe.fotos.filter(isHttpUrl) : [];
-  if (urls.length > 0) {
-    return urls.map((src) => ({ kind: "url", src }));
-  }
-  const [a, b] = TONES[hash(cafe.id) % TONES.length];
-  return [
-    {
+  const photos: PhotoSource[] = urls.map((src) => ({ kind: "url", src }));
+  const slots = Number.isFinite(minSlots) ? Math.max(1, Math.floor(minSlots)) : 1;
+  const tone = hash(cafe.id);
+  for (let k = 0; photos.length < slots; k++) {
+    const [a, b] = TONES[(tone + k) % TONES.length];
+    photos.push({
       kind: "placeholder",
       background: `repeating-linear-gradient(135deg, ${a} 0 14px, ${b} 14px 28px)`,
-    },
-  ];
+    });
+  }
+  return photos;
 }
 
 // FNV-1a 32 bits: estável entre runtimes, sem dependência.

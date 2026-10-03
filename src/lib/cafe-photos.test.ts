@@ -62,6 +62,41 @@ describe("resolveCafePhotos", () => {
     ]);
   });
 
+  describe("com minSlots (carrossel do detalhe)", () => {
+    it("fotos parcialmente preenchido: as reais primeiro, placeholders completam os slots", () => {
+      const fotos = ["https://exemplo.com/a.jpg"];
+      const photos = resolveCafePhotos({ id: ID, fotos }, { minSlots: 4 });
+
+      expect(photos).toHaveLength(4);
+      expect(photos[0]).toEqual({ kind: "url", src: fotos[0] });
+      expect(photos.slice(1).every((p) => p.kind === "placeholder")).toBe(true);
+    });
+
+    it("mais fotos que slots: todas aparecem, na ordem, sem corte e sem placeholder", () => {
+      const fotos = [1, 2, 3, 4, 5, 6].map((n) => `https://exemplo.com/${n}.jpg`);
+
+      expect(resolveCafePhotos({ id: ID, fotos }, { minSlots: 4 })).toEqual(
+        fotos.map((src) => ({ kind: "url", src })),
+      );
+    });
+
+    it("cada slot de placeholder tem um tom, e o primeiro é o mesmo do card", () => {
+      const slots = resolveCafePhotos({ id: ID, fotos: [] }, { minSlots: 4 }).map((p) =>
+        p.kind === "placeholder" ? p.background : p.src,
+      );
+
+      expect(new Set(slots).size).toBe(4);
+      expect(slots[0]).toBe(placeholderOf({ id: ID, fotos: [] }));
+    });
+
+    it.each([0, -3, NaN, 2.5])("minSlots inválido (%s) degrada para pelo menos um slot", (minSlots) => {
+      const photos = resolveCafePhotos({ id: ID, fotos: [] }, { minSlots });
+
+      expect(photos.length).toBeGreaterThanOrEqual(1);
+      expect(Number.isInteger(photos.length)).toBe(true);
+    });
+  });
+
   it("descarta entradas inválidas e mantém as válidas na ordem", () => {
     const fotos = ["", "https://exemplo.com/a.jpg", "nao-e-url", "http://exemplo.com/b.jpg"];
 

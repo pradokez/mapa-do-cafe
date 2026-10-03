@@ -44,12 +44,13 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-hours` | `src/lib/cafe-hours.ts` | **Puro.** `(jsonb de horário, data)` → aberto hoje, horário de hoje, lista dos 7 dias com hoje marcado. |
 | `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`) + ordenação por proximidade. Trata explicitamente "sem origem conhecida". |
 | `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. |
+| `cafe-seo` | `src/lib/cafe-seo.ts` | **Puro.** `(café)` → título, meta description e JSON-LD `CafeOrCoffeeShop`. "Fechado" vira 00:00–00:00; dia sem informação fica fora do JSON-LD. |
 | `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta para o Supabase: `listCafesAtivos()`, `getCafeBySlug(slug)`. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
 | `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
-Os quatro módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
+Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
 Nomes antigos que **não** devem ser usados: `FilterEngine`, `MapController`, `SearchDebouncer`, `PhotoUploader`.
 
@@ -225,6 +226,10 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 **Desvio consciente — a lista reordena quando a posição chega.** O HTML sai do servidor sem posição, em ordem alfabética; a reordenação acontece depois da hidratação, sem animação nem trava. Aceito porque, com permissão já concedida, a posição chega antes da primeira interação, e na primeira visita chega logo depois do "Permitir", quando a pessoa espera uma reação.
 
 **Desvio consciente no formato** — o design só mostra `0,8 km`…`9,3 km`: abaixo de 1 km, a distância sai em **metros, de 10 em 10** (`850 m`), com piso de `10 m` (nunca `0 m`); o que arredonda para 1000 m já sai como `1,0 km`. Longe de Recife, separador de milhar: `2.130,4 km`.
+
+## SEO (#44)
+
+`NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.ts`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é. Imagens de compartilhamento ficam na #49.
 
 ## Convenções
 

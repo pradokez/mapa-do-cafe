@@ -8,7 +8,7 @@ import type { DiaSemana } from "./cafe";
  * estaria no dia seguinte.
  */
 
-const FECHADO = "Fechado";
+export const FECHADO = "Fechado";
 
 /** Ordem de exibição. Nunca vem de `Object.keys`: o jsonb não preserva ordem. */
 const ORDEM: readonly DiaSemana[] = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
@@ -57,14 +57,8 @@ export interface ResumoHorario {
  * Dado ausente ou malformado nunca lança: o dia vira "não informado".
  */
 export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
-  const registro = isRegistro(horario) ? horario : {};
   const iHoje = INDICE_WEEKDAY[weekdayEmRecife.format(data)];
-  const dias = ORDEM.map((dia, i) => ({
-    dia,
-    label: LABEL[dia],
-    horario: valorDoDia(registro[dia]),
-    hoje: i === iHoje,
-  }));
+  const dias = horarioDaSemana(horario).map((d, i) => ({ ...d, label: LABEL[d.dia], hoje: i === iHoje }));
 
   const valor = dias[iHoje].horario;
   const hoje: StatusHoje =
@@ -75,6 +69,15 @@ export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
         : { status: "aberto", horario: valor, proximaAbertura: null };
 
   return { hoje, dias };
+}
+
+/**
+ * Os 7 dias, de Segunda a Domingo, com o texto de cada um normalizado:
+ * "HH:MM – HH:MM" (turnos por ", "), `"Fechado"`, ou `null` quando não informado.
+ */
+export function horarioDaSemana(horario: unknown): { dia: DiaSemana; horario: string | null }[] {
+  const registro = isRegistro(horario) ? horario : {};
+  return ORDEM.map((dia) => ({ dia, horario: valorDoDia(registro[dia]) }));
 }
 
 function proximaAbertura(dias: DiaHorario[], iHoje: number): "amanha" | DiaSemana | null {

@@ -65,12 +65,11 @@ Rodar o seed de novo atualiza os registros em vez de duplicá-los.
 | Variável | Descrição |
 |---|---|
 | `SUPABASE_URL` | URL do projeto Supabase |
-| `SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`); a RLS só expõe cafés ativos |
-| `SUPABASE_SECRET_KEY` | Secret key — reservada para o admin (Fase 2), ignora a RLS |
-| `SUPABASE_JWKS_URL` | JWKS para validar JWTs — reservada para o admin (Fase 2) |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`); a RLS só expõe cafés ativos (e tudo, à sessão de admin) |
+| `SUPABASE_SECRET_KEY` | Secret key — ignora a RLS; fora do app, só para scripts locais |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox (`pk.…`), restrito por URL no painel |
 
-As variáveis do Supabase são só de servidor (sem `NEXT_PUBLIC_`): a leitura acontece no `cafe-repository`, dentro de Server Components.
+As variáveis do Supabase são só de servidor (sem `NEXT_PUBLIC_`): a leitura acontece no `cafe-repository`, dentro de Server Components, e o login do admin (`/admin`) em Server Actions.
 
 Na Vercel, configure as mesmas variáveis em Project Settings › Environment Variables.
 

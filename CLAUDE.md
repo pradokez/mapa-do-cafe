@@ -34,7 +34,7 @@ Node 24 (`.nvmrc`), pnpm.
 ## Duas regras invioláveis
 
 1. **Mapbox só dentro de `<CafeMap />`.** Nenhum outro arquivo importa `mapbox-gl`. Isso mantém uma eventual migração para Leaflet isolada em um arquivo.
-2. **Leitura do Supabase só dentro de `cafe-repository`.** Nenhum outro arquivo importa o client do Supabase para ler. Isso mantém a troca de filtragem cliente↔servidor isolada.
+2. **Leitura do Supabase só dentro de `cafe-repository`.** Nenhum outro arquivo lê tabela (`.from(…)`) — nem o admin, que lê cafés inativos pelo mesmo repositório. Isso mantém a troca de filtragem cliente↔servidor isolada. Fora dele, o Supabase só aparece para **sessão** (`supabase-server`, `supabase-env`, `src/lib/admin/`, `middleware.ts`) — e escrita, nas Server Actions de `src/lib/admin/`. `src/lib/fronteiras.test.ts` falha se alguém furar isso.
 
 ## Estrutura de Módulos
 
@@ -45,14 +45,49 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`) + ordenação por proximidade. Trata explicitamente "sem origem conhecida". |
 | `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. |
 | `cafe-seo` | `src/lib/cafe-seo.ts` | **Puro.** `(café)` → título, meta description e JSON-LD `CafeOrCoffeeShop`. "Fechado" vira 00:00–00:00; dia sem informação fica fora do JSON-LD. |
-| `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta para o Supabase: `listCafesAtivos()`, `getCafeBySlug(slug)`. |
+| `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta de leitura do Supabase. Público (sem sessão): `listCafesAtivos()` (cache de 1 h, tag `cafes`), `getCafeBySlug(slug)`. Admin (sessão do cookie, a RLS decide): `listTodosCafes()`, `getCafeById(id)`. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
+| `admin-auth` | `src/lib/admin-auth.ts` | **Puro.** Etapa do login a partir das claims (`senha` → `codigo`/`cadastro-mfa` → `pronto`), `destinoSeguro` (o `next` do login, sem open redirect) e `isUuid`. |
+| `supabase-server` | `src/lib/supabase-server.ts` | `server-only`. Client do Supabase com a sessão do cookie, para Server Components e Server Actions. `supabase-env` tem as envs e as opções do cookie (o middleware também usa). |
+| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. As Server Actions de escrita das próximas issues moram aqui. |
 | `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
-Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
+Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `admin-auth`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
 Nomes antigos que **não** devem ser usados: `FilterEngine`, `MapController`, `SearchDebouncer`, `PhotoUploader`.
+
+## Admin e auth (Fase 2, #43)
+
+Painel só da administradora, para manter o diretório sem deploy. Não existe auth de usuário final.
+
+**Rotas** — todas com `noindex` (`<meta>` e `X-Robots-Tag`), `Cache-Control: no-store` e sem iframe (`X-Frame-Options: DENY`, `frame-ancestors 'none'`), via `next.config.mjs`:
+
+| Rota | O quê |
+|---|---|
+| `/admin/login` | Única acessível sem sessão. Uma tela, etapas decididas no servidor: senha → código de 6 dígitos (ou, sem autenticador ainda, cadastro com QR) |
+| `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá) |
+| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos, Status e Dados (preenchidas pelas próximas issues). Id inexistente ou malformado → 404 do admin |
+
+**Quem é admin:** `app_metadata.role = 'admin'` (só o service role altera; `user_metadata`, que o usuário edita, nunca conta) **e** segundo fator na sessão (`aal2`). **TOTP é obrigatório** — senha sozinha não lê nem grava nada.
+
+**Três camadas, de propósito redundantes:**
+1. `middleware.ts` (`getClaims()`, verificação local do JWT) — só experiência: sem admin `aal2`, `/admin/*` vai para o login com `?next=`.
+2. `requireAdmin()` em **todo** layout, page e Server Action do admin — `getUser()` vai ao servidor de auth, então sessão encerrada, usuário banido ou apagado não passam. A page chama também, não só o layout: o Next renderiza os dois em paralelo.
+3. **RLS** — a garantia real. `private.is_admin()` (schema fora da API, `security definer`, `search_path` vazio) confere o papel em `auth.users` (tirar o papel vale na hora), `aal2` no JWT e que a sessão do JWT ainda existe em `auth.sessions` (depois do "Sair", um token roubado para de valer no banco na hora, não em 1 h).
+
+**Sessão:** cookie `httpOnly`, `secure`, `sameSite=lax`, `__Host-` em produção, 12 h. Não existe client do Supabase no navegador; as chaves seguem sem `NEXT_PUBLIC_`. "Sair" é `signOut({ scope: 'global' })`: encerra em todos os dispositivos.
+
+**Login:** credencial errada e conta sem papel de admin dão o **mesmo** erro ("Email ou senha incorretos.") — a conta sem papel sai na hora. O `next` passa por `destinoSeguro`: só caminhos `/admin…`.
+
+**Regras de escrita** (para #46–#53):
+- Server Actions em `src/lib/admin/`, nunca API Routes. Toda action começa com `requireAdmin()` e valida a entrada no servidor — a do cliente é só conforto.
+- `cafes` tem políticas de admin de `select`, `insert` e `update`. **Não há `delete`**, nem grant de `DELETE`/`TRUNCATE`: café sai do ar com `ativo = false`.
+- `atualizado_em` é mantido por trigger — não escreva à mão.
+- Depois de gravar, `revalidarCafe(slug)`: invalida a tag `cafes` (cache de `listCafesAtivos`) e o caminho do detalhe.
+- `SUPABASE_SECRET_KEY` (ignora a RLS) não entra no app; o teste de fronteiras falha se aparecer em `src/`.
+
+**Supabase Auth:** signup público **desligado** (`config.toml` e painel), senha de 12+ com maiúscula, minúscula, dígito e símbolo, TOTP ligado. A conta é criada à mão no painel e promovida com `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = '…'`. **Perdeu o autenticador:** remova o fator em Authentication › Users no painel e cadastre de novo no próximo login.
 
 ## Filtragem acontece no cliente
 
@@ -89,7 +124,7 @@ criado_em, atualizado_em           -- metadado técnico, fora do tipo `Cafe`
 
 O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `slug` único, `cidade` e `faixa_preco` com `check` e `horario_funcionamento` com as 7 chaves.
 
-Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`).
+Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`). Só o admin lê os inativos (ver "Admin e auth").
 
 **Seed:** `supabase/seed/cafes.json` é a fonte da verdade (53 cafés: 51 ativos, 4 em Olinda, 2 em Jaboatão — associados da ASCAPE e cafeterias de café especial que não são). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro da região (Recife, Olinda, Jaboatão), `tem_ar_condicionado` só `true`/`false`/`null`, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
 
@@ -258,6 +293,9 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 | `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder | **Alta** |
 | `cafe-repository` | Integração — instância de teste do Supabase, **não mock** | Média (pós-MVP) |
 | `cafe-card`, `filter-bar` | Componente — interação visível (clique no chip muda a URL) | Média |
+| `admin-auth` | Unitário puro — etapas do login (role só em `app_metadata`, `aal1`/`aal2`, com e sem autenticador), `destinoSeguro` contra open redirect, `isUuid` | **Alta** |
+| `fronteiras` | Guarda estática — só o `cafe-repository` lê tabela, quem pode importar `@supabase/*`, nenhuma chave em `NEXT_PUBLIC_`, nenhuma secret key | **Alta** |
+| RLS de admin, trigger | **Sem banco de teste** — verificação manual em produção depois da migration, num `begin … rollback` simulando claims | — |
 | `cafe-map` | **Sem teste automatizado** — Mapbox em jsdom custa muito e entrega pouco. Verificação manual. | — |
 
 E2E está fora da Fase 1.
@@ -276,6 +314,7 @@ Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, aut
 
 - **Supabase free hiberna após ~1 semana sem uso.** Num site de portfólio que pode ficar dias sem visita, o primeiro acesso depois disso é lento. Saiba disso antes de mandar o link para alguém.
 - **Risco de dado:** horário, faixa de preço, pets, coffee office e os atributos da #38 mudam e não têm fonte oficial. Em `acessivel_pcd` e `opcoes_vegetarianas`, `false` muitas vezes quer dizer "sem informação" (sobretudo fora da ASCAPE); `tem_ar_condicionado` tem só 5 confirmados, o resto é `null` e pede curadoria. Faltam Instagrams (Saltim, Mafrita, Tokyo's, Soto, Amaro, CoffeeTown). Sem admin (Fase 2), corrigir exige deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
+- **Login do admin sem captcha.** As Server Actions chamam o Supabase de IPs da Vercel, então o rate limit de login por IP não separa atacante de administradora (e pode bloqueá-la por minutos). O TOTP limita o estrago de uma senha vazada; um captcha (Cloudflare Turnstile, suportado pelo Supabase Auth) fica para uma possível Fase 4, se houver necessidade.
 - O filtro **Recife Coffee** era redundante no lançamento (todos os 29 eram ASCAPE); desde a #38 ele discrimina (35 dos 51 ativos).
 
 ## Links

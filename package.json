@@ -16,6 +16,7 @@
     "seed:build": "tsx scripts/build-seed.ts"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@supabase/supabase-js": "^2.117.2",
     "mapbox-gl": "^3.32.0",

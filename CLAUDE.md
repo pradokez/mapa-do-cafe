@@ -234,6 +234,15 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 
 `NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.ts`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é. Imagens de compartilhamento ficam na #49.
 
+## Skeleton (#45)
+
+Home e detalhe têm `loading.tsx`, que importa principalmente quando o Supabase acorda da hibernação. A home fica no route group `src/app/(home)/` (a URL continua `/`) para o skeleton dela não aparecer em outras rotas, como o futuro `/admin`. O skeleton copia o formato da página: logo real, blocos no resto (busca, chips, contador, cards, mapa; no detalhe, trilha, carrossel, título, aside e comodidades). O "Voltar ao mapa" do detalhe é real, para desistir sem esperar.
+
+- **Mesmas medidas, num lugar só:** as classes de formato que o skeleton repete (card, grade, barra, busca, carrossel, aside…) moram em `src/components/medidas.ts` e são usadas pelos dois lados. Mudou o card, muda o skeleton. O módulo é neutro de propósito: constante exportada de arquivo `"use client"` chega ao Server Component como referência de cliente, não como string.
+- **Cores:** `hover-soft` sobre branco, `line` sobre o `cream`, `map-bg` no mapa. Os blocos pulsam só com `motion-safe:animate-pulse`.
+- **Acessibilidade:** os blocos são `aria-hidden`; um `role="status"` em `sr-only` diz "Carregando cafés…" / "Carregando café…".
+- **Limitação do Next 14 no detalhe:** o `generateMetadata` busca o café e segura o streaming. No acesso direto a `/cafes/[slug]`, o skeleton não aparece; ele só aparece na navegação dentro do site, depois que o prefetch do link termina. Resolver isso exige Next 15.2+ (metadata em streaming) ou tirar a query do metadata, o que perderia título e canonical por café.
+
 ## Convenções
 
 - Textos e microcopy em pt-BR, tom casual e acolhedor ("bairro", não "distrito")

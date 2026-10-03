@@ -105,9 +105,19 @@ Seis filtros. Toda filtragem é compartilhável; ausência de param = filtro des
 
 Ida e volta precisa ser estável: estado → params → estado devolve o mesmo estado. Param desconhecido ou malformado é ignorado em silêncio, nunca quebra a página.
 
-**Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo (440×42) existe **só no header desktop da home** — desvio consciente: o design também o põe no detalhe, mas lá não há lista para filtrar. No mobile ele chega com o layout mobile (#13); até lá, um link com `?q=` já filtra.
+**Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo existe **só no header da home** — 440×42 no desktop; no mobile, largura total entre o header e os chips (desvio consciente: o design mobile não tem busca). O design também o põe no detalhe, mas lá não há lista para filtrar.
 
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
+
+## Mobile (abaixo de `lg`)
+
+Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral, cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
+
+- **Visão lista/mapa é estado local**, fora da URL e do histórico: a home sempre abre na lista. Os filtros (na URL) sobrevivem à troca; voltar para a lista fecha o card do pin.
+- **Bottom sheets com rascunho** (Radix Dialog, `ui/sheet.tsx`): marcar opções não mexe na URL; "Ver N cafés" conta o resultado do rascunho e é o único que aplica (uma entrada no histórico). Esc ou toque no fundo descartam. Sem arrasto: a alça é decorativa.
+- **Desvio consciente — dois sheets:** no design, o botão de filtros e o chip de bairro abriam o mesmo sheet de bairros. Aqui o **botão de filtros** abre um sheet com o selo, os 3 atributos e a faixa de preço (linhas de 48 px, como o de bairro); o **chip de bairro** abre o sheet de bairros.
+- **Badge** do botão de filtros: cada booleano, cada bairro e cada faixa contam 1; a busca não entra (`contarFiltrosAtivos`).
+- **Card do pin:** o mesmo `CafeMapPreview` do desktop, preso embaixo (14 px das laterais, acima do FAB), **com X** — desvio do design, que não tem como fechar por teclado nem leitor de tela.
 
 ## Fotos: não use Google Places
 

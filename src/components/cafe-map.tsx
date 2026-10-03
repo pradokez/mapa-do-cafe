@@ -25,12 +25,14 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Sem cafés para enquadrar: centro de Recife.
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
+// Pins ancorados pela ponta sobem 40 px a partir do ponto; o zoom ocupa a direita.
+const FIT_PADDING = { top: 72, right: 72, bottom: 32, left: 32 };
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.
 const PAINT: [layer: string, prop: string, value: string][] = [
   ["land", "background-color", "#1E1B19"],
-  ["landuse", "fill-color", "#1F2721"],
+  ["landuse", "fill-color", "#1E1B19"],
   ["national-park", "fill-color", "#1F2721"],
   ["land-structure-polygon", "fill-color", "#1E1B19"],
   ["building", "fill-color", "#191715"],
@@ -124,7 +126,7 @@ export function CafeMap({
           interactive: !isMini,
           attributionControl: false,
           ...(bounds
-            ? { bounds, fitBoundsOptions: { padding: 48, maxZoom: 15 } }
+            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: 15 } }
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
         });
       } catch {
@@ -190,7 +192,8 @@ export function CafeMap({
       aria-label={variant === "mini" ? "Mapa com a localização do café" : "Mapa dos cafés"}
       className={`relative overflow-hidden bg-map-bg ${className}`}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
+      <div ref={containerRef} className="size-full" />
       {variant === "full" && map && (
         <div className="absolute right-[18px] top-[18px] flex flex-col overflow-hidden rounded-[10px] border border-map-control-line bg-map-control">
           <button

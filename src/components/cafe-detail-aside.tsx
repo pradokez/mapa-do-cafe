@@ -1,12 +1,14 @@
 import { InstagramIcon, NavigationIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
-import { googleMapsUrl } from "@/lib/format";
+import { googleMapsUrl, instagramUrl } from "@/lib/format";
 
 const CTA =
   "flex h-[46px] items-center justify-center gap-2 rounded-full text-[14.5px] font-semibold transition-colors";
 
 /** Aside do detalhe: endereço e atalhos de saída. O mini mapa entra na #6; a distância, na #12. */
 export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; className?: string }) {
+  const instagram = instagramUrl(cafe);
+
   return (
     <aside
       aria-label="Como chegar"
@@ -29,9 +31,9 @@ export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; classNam
           Como chegar
           <span className="sr-only">(abre em nova aba)</span>
         </a>
-        {cafe.instagram && (
+        {instagram && (
           <a
-            href={cafe.instagram}
+            href={instagram}
             target="_blank"
             rel="noopener noreferrer"
             className={`${CTA} border border-line-strong bg-white text-espresso hover:bg-hover-soft`}

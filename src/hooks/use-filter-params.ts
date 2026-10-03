@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
+import type { FaixaPreco } from "@/lib/cafe";
 import {
   FILTROS_VAZIOS,
   parseFilters,
@@ -20,18 +21,30 @@ import {
  * (≥ 14.1) propaga o `pushState` para `useSearchParams` sem round-trip, e cada
  * mudança vira uma entrada no histórico (voltar/avançar desfaz/refaz).
  */
-export function useFilterParams() {
+export function useFilterParams(bairrosValidos: readonly string[]) {
   const searchParams = useSearchParams();
-  const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
+  // Slug desconhecido sai do estado — e da URL no próximo clique.
+  const filters = useMemo(
+    () => parseFilters(searchParams, bairrosValidos),
+    [searchParams, bairrosValidos],
+  );
 
   const navigate = (next: CafeFilters) => {
-    const query = serializeFilters(next, new URLSearchParams(searchParams.toString())).toString();
+    const query = serializeFilters(next, new URLSearchParams(searchParams.toString()));
     window.history.pushState(null, "", query ? `?${query}` : window.location.pathname);
   };
 
   return {
     filters,
     toggle: (chave: FiltroBooleano) => navigate({ ...filters, [chave]: !filters[chave] }),
+    toggleBairro: (slug: string) => navigate({ ...filters, bairros: alternar(filters.bairros, slug) }),
+    limparBairros: () => navigate({ ...filters, bairros: [] }),
+    togglePreco: (faixa: FaixaPreco) => navigate({ ...filters, precos: alternar(filters.precos, faixa) }),
     limpar: () => navigate(FILTROS_VAZIOS),
   };
+}
+
+/** Tira o valor se está na lista, põe se não está. A ordem canônica é do `serializeFilters`. */
+function alternar<T>(lista: T[], valor: T): T[] {
+  return lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor];
 }

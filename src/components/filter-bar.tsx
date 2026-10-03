@@ -1,25 +1,35 @@
+import { BairroDropdown } from "@/components/bairro-dropdown";
 import { ATRIBUTOS } from "@/components/cafe-atributos";
+import { chipClass } from "@/components/filter-chip";
 import { CoffeeIcon } from "@/components/icons";
-import type { CafeFilters, FiltroBooleano } from "@/lib/cafe-filter";
+import type { FaixaPreco } from "@/lib/cafe";
+import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
+import { faixaPrecoNome } from "@/lib/format";
 
 /** Chips na ordem do design: o selo e os atributos, com os mesmos rótulos do card. */
 const CHIPS = [{ filtro: "ascape", label: "Recife Coffee", Icon: CoffeeIcon }, ...ATRIBUTOS] as const;
 
-const CHIP =
-  "inline-flex h-[38px] flex-none items-center gap-2 rounded-full border px-[15px] text-[13.5px] font-medium transition-colors duration-200 motion-reduce:transition-none";
-const CHIP_ON = "border-terracotta bg-terracotta text-on-terracotta hover:border-terracotta-hover hover:bg-terracotta-hover";
-const CHIP_OFF = "border-chip-line text-espresso hover:bg-hover-soft";
-
 type Props = {
   filters: CafeFilters;
+  bairros: BairroOpcao[];
   onToggle: (chave: FiltroBooleano) => void;
+  onToggleBairro: (slug: string) => void;
+  onLimparBairros: () => void;
+  onTogglePreco: (faixa: FaixaPreco) => void;
 };
 
 /**
  * Barra de filtros da home: 64 px, chips em pílula. Abaixo de `lg` rola de
  * lado até o bottom sheet do mobile (#13) substituí-la.
  */
-export function FilterBar({ filters, onToggle }: Props) {
+export function FilterBar({
+  filters,
+  bairros,
+  onToggle,
+  onToggleBairro,
+  onLimparBairros,
+  onTogglePreco,
+}: Props) {
   return (
     <div
       role="group"
@@ -32,12 +42,35 @@ export function FilterBar({ filters, onToggle }: Props) {
           type="button"
           aria-pressed={filters[filtro]}
           onClick={() => onToggle(filtro)}
-          className={`${CHIP} ${filters[filtro] ? CHIP_ON : CHIP_OFF}`}
+          className={chipClass(filters[filtro], "gap-2 px-[15px] font-medium")}
         >
           <Icon size={16} strokeWidth={2} />
           {label}
         </button>
       ))}
+      <BairroDropdown
+        bairros={bairros}
+        selecionados={filters.bairros}
+        onToggle={onToggleBairro}
+        onLimpar={onLimparBairros}
+      />
+      <span aria-hidden="true" className="mx-1.5 h-[22px] w-px flex-none bg-line-strong" />
+      {FAIXAS.map((faixa) => {
+        const ativo = filters.precos.includes(faixa);
+        return (
+          <button
+            key={faixa}
+            type="button"
+            // "$" seria lido como "dólar": o nome da faixa é o rótulo.
+            aria-label={faixaPrecoNome(faixa)}
+            aria-pressed={ativo}
+            onClick={() => onTogglePreco(faixa)}
+            className={chipClass(ativo, "min-w-[46px] justify-center px-[13px] font-semibold tracking-[.04em]")}
+          >
+            {faixa}
+          </button>
+        );
+      })}
     </div>
   );
 }

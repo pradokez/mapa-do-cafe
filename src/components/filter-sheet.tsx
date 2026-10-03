@@ -31,7 +31,10 @@ export function FilterSheet({ titulo, trigger, cafes, filters, onAplicar, childr
     if (abrir) setRascunho(filters);
     setAberto(abrir);
   };
-  const total = filtrarCafes(cafes, rascunho).length;
+  // A busca não é do sheet: um termo que chega com ele aberto (debounce do
+  // campo) vale para a contagem e não é desfeito ao aplicar.
+  const efetivo = { ...rascunho, q: filters.q };
+  const total = filtrarCafes(cafes, efetivo).length;
 
   return (
     <Sheet open={aberto} onOpenChange={abrirOuFechar}>
@@ -42,7 +45,7 @@ export function FilterSheet({ titulo, trigger, cafes, filters, onAplicar, childr
         <button
           type="button"
           onClick={() => {
-            onAplicar(rascunho);
+            onAplicar(efetivo);
             setAberto(false);
           }}
           className="mt-3.5 h-12 flex-none rounded-full bg-espresso text-[15px] font-semibold text-cream"

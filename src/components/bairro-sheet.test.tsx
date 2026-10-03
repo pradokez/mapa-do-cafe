@@ -93,4 +93,18 @@ describe("BairroSheet", () => {
 
     expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, pets: true, bairros: ["gracas"] });
   });
+
+  it("busca que chega com o sheet aberto (debounce) não é desfeita ao aplicar", async () => {
+    const onAplicar = vi.fn();
+    const props = { cafes: CAFES, bairros: BAIRROS, onAplicar };
+    const { rerender } = render(<BairroSheet {...props} filters={FILTROS_VAZIOS} />);
+    await userEvent.click(screen.getByRole("button", { name: "Bairro" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Graças" }));
+
+    rerender(<BairroSheet {...props} filters={{ ...FILTROS_VAZIOS, q: "zzz" }} />);
+
+    expect(screen.getByRole("button", { name: "Ver 0 cafés" })).toBeDefined();
+    await userEvent.click(screen.getByRole("button", { name: "Ver 0 cafés" }));
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, q: "zzz", bairros: ["gracas"] });
+  });
 });

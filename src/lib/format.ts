@@ -17,7 +17,7 @@ export function localLabel(cafe: Pick<Cafe, "bairro" | "cidade">): string {
 const NOMES_FAIXA_PRECO: Record<FaixaPreco, string> = {
   $: "Econômico",
   $$: "Moderado",
-  $$$: "Especial",
+  $$$: "Elevado",
 };
 
 /** Nome da faixa de preço (microcopy fixado): "$$" → "Moderado". */

@@ -27,7 +27,7 @@ describe("faixaPrecoNome", () => {
   it.each([
     ["$", "Econômico"],
     ["$$", "Moderado"],
-    ["$$$", "Especial"],
+    ["$$$", "Elevado"],
   ] as const)("%s → %s", (faixa, nome) => {
     expect(faixaPrecoNome(faixa)).toBe(nome);
   });

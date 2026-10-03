@@ -87,8 +87,11 @@ function isRegistro(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Texto do dia sem espaços nas pontas; "fechado" em qualquer caixa vira `FECHADO`. */
 function valorDoDia(value: unknown): string | null {
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const valor = value.trim();
+  return valor.toLocaleLowerCase("pt-BR") === FECHADO.toLocaleLowerCase("pt-BR") ? FECHADO : valor;
 }
 
 /** Complemento de "Fechado hoje": "abre amanhã" (microcopy fixado) ou "abre sábado". */

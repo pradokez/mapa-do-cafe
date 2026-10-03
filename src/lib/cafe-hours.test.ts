@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import type { DiaSemana } from "./cafe";
+import type { Cafe, DiaSemana } from "./cafe";
 
 import { proximaAberturaLabel, resumoHorario } from "./cafe-hours";
 
@@ -152,6 +153,13 @@ describe("resumoHorario › jsonb incompleto, vazio ou ausente", () => {
     ]);
   });
 
+  it.each(["fechado", "FECHADO", "  Fechado  "])("'%s' conta como fechado, não como horário", (valor) => {
+    const resumo = resumoHorario({ ...SEMANA, segunda: valor }, SEGUNDA);
+
+    expect(resumo.hoje).toMatchObject({ status: "fechado", proximaAbertura: "amanha" });
+    expect(resumo.dias[0].horario).toBe("Fechado");
+  });
+
   it("hoje sem dado é 'desconhecido', não 'fechado'", () => {
     expect(resumoHorario({ ...SEMANA, segunda: "" }, SEGUNDA).hoje).toEqual({
       status: "desconhecido",
@@ -177,4 +185,20 @@ describe("proximaAberturaLabel", () => {
   ] as const)("%s → %s", (proxima, label) => {
     expect(proximaAberturaLabel(proxima)).toBe(label);
   });
+});
+
+describe("resumoHorario › seed real", () => {
+  const seed: Cafe[] = JSON.parse(
+    readFileSync(new URL("../../supabase/seed/cafes.json", import.meta.url), "utf8"),
+  );
+
+  it.each(seed.filter((c) => c.ativo).map((c) => [c.slug, c.horario_funcionamento]))(
+    "%s tem os 7 dias informados e abre em algum dia",
+    (_, horario) => {
+      const { dias } = resumoHorario(horario, SEGUNDA);
+
+      expect(dias.every((d) => d.horario !== null)).toBe(true);
+      expect(dias.some((d) => d.horario !== "Fechado")).toBe(true);
+    },
+  );
 });

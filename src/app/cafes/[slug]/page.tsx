@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { atributosDo } from "@/components/cafe-atributos";
+import { CafeCarousel } from "@/components/cafe-carousel";
 import { CafeDetailAside } from "@/components/cafe-detail-aside";
 import { CafeHoursPanel } from "@/components/cafe-hours-panel";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
@@ -29,6 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: cafe ? `${cafe.nome} · Mapa do Café` : "Café não encontrado · Mapa do Café" };
 }
 
+// Slots do carrossel do hero (design); faltas viram placeholder.
+const HERO_SLOTS = 4;
+
 const TAG =
   "inline-flex h-[38px] items-center gap-2 rounded-full border border-line-strong bg-white px-[15px] text-sm text-espresso";
 
@@ -36,7 +40,6 @@ export default async function CafePage({ params }: Props) {
   const cafe = await getCafe(params.slug);
   if (!cafe) notFound();
 
-  const [photo] = resolveCafePhotos(cafe);
   const horario = resumoHorario(cafe.horario_funcionamento, new Date());
 
   return (
@@ -54,20 +57,7 @@ export default async function CafePage({ params }: Props) {
           </span>
         </nav>
 
-        {/* Hero estático; o carrossel entra na #5. */}
-        <div
-          className="relative flex h-[260px] items-end overflow-hidden rounded-[18px] px-[26px] py-[22px] lg:h-[500px]"
-          style={photo.kind === "placeholder" ? { background: photo.background } : undefined}
-        >
-          {photo.kind === "url" ? (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos do Storage chegam na Fase 2
-            <img src={photo.src} alt="" className="absolute inset-0 size-full object-cover" />
-          ) : (
-            <span aria-hidden="true" className="text-[11.5px] uppercase tracking-[.1em] text-espresso/55">
-              foto · {cafe.nome}
-            </span>
-          )}
-        </div>
+        <CafeCarousel photos={resolveCafePhotos(cafe, { minSlots: HERO_SLOTS })} nome={cafe.nome} />
 
         {/* Mobile: título → aside → corpo. Desktop: aside fixo na 2ª coluna. */}
         <div className="mt-8 grid items-start gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-16 lg:gap-y-0">

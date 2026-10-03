@@ -29,7 +29,7 @@ export const FILTROS_VAZIOS: CafeFilters = {
 const CHAVES = Object.keys(FILTROS_BOOLEANOS) as FiltroBooleano[];
 
 /** Ordem canônica das faixas, na URL e no estado. */
-const FAIXAS: readonly FaixaPreco[] = ["$", "$$", "$$$"];
+export const FAIXAS: readonly FaixaPreco[] = ["$", "$$", "$$$"];
 
 /** Lista vazia aceita qualquer valor; senão, o valor precisa estar nela. */
 const aceita = <T>(lista: readonly T[], valor: T) => lista.length === 0 || lista.includes(valor);

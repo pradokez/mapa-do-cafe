@@ -7,7 +7,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { HomeMap } from "@/components/home-map";
 import { useFilterParams } from "@/hooks/use-filter-params";
 import type { Cafe } from "@/lib/cafe";
-import { filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
+import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
 
 /**
  * Lista + mapa da home, com o estado que os liga: o recorte dos filtros (na
@@ -15,7 +15,10 @@ import { filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
  * cliente, sem round-trip.
  */
 export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
-  const { filters, toggle, limpar } = useFilterParams();
+  const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
+  const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
+  const { filters, toggle, toggleBairro, limparBairros, togglePreco, limpar } =
+    useFilterParams(slugs);
   // Memo: o mapa refaz os pins quando a lista muda de identidade.
   const filtrados = useMemo(() => filtrarCafes(cafes, filters), [cafes, filters]);
 
@@ -33,7 +36,14 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
 
   return (
     <main className="flex min-h-0 flex-1 flex-col">
-      <FilterBar filters={filters} onToggle={toggle} />
+      <FilterBar
+        filters={filters}
+        bairros={bairros}
+        onToggle={toggle}
+        onToggleBairro={toggleBairro}
+        onLimparBairros={limparBairros}
+        onTogglePreco={togglePreco}
+      />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[45%_55%]">
         <div className="lg:overflow-y-auto">
           <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>

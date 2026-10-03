@@ -75,10 +75,20 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
 
       {total > 1 && (
         <>
-          <button type="button" aria-label="Foto anterior" onClick={() => go(index - 1)} className={`${ARROW} left-[18px]`}>
+          <button
+            type="button"
+            aria-label="Foto anterior"
+            onClick={() => go(index - 1)}
+            className={`${ARROW} left-[18px]`}
+          >
             <ChevronLeftIcon size={18} strokeWidth={2} />
           </button>
-          <button type="button" aria-label="Próxima foto" onClick={() => go(index + 1)} className={`${ARROW} right-[18px]`}>
+          <button
+            type="button"
+            aria-label="Próxima foto"
+            onClick={() => go(index + 1)}
+            className={`${ARROW} right-[18px]`}
+          >
             <ChevronRightIcon size={18} strokeWidth={2} />
           </button>
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { destinoSeguro, etapaDoLogin, isUuid } from "./admin-auth";
+import { destinoSeguro, etapaDoLogin, isUuid, urlDoLogin } from "./admin-auth";
 
 const admin = { app_metadata: { role: "admin" } };
 
@@ -75,4 +75,19 @@ describe("isUuid", () => {
       expect(isUuid(id)).toBe(false);
     },
   );
+});
+
+describe("urlDoLogin", () => {
+  it("sem destino específico, é só a tela de login", () => {
+    expect(urlDoLogin("/admin")).toBe("/admin/login");
+    expect(urlDoLogin(null)).toBe("/admin/login");
+  });
+
+  it("guarda a página do admin pedida em ?next=, codificada", () => {
+    expect(urlDoLogin("/admin/cafes/abc?x=1")).toBe("/admin/login?next=%2Fadmin%2Fcafes%2Fabc%3Fx%3D1");
+  });
+
+  it("não carrega destino de fora do admin", () => {
+    expect(urlDoLogin("https://evil.example")).toBe("/admin/login");
+  });
 });

@@ -40,6 +40,12 @@ export function destinoSeguro(next: unknown): string {
   return url.pathname + url.search;
 }
 
+/** Tela de login que, depois de entrar, volta para `next` (se for página do admin). */
+export function urlDoLogin(next: unknown): string {
+  const destino = destinoSeguro(next);
+  return destino === ADMIN ? `${ADMIN}/login` : `${ADMIN}/login?next=${encodeURIComponent(destino)}`;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Id de café válido. Outro texto vira 404 antes da query (o Postgres daria erro 22P02). */

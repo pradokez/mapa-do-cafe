@@ -10,7 +10,7 @@
  */
 import { redirect } from "next/navigation";
 
-import { destinoSeguro, etapaDoLogin } from "@/lib/admin-auth";
+import { destinoSeguro, etapaDoLogin, urlDoLogin } from "@/lib/admin-auth";
 import { createSessionClient } from "@/lib/supabase-server";
 
 export type LoginState = {
@@ -30,8 +30,7 @@ function texto(formData: FormData, campo: string, max: number): string | null {
 }
 
 function voltarAoLogin(next: FormDataEntryValue | null): never {
-  const destino = destinoSeguro(next);
-  redirect(destino === "/admin" ? "/admin/login" : `/admin/login?next=${encodeURIComponent(destino)}`);
+  redirect(urlDoLogin(next));
 }
 
 /** Etapa 1: email e senha. Conta sem papel de admin sai na hora, com o mesmo erro. */

@@ -68,7 +68,7 @@ Rodar o seed de novo atualiza os registros em vez de duplicá-los.
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`); a RLS só expõe cafés ativos |
 | `SUPABASE_SECRET_KEY` | Secret key — reservada para o admin (Fase 2), ignora a RLS |
 | `SUPABASE_JWKS_URL` | JWKS para validar JWTs — reservada para o admin (Fase 2) |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox — entra com o mapa (#6) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Token público do Mapbox (`pk.…`), restrito por URL no painel |
 
 As variáveis do Supabase são só de servidor (sem `NEXT_PUBLIC_`): a leitura acontece no `cafe-repository`, dentro de Server Components.
 

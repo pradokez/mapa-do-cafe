@@ -62,11 +62,11 @@ describe("formatarDistancia", () => {
 });
 
 describe("distanciaLabel", () => {
-  // Marco Zero → Alto da Sé (Olinda): ~6 km em linha reta.
+  // Marco Zero → Alto da Sé (Olinda): 5,85 km em linha reta.
   const ALTO_DA_SE = { lat: -8.0136, lng: -34.8530 };
 
   it("com origem, a distância já formatada", () => {
-    expect(distanciaLabel(MARCO_ZERO, ALTO_DA_SE)).toMatch(/^\d,\d km$/);
+    expect(distanciaLabel(MARCO_ZERO, ALTO_DA_SE)).toBe("5,9 km");
   });
 
   it("sem origem conhecida, nada a exibir", () => {

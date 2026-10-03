@@ -55,7 +55,7 @@ function subscribe(onChange: () => void) {
 }
 
 /** Posição do navegador. No servidor e antes de decidir: `idle`, sem coordenadas. */
-export function useGeolocation(): Geolocation {
+export function useGeolocation(): GeoState {
   return useSyncExternalStore(
     subscribe,
     () => state,

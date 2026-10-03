@@ -30,7 +30,7 @@ Decisões duráveis que valem para todas as fases:
   2. Só o `cafe-repository` lê do Supabase.
 - **Módulos puros (sem React, testados por entrada → saída)**: `cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`.
 - **Hooks finos**: `use-filter-params` (URL ↔ estado de filtro, sem `useEffect` de sincronização), `use-geolocation` (`idle` / `prompting` / `granted` / `denied` / `unavailable`).
-- **Identidade**: paleta e tipografia (Caprasimo só no logo, Playfair Display, DM Sans) exatamente como na seção "Identidade visual" do PRD; microcopy pt-BR fixada pelo PRD, sem reinvenção.
+- **Identidade**: paleta e tipografia (Caprasimo no logo e nos títulos, DM Sans na UI) exatamente como na seção "Identidade visual" do PRD; microcopy pt-BR fixada pelo PRD, sem reinvenção.
 
 ---
 

@@ -55,10 +55,12 @@ SheetTitle.displayName = DialogPrimitive.Title.displayName;
 const LIMIAR = 0.25;
 /** Velocidade (px/ms) do último movimento que fecha mesmo abaixo do limiar. */
 const PETELECO = 0.5;
+/** Dedo parado por mais que isso antes de soltar: a velocidade não conta mais. */
+const PAUSA_MAXIMA = 100;
 /** Abaixo disso, foi um toque, não um arrasto. */
 const DESLOCAMENTO_MINIMO = 10;
 
-type Arrasto = { inicioY: number; altura: number; y: number; t: number; velocidade: number };
+type Arrasto = { pointerId: number; inicioY: number; altura: number; y: number; t: number; velocidade: number };
 
 export const SheetContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
@@ -70,14 +72,14 @@ export const SheetContent = forwardRef<
   const [puxado, setPuxado] = useState<{ dy: number; altura: number } | null>(null);
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || !(e.target as Element).closest(`[${ZONA_DE_ARRASTO}]`)) return;
+    if (arrasto.current || e.button !== 0 || !(e.target as Element).closest(`[${ZONA_DE_ARRASTO}]`)) return;
     const altura = e.currentTarget.getBoundingClientRect().height;
-    arrasto.current = { inicioY: e.clientY, altura, y: e.clientY, t: performance.now(), velocidade: 0 };
+    arrasto.current = { pointerId: e.pointerId, inicioY: e.clientY, altura, y: e.clientY, t: performance.now(), velocidade: 0 };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     const a = arrasto.current;
-    if (!a) return;
+    if (a?.pointerId !== e.pointerId) return;
     const t = performance.now();
     if (t > a.t) a.velocidade = (e.clientY - a.y) / (t - a.t);
     a.y = e.clientY;
@@ -86,11 +88,12 @@ export const SheetContent = forwardRef<
   };
   const soltar = (e: PointerEvent<HTMLDivElement>) => {
     const a = arrasto.current;
-    if (!a) return;
+    if (a?.pointerId !== e.pointerId) return;
     arrasto.current = null;
     const dy = e.clientY - a.inicioY;
     const longe = dy > a.altura * LIMIAR;
-    const peteleco = dy > DESLOCAMENTO_MINIMO && a.velocidade > PETELECO;
+    const peteleco =
+      dy > DESLOCAMENTO_MINIMO && a.velocidade > PETELECO && performance.now() - a.t < PAUSA_MAXIMA;
     if (e.type === "pointerup" && (longe || peteleco)) fechar();
     else setPuxado(null);
   };

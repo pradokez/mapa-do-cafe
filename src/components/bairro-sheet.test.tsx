@@ -34,7 +34,13 @@ function renderSheet(filters: CafeFilters = FILTROS_VAZIOS) {
  * Arrasta de `de` até `ate` (clientY) em `ms` milissegundos. O jsdom não tem
  * layout: o sheet é simulado com 600 px de altura.
  */
-function arrastar(el: Element, de: number, ate: number, ms: number) {
+function arrastar(
+  el: Element,
+  de: number,
+  ate: number,
+  ms: number,
+  { pausa = 0, fim = "pointerUp" }: { pausa?: number; fim?: "pointerUp" | "pointerCancel" } = {},
+) {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ height: 600 } as DOMRect);
   vi.useFakeTimers({ toFake: ["performance"] });
   fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientY: de });
@@ -42,7 +48,9 @@ function arrastar(el: Element, de: number, ate: number, ms: number) {
   fireEvent.pointerMove(el, { pointerId: 1, clientY: (de + ate) / 2 });
   vi.advanceTimersByTime(ms / 2);
   fireEvent.pointerMove(el, { pointerId: 1, clientY: ate });
-  fireEvent.pointerUp(el, { pointerId: 1, clientY: ate });
+  // Dedo parado antes de soltar.
+  vi.advanceTimersByTime(pausa);
+  fireEvent[fim](el, { pointerId: 1, clientY: ate });
   vi.useRealTimers();
 }
 
@@ -161,6 +169,24 @@ describe("BairroSheet", () => {
       arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 180, 80);
 
       expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("um peteleco seguido de pausa com o dedo parado não fecha", async () => {
+      renderSheet();
+      await userEvent.click(screen.getByRole("button", { name: "Bairro" }));
+
+      arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 180, 80, { pausa: 500 });
+
+      expect(screen.getByRole("dialog", { name: "Bairro" })).toBeDefined();
+    });
+
+    it("cancelado pelo navegador, não fecha nem com arrasto longo", async () => {
+      renderSheet();
+      await userEvent.click(screen.getByRole("button", { name: "Bairro" }));
+
+      arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 400, 1000, { fim: "pointerCancel" });
+
+      expect(screen.getByRole("dialog", { name: "Bairro" })).toBeDefined();
     });
 
     it("começando na lista, não fecha: ali o gesto é rolar", async () => {

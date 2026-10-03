@@ -11,6 +11,7 @@ import { PREVIEW_WIDTH } from "@/lib/map-preview-placement";
 type Props = {
   cafe: Cafe;
   onClose: () => void;
+  linkRef?: React.Ref<HTMLAnchorElement>;
   style?: React.CSSProperties;
 };
 
@@ -19,7 +20,7 @@ type Props = {
  * `<CafeMap />` decide onde ele fica e passa a posição por `style`. O cartão
  * inteiro leva ao detalhe; o X é irmão do link, não botão dentro dele.
  */
-export function CafeMapPreview({ cafe, onClose, style }: Props) {
+export function CafeMapPreview({ cafe, onClose, linkRef, style }: Props) {
   const [photo] = resolveCafePhotos(cafe);
 
   return (
@@ -27,7 +28,7 @@ export function CafeMapPreview({ cafe, onClose, style }: Props) {
       style={{ width: PREVIEW_WIDTH, ...style }}
       className="absolute z-20 rounded-[14px] bg-white shadow-[0_18px_40px_-12px_rgba(0,0,0,.55)]"
     >
-      <Link href={`/cafes/${cafe.slug}`} className="group flex gap-3 rounded-[14px] p-2 pr-3">
+      <Link ref={linkRef} href={`/cafes/${cafe.slug}`} className="group flex gap-3 rounded-[14px] p-2 pr-3">
         <CafePhotoFrame photo={photo} className="size-[72px] flex-none rounded-[9px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-[3px] pr-5 pt-0.5">
           <span className="font-display text-base leading-[1.2] text-espresso">{cafe.nome}</span>

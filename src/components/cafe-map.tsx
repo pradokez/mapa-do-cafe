@@ -254,6 +254,16 @@ export function CafeMap({
 
   const placement = anchor && placePreview(anchor.pin, anchor.size);
 
+  // Enter no pin abre o preview e leva o foco até ele: no DOM, o preview vem
+  // depois de todos os pins, e o Tab seguinte os percorreria antes de chegar.
+  const previewLink = useRef<HTMLAnchorElement>(null);
+  const previewAbertoId = previewCafe && (!acompanhaPin || placement) ? previewCafe.id : null;
+  useEffect(() => {
+    if (!previewAbertoId) return;
+    if (document.activeElement === markers.current.get(previewAbertoId)?.getElement()) {
+      previewLink.current?.focus();
+    }
+  }, [previewAbertoId]);
 
   return (
     <div
@@ -269,6 +279,7 @@ export function CafeMap({
         // Card do pin no mobile, acima do FAB (o design o põe a 92 px do pé).
         <CafeMapPreview
           cafe={previewCafe}
+          linkRef={previewLink}
           onClose={closePreview}
           style={{ left: 14, right: 14, bottom: 92, width: "auto" }}
         />
@@ -276,6 +287,7 @@ export function CafeMap({
       {previewCafe && acompanhaPin && placement && (
         <CafeMapPreview
           cafe={previewCafe}
+          linkRef={previewLink}
           onClose={closePreview}
           style={{
             left: placement.left,

@@ -118,15 +118,18 @@ Ida e volta precisa ser estável: estado → params → estado devolve o mesmo e
 
 **Barra de filtros (#38):** só os dois selos, "Tem estacionamento", bairro e preço viram chip. No desktop, os outros cinco booleanos (pets, coffee office, PcD, vegetariano, ar-condicionado) ficam no dropdown **"Mais filtros"** — checkbox que aplica na hora, como o de bairro; rótulo `Mais filtros` → `Mais filtros · N`. No mobile não há "Mais filtros": o sheet do botão de filtros tem todos.
 
+**Card desktop (#42, design v2):** selos em pílula sobre a foto; comodidades em **fichas redondas** de 28 px (`hover-soft`, ícone 15 px `ink-2`, gap 6 px), na ordem fixa de `cafe-atributos`. As 6 cabem numa linha (198 px), de **altura fixa** e reservada mesmo vazia — todos os cards da grade têm a mesma altura. Para caber em toda largura, a grade tem **1 coluna de 1024 a 1179 px** e 2 a partir de 1180 px (abaixo disso, meia coluna dá ~163 px úteis).
+
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
 
 ## Mobile (abaixo de `lg`)
 
-Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral (Recife Coffee, Eu Amo Café, "Estacionamento" — rótulo curto, com o inteiro como nome acessível —, bairro e preço), cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
+Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral (Recife Coffee, Eu Amo Café, "Estacionamento" — rótulo curto, com o inteiro como nome acessível —, bairro e preço), cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`; detalhes em "Card compacto", abaixo) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
 
 - **Visão lista/mapa é estado local**, fora da URL e do histórico: a home sempre abre na lista. Os filtros (na URL) sobrevivem à troca; voltar para a lista fecha o card do pin.
 - **Bottom sheets com rascunho** (Radix Dialog, `ui/sheet.tsx`): marcar opções não mexe na URL; "Ver N cafés" conta o resultado do rascunho e é o único que aplica (uma entrada no histórico). Esc ou toque no fundo descartam. Sem arrasto: a alça é decorativa.
-- **Desvio consciente — dois sheets:** no design, o botão de filtros e o chip de bairro abriam o mesmo sheet de bairros. Aqui o **botão de filtros** abre um sheet com os 2 selos, os 6 atributos e a faixa de preço (linhas de 48 px, como o de bairro); o **chip de bairro** abre o sheet de bairros.
+- **Desvio consciente — dois sheets** (reafirmado no design v2, #42): no design, o botão de filtros e o chip de bairro abrem o mesmo sheet (Comodidades + Bairro). Aqui o **botão de filtros** abre um sheet em seções — **Selos** e **Comodidades** (as 6) em chips de 36 px como os da barra (ícone + rótulo curto, o inteiro como nome acessível), e **Faixa de preço** em linhas de 48 px (o chip `$` sozinho perderia o nome); o **chip de bairro** abre o sheet de bairros.
+- **Card compacto (#42, design v2):** os selos saem da linha de baixo e viram **selinhos só com ícone** no canto da thumb (24 px, `cream`). Comodidades em ícones soltos de 14 px; **no máximo 5 itens na linha** — com 6, as 4 primeiras e um **"+2"**, que mostra os nomes das que ficaram de fora no toque, hover e foco.
 - **Badge** do botão de filtros: cada booleano, cada bairro e cada faixa contam 1; a busca não entra (`contarFiltrosAtivos`).
 - **Card do pin:** o mesmo `CafeMapPreview` do desktop, preso embaixo (14 px das laterais, acima do FAB), **com X** — desvio do design, que não tem como fechar por teclado nem leitor de tela.
 
@@ -232,7 +235,8 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 - Server Components por padrão; `"use client"` só com justificativa
 - Mutations via Server Actions, não API Routes
 - Componentes shadcn/ui não devem regredir em acessibilidade (teclado + ARIA vêm por padrão) ao customizar estilo
-- Ícones de comodidade nos cards são **informação, não decoração**: precisam de rótulo acessível — `title` sozinho não basta
+- Ícones de comodidade nos cards são **informação, não decoração**: precisam de rótulo acessível — `title` sozinho não basta. Nome em `sr-only` + dica própria (`dica.ts`) no hover
+- **Card com stretched link (#42):** o link é o nome do café, esticado sobre o card (`after:inset-0`), para o "+N" ser um `<button>` fora do `<a>`. **Desvio consciente:** só o "+N" recebe foco; fichas e selinhos têm a dica só no hover (com foco em cada um seriam até 8 Tabs por card, ~400 na lista) — leitor de tela lê os nomes pelo `sr-only`. Clique exatamente numa ficha não abre o detalhe (ela fica acima da camada do link para receber o hover)
 - Foco visível em toda superfície clicável, sem anel cortado: contêiner com scroll leva `scroll-padding`; canvas e controles do Mapbox usam o anel da paleta (por dentro do canvas)
 - Contraste verificado (#14): `ink-3` dá 5,26:1 sobre `cream` e 4,89:1 sobre `hover-soft` — passa AA. Exceções conscientes: `placeholder` (acima) e, por serem `aria-hidden`, os `$` apagados (`price-off`) e as legendas "foto · {nome}"
 - Sem menu hamburger até existir destino de navegação real

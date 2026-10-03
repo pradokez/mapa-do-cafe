@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CafeList } from "@/components/cafe-list";
+import { CafeList, type Hovered } from "@/components/cafe-list";
 import { HomeMap } from "@/components/home-map";
 import type { Cafe } from "@/lib/cafe";
 
@@ -11,9 +11,11 @@ import type { Cafe } from "@/lib/cafe";
  * café selecionado (preview aberto). Estado local, sem round-trip.
  */
 export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
-  // Hover no card ou no pin: o mesmo estado, com o mesmo efeito nos dois lados.
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<Hovered | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const hoverFrom = (source: Hovered["source"]) => (id: string | null) =>
+    setHovered(id ? { id, source } : null);
 
   return (
     <main className="grid min-h-0 flex-1 lg:grid-cols-[45%_55%]">
@@ -21,18 +23,18 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
         <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
         <CafeList
           cafes={cafes}
-          hoveredId={hoveredId}
+          hovered={hovered}
           selectedId={selectedId}
-          onHover={setHoveredId}
+          onHover={hoverFrom("card")}
         />
       </div>
       {/* Fixo: só a coluna da lista rola. */}
       <div className="hidden bg-map-bg lg:block">
         <HomeMap
           cafes={cafes}
-          hoveredId={hoveredId}
+          hoveredId={hovered?.id ?? null}
           selectedId={selectedId}
-          onHover={setHoveredId}
+          onHover={hoverFrom("pin")}
           onSelect={setSelectedId}
           onClose={() => setSelectedId(null)}
         />

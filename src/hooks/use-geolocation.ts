@@ -6,16 +6,17 @@ import type { Coordenadas } from "@/lib/cafe-distance";
 
 export type GeolocationStatus = "idle" | "prompting" | "granted" | "denied" | "unavailable";
 
-export type Geolocation = { status: GeolocationStatus; coords: Coordenadas | null };
+// Não `Geolocation`: esse nome já é o tipo do DOM de `navigator.geolocation`.
+export type GeoState = { status: GeolocationStatus; coords: Coordenadas | null };
 
-const IDLE: Geolocation = { status: "idle", coords: null };
+const IDLE: GeoState = { status: "idle", coords: null };
 
 // Store do módulo: a posição sobrevive à navegação client-side (home → detalhe)
 // e o navegador é consultado uma vez por carregamento de página.
-let state: Geolocation = IDLE;
+let state: GeoState = IDLE;
 const listeners = new Set<() => void>();
 
-function set(next: Geolocation) {
+function set(next: GeoState) {
   state = next;
   listeners.forEach((notify) => notify());
 }

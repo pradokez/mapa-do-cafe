@@ -4,7 +4,7 @@ import { faixaPrecoNome, instagramUrl } from "./format";
 import { isHttpUrl } from "./url";
 
 /**
- * SEO do detalhe — PRD › "SEO". Puro: monta título, descrição e JSON-LD a
+ * SEO das páginas públicas — PRD › "SEO". Puro: monta título, descrição e JSON-LD a
  * partir do café; quem liga isso ao Next é a rota.
  */
 

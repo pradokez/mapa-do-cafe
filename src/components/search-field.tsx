@@ -57,7 +57,9 @@ export function SearchField({ value, onSearch }: Props) {
         enterKeyHint="search"
         autoComplete="off"
         // O anel de foco fica na pílula (focus-within), não num retângulo interno.
-        className="min-w-0 flex-1 bg-transparent text-sm text-espresso outline-none placeholder:text-placeholder [&::-webkit-search-cancel-button]:hidden"
+        // 16 px abaixo de `lg`: com menos que isso, o Safari do iPhone amplia a
+        // tela ao focar o campo.
+        className="min-w-0 flex-1 bg-transparent text-base text-espresso lg:text-sm outline-none placeholder:text-placeholder [&::-webkit-search-cancel-button]:hidden"
       />
     </label>
   );

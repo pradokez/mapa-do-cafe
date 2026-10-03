@@ -3,9 +3,14 @@ import type { Cafe, FaixaPreco } from "./cafe";
 /** Filtros booleanos: chave do estado → campo do café e param da URL (`?pets=true`). */
 const FILTROS_BOOLEANOS = {
   ascape: { campo: "selo_ascape", param: "ascape" },
+  euAmoCafe: { campo: "selo_eu_amo_cafe", param: "eu_amo_cafe" },
   pets: { campo: "aceita_pets", param: "pets" },
   estacionamento: { campo: "tem_estacionamento", param: "estacionamento" },
   coffeeOffice: { campo: "permite_coffee_office", param: "coffee_office" },
+  pcd: { campo: "acessivel_pcd", param: "pcd" },
+  vegetariano: { campo: "opcoes_vegetarianas", param: "vegetariano" },
+  // `null` (sem informação) não passa: só `true` conta.
+  arCondicionado: { campo: "tem_ar_condicionado", param: "ar_condicionado" },
 } as const satisfies Record<string, { campo: keyof Cafe; param: string }>;
 
 export type FiltroBooleano = keyof typeof FILTROS_BOOLEANOS;
@@ -21,9 +26,13 @@ export type CafeFilters = Record<FiltroBooleano, boolean> & {
 
 export const FILTROS_VAZIOS: CafeFilters = {
   ascape: false,
+  euAmoCafe: false,
   pets: false,
   estacionamento: false,
   coffeeOffice: false,
+  pcd: false,
+  vegetariano: false,
+  arCondicionado: false,
   bairros: [],
   precos: [],
   q: "",

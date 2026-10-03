@@ -21,21 +21,22 @@ describe("seed do Supabase", () => {
     );
   });
 
-  it("carrega os 29 cafés: 27 ativos, 3 em Olinda, ids e slugs únicos", () => {
+  it("carrega os 53 cafés: 51 ativos, 4 em Olinda, 2 em Jaboatão, ids e slugs únicos", () => {
     const todos = cafes();
 
-    expect(todos).toHaveLength(29);
-    expect(new Set(todos.map((c) => c.id)).size).toBe(29);
-    expect(new Set(todos.map((c) => c.slug)).size).toBe(29);
-    expect(todos.filter((c) => c.ativo)).toHaveLength(27);
+    expect(todos).toHaveLength(53);
+    expect(new Set(todos.map((c) => c.id)).size).toBe(53);
+    expect(new Set(todos.map((c) => c.slug)).size).toBe(53);
+    expect(todos.filter((c) => c.ativo)).toHaveLength(51);
     expect(todos.filter((c) => !c.ativo).map((c) => c.slug).sort()).toEqual([
       "castigliani",
       "versado-derby",
     ]);
-    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(3);
+    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(4);
+    expect(todos.filter((c) => c.cidade === "Jaboatão dos Guararapes")).toHaveLength(2);
   });
 
-  it("todo café tem coordenadas dentro de Recife/Olinda", () => {
+  it("todo café tem coordenadas dentro da região de Recife, Olinda e Jaboatão", () => {
     const fora = cafes().filter(
       ({ lat, lng }) => !(lat > -8.2 && lat < -7.95 && lng > -35.05 && lng < -34.8),
     );
@@ -64,6 +65,15 @@ describe("seed do Supabase", () => {
     );
 
     expect(colados).toEqual([]);
+  });
+
+  it("ar-condicionado é true, false ou null (sem informação); os outros booleanos nunca são null", () => {
+    for (const cafe of cafes()) {
+      expect([true, false, null], cafe.slug).toContain(cafe.tem_ar_condicionado);
+      expect(typeof cafe.acessivel_pcd, cafe.slug).toBe("boolean");
+      expect(typeof cafe.opcoes_vegetarianas, cafe.slug).toBe("boolean");
+      expect(typeof cafe.selo_eu_amo_cafe, cafe.slug).toBe("boolean");
+    }
   });
 
   it("cada café do JSON tem exatamente as colunas de `Cafe` — chave a mais seria ignorada em silêncio", () => {

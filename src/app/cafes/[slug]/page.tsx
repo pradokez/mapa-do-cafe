@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { atributosDo } from "@/components/cafe-atributos";
+import { atributosDo, selosDo } from "@/components/cafe-atributos";
 import { CafeCarousel } from "@/components/cafe-carousel";
 import { CafeDetailAside } from "@/components/cafe-detail-aside";
 import { CafeHoursPanel } from "@/components/cafe-hours-panel";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
-import { ArrowLeftIcon, CoffeeIcon, InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
+import { ArrowLeftIcon, InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
 import { NotifyButton } from "@/components/notify-button";
 import { SiteHeader } from "@/components/site-header";
 import { resumoHorario } from "@/lib/cafe-hours";
@@ -41,6 +41,7 @@ export default async function CafePage({ params }: Props) {
   if (!cafe) notFound();
 
   const horario = resumoHorario(cafe.horario_funcionamento, new Date());
+  const selos = selosDo(cafe);
 
   return (
     <div className="min-h-screen">
@@ -62,11 +63,18 @@ export default async function CafePage({ params }: Props) {
         {/* Mobile: título → aside → corpo. Desktop: aside fixo na 2ª coluna. */}
         <div className="mt-8 grid items-start gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-16 lg:gap-y-0">
           <div className="flex flex-col lg:col-start-1">
-            {cafe.selo_ascape && (
-              <span className="mb-3.5 inline-flex h-7 items-center gap-1.5 self-start rounded-full bg-seal-bg px-3 text-[12.5px] font-semibold text-seal-fg">
-                <CoffeeIcon size={13} strokeWidth={2.2} />
-                Selo Recife Coffee
-              </span>
+            {selos.length > 0 && (
+              <ul className="mb-3.5 flex flex-wrap gap-2">
+                {selos.map(({ key, label, Icon }) => (
+                  <li
+                    key={key}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full bg-seal-bg px-3 text-[12.5px] font-semibold text-seal-fg"
+                  >
+                    <Icon size={13} strokeWidth={2.2} />
+                    Selo {label}
+                  </li>
+                ))}
+              </ul>
             )}
             <h1 className="text-balance font-display text-[36px] leading-[1.05] tracking-[-0.015em] text-espresso lg:text-[58px]">
               {cafe.nome}
@@ -88,13 +96,7 @@ export default async function CafePage({ params }: Props) {
             <hr className="mb-[30px] hidden border-line lg:block lg:mt-[30px]" />
             <h2 className="mb-3.5 text-xs font-semibold uppercase tracking-[.12em] text-ink-3">Comodidades</h2>
             <ul className="flex flex-wrap gap-2">
-              {cafe.selo_ascape && (
-                <li className={TAG}>
-                  <CoffeeIcon strokeWidth={1.9} />
-                  Recife Coffee
-                </li>
-              )}
-              {atributosDo(cafe).map(({ key, label, Icon }) => (
+              {[...selos, ...atributosDo(cafe)].map(({ key, label, Icon }) => (
                 <li key={key} className={TAG}>
                   <Icon strokeWidth={1.9} />
                   {label}

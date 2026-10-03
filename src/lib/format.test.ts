@@ -21,6 +21,10 @@ describe("localLabel", () => {
   it("café de Olinda mostra bairro e cidade", () => {
     expect(localLabel({ bairro: "Casa Caiada", cidade: "Olinda" })).toBe("Casa Caiada, Olinda");
   });
+
+  it("café de Jaboatão dos Guararapes mostra a cidade pelo nome curto, que cabe no card", () => {
+    expect(localLabel({ bairro: "Candeias", cidade: "Jaboatão dos Guararapes" })).toBe("Candeias, Jaboatão");
+  });
 });
 
 describe("faixaPrecoNome", () => {

@@ -226,3 +226,51 @@ export function ListIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function HeartIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </Icon>
+  );
+}
+
+export function AccessibilityIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="16" cy="4" r="1" />
+      <path d="m18 19 1-7-6 1" />
+      <path d="m5 8 3-3 5.5 3-2.36 3.5" />
+      <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
+      <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
+    </Icon>
+  );
+}
+
+export function LeafIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+    </Icon>
+  );
+}
+
+export function SnowflakeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m10 20-1.25-2.5L6 18" />
+      <path d="M10 4 8.75 6.5 6 6" />
+      <path d="m14 20 1.25-2.5L18 18" />
+      <path d="m14 4 1.25 2.5L18 6" />
+      <path d="m17 21-3-6h-4" />
+      <path d="m17 3-3 6 1.5 3" />
+      <path d="M2 12h6.5L10 9" />
+      <path d="m20 10-1.5 2 1.5 2" />
+      <path d="M22 12h-6.5L14 15" />
+      <path d="m4 10 1.5 2L4 14" />
+      <path d="m7 21 3-6-1.5-3" />
+      <path d="m7 3 3 6h4" />
+    </Icon>
+  );
+}

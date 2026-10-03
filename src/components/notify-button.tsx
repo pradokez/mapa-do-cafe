@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { CheckIcon } from "@/components/icons";
 
+const CONFIRMACAO = "Anotado! A gente te avisa quando abrir.";
+
 /**
  * "Avise-me quando abrir" (avaliações chegam na Fase 3). Sem backend: o
  * clique só confirma localmente, para o botão não parecer quebrado. Não
@@ -27,14 +29,14 @@ export function NotifyButton() {
         {anotado ? (
           <>
             <CheckIcon strokeWidth={2.2} />
-            Anotado! A gente te avisa quando abrir.
+            {CONFIRMACAO}
           </>
         ) : (
           "Avise-me quando abrir"
         )}
       </button>
       <span aria-live="polite" className="sr-only">
-        {anotado && "Anotado! A gente te avisa quando abrir."}
+        {anotado && CONFIRMACAO}
       </span>
     </>
   );

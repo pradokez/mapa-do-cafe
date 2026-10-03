@@ -1,4 +1,5 @@
 import { CafeList } from "@/components/cafe-list";
+import { HomeMap } from "@/components/home-map";
 import { SiteHeader } from "@/components/site-header";
 import { listCafesAtivos } from "@/lib/cafe-repository";
 
@@ -16,8 +17,10 @@ export default async function Home() {
           <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
           <CafeList cafes={cafes} />
         </div>
-        {/* Espaço reservado para o <CafeMap /> (#6). */}
-        <div aria-hidden="true" className="hidden bg-map-bg lg:block" />
+        {/* Fixo: só a coluna da lista rola. */}
+        <div className="hidden bg-map-bg lg:block">
+          <HomeMap cafes={cafes} />
+        </div>
       </main>
     </div>
   );

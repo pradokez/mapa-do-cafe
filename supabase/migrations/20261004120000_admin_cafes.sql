@@ -15,7 +15,8 @@ grant usage on schema private to authenticated;
 -- * O papel vem de `auth.users.raw_app_meta_data` (o `app_metadata`), que só o
 --   service role altera — nunca de `user_metadata`, que o próprio usuário edita.
 --   Lido do banco, e não do JWT, para que tirar o papel valha na hora.
--- * `aal2`: senha sozinha não basta, o TOTP é obrigatório.
+-- * `aal2`: senha sozinha não basta, o TOTP é obrigatório. Conferido no JWT
+--   e na própria sessão em `auth.sessions` (a fonte da verdade).
 -- * A sessão do JWT ainda existe: depois do "Sair" (global), um access token
 --   roubado deixa de valer aqui na hora, não só quando expira (1 h).
 -- * Usuário banido ou apagado não passa.
@@ -36,6 +37,7 @@ as $$
       join auth.users u on u.id = s.user_id
       where s.id = nullif(auth.jwt() ->> 'session_id', '')::uuid
         and s.user_id = auth.uid()
+        and s.aal = 'aal2'
         and (s.not_after is null or s.not_after > now())
         and u.raw_app_meta_data ->> 'role' = 'admin'
         and (u.banned_until is null or u.banned_until <= now())

@@ -62,9 +62,11 @@ const DESLOCAMENTO_MINIMO = 10;
 
 type Arrasto = { pointerId: number; inicioY: number; altura: number; y: number; t: number; velocidade: number };
 
-export const SheetContent = forwardRef<
+type ContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content>;
+
+const PainelArrastavel = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+  ContentProps
 >(({ className = "", children, ...props }, ref) => {
   const fechar = useContext(FecharContext);
   const arrasto = useRef<Arrasto | null>(null);
@@ -102,7 +104,7 @@ export const SheetContent = forwardRef<
   const fundo = puxado ? 1 - (0.7 * Math.min(puxado.dy, puxado.altura)) / puxado.altura : 1;
 
   return (
-    <DialogPrimitive.Portal>
+    <>
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-espresso/45" style={{ opacity: fundo }} />
       <DialogPrimitive.Content
         ref={ref}
@@ -126,7 +128,16 @@ export const SheetContent = forwardRef<
         </div>
         {children}
       </DialogPrimitive.Content>
-    </DialogPrimitive.Portal>
+    </>
   );
 });
+PainelArrastavel.displayName = "PainelArrastavel";
+
+export const SheetContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, ContentProps>((props, ref) => (
+  // Os filhos do Portal só montam com o sheet aberto: o estado do arrasto
+  // nasce zerado a cada abertura (o `SheetContent` em si fica montado).
+  <DialogPrimitive.Portal>
+    <PainelArrastavel ref={ref} {...props} />
+  </DialogPrimitive.Portal>
+));
 SheetContent.displayName = DialogPrimitive.Content.displayName;

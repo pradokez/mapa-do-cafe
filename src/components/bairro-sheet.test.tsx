@@ -153,6 +153,32 @@ describe("BairroSheet", () => {
       expect(screen.getByRole("checkbox", { name: "Graças" }).getAttribute("aria-checked")).toBe("false");
     });
 
+    it("depois de fechar arrastando, reabre inteiro e arrastável de novo", async () => {
+      renderSheet();
+      const gatilho = screen.getByRole("button", { name: "Bairro" });
+      await userEvent.click(gatilho);
+      arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 400, 1000);
+      await waitFor(() => expect(document.activeElement).toBe(gatilho));
+
+      await userEvent.click(gatilho);
+      expect(screen.getByRole("dialog", { name: "Bairro" }).style.transform).toBe("");
+
+      arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 400, 1000);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("um arrasto interrompido por Esc não trava o próximo", async () => {
+      renderSheet();
+      const gatilho = screen.getByRole("button", { name: "Bairro" });
+      await userEvent.click(gatilho);
+      fireEvent.pointerDown(screen.getByRole("heading", { name: "Bairro" }), { pointerId: 7, button: 0, clientY: 100 });
+      await userEvent.keyboard("{Escape}");
+
+      await userEvent.click(gatilho);
+      arrastar(screen.getByRole("heading", { name: "Bairro" }), 100, 400, 1000);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
     it("curto e lento, o sheet volta à posição", async () => {
       renderSheet();
       await userEvent.click(screen.getByRole("button", { name: "Bairro" }));

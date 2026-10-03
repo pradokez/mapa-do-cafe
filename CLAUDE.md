@@ -47,7 +47,7 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta para o Supabase: `listCafesAtivos()`, `getCafeBySlug(slug)`. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
-| `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL via `useSearchParams` + `useRouter`. **Não usar `useEffect` para sincronizar.** |
+| `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor). **Não usar `useEffect` para sincronizar.** |
 
 Os quatro módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
@@ -55,7 +55,7 @@ Nomes antigos que **não** devem ser usados: `FilterEngine`, `MapController`, `S
 
 ## Filtragem acontece no cliente
 
-O Server Component carrega **todos** os cafés ativos uma vez (ISR); filtros, busca e hover rodam no cliente. Alvo de escala: 100–150 cafés (~100–200 KB). Mantém a sincronia card↔pin instantânea.
+O Server Component carrega **todos** os cafés ativos de uma vez (cache de 1 h no `cafe-repository`); filtros, busca e hover rodam no cliente. A home é **dinâmica** para o HTML já sair filtrado pelos params da URL — o primeiro render nunca mostra a lista completa piscando. Alvo de escala: 100–150 cafés (~100–200 KB). Mantém a sincronia card↔pin instantânea.
 
 PostGIS fica no schema para a Fase 3 (busca por raio). Mover filtragem para o servidor depois é uma troca atrás do `cafe-repository`.
 

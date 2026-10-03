@@ -31,22 +31,18 @@ function locate() {
 }
 
 /**
- * Pede a posição uma única vez. Recusa já registrada no navegador não vira
- * novo pedido; sem suporte, `unavailable`. Sem `useEffect`: o primeiro
- * `subscribe` (só no cliente, após a hidratação) é quem dispara.
+ * Pede a posição uma única vez; sem suporte, `unavailable`. Recusa já
+ * registrada não vira novo pedido: o próprio navegador responde com erro, sem
+ * prompt. Sem `useEffect`: o primeiro `subscribe` (só no cliente, após a
+ * hidratação) é quem dispara.
+ *
+ * Sem consultar a Permissions API antes: além de redundante, com ela o Safari
+ * do iPhone não mostrava o prompt mesmo com o site em "Perguntar".
  */
 function start() {
   if (!("geolocation" in navigator)) return set({ status: "unavailable", coords: null });
-  // Sai de `idle` já, antes da consulta assíncrona: outro `subscribe` no meio
-  // dela não dispara um segundo pedido.
   set({ status: "prompting", coords: null });
-  if (!navigator.permissions) return locate();
-  navigator.permissions
-    .query({ name: "geolocation" })
-    .then((permission) =>
-      permission.state === "denied" ? set({ status: "denied", coords: null }) : locate(),
-    )
-    .catch(locate);
+  locate();
 }
 
 function subscribe(onChange: () => void) {

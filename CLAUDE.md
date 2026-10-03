@@ -106,7 +106,7 @@ Seis filtros. Toda filtragem é compartilhável; ausência de param = filtro des
 
 Ida e volta precisa ser estável: estado → params → estado devolve o mesmo estado. Param desconhecido ou malformado é ignorado em silêncio, nunca quebra a página.
 
-**Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo existe **só no header da home** — 440×42 no desktop; no mobile, largura total entre o header e os chips (desvio consciente: o design mobile não tem busca). O design também o põe no detalhe, mas lá não há lista para filtrar.
+**Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo existe **só no header da home** — 440×42 no desktop; no mobile, largura total entre o header e os chips, com texto de 16 px — abaixo disso o Safari do iPhone amplia a tela ao focar (desvio consciente: o design mobile não tem busca). O design também o põe no detalhe, mas lá não há lista para filtrar.
 
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
 
@@ -209,7 +209,7 @@ Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em U
 
 Distância depende de geolocalização do navegador. Negada, indisponível ou não decidida: a distância **não aparece** e o card mostra só o bairro — sem erro, sem insistir. O layout precisa ficar correto nos dois estados.
 
-A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamento de página (a posição sobrevive à navegação client-side). Se a Permissions API já diz `denied`, nem chamamos o navegador. Com posição, a lista da home sai **do mais perto ao mais longe**, já com filtros e busca aplicados (`ordenarPorDistancia`, em `cafe-distance`); empate e café sem coordenada válida (vai para o fim) mantêm a ordem alfabética do `cafe-repository`. Sem posição, a ordem é a alfabética. É automático: sem controle "Mais perto" e sem param na URL — quem recebe o link não está no mesmo lugar.
+A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamento de página (a posição sobrevive à navegação client-side). Não consultamos a Permissions API antes: recusa já registrada faz o próprio navegador responder com erro, sem prompt — e, com a consulta, o Safari do iPhone não perguntava. Com posição, a lista da home sai **do mais perto ao mais longe**, já com filtros e busca aplicados (`ordenarPorDistancia`, em `cafe-distance`); empate e café sem coordenada válida (vai para o fim) mantêm a ordem alfabética do `cafe-repository`. Sem posição, a ordem é a alfabética. É automático: sem controle "Mais perto" e sem param na URL — quem recebe o link não está no mesmo lugar.
 
 **Desvio consciente — a lista reordena quando a posição chega.** O HTML sai do servidor sem posição, em ordem alfabética; a reordenação acontece depois da hidratação, sem animação nem trava. Aceito porque, com permissão já concedida, a posição chega antes da primeira interação, e na primeira visita chega logo depois do "Permitir", quando a pessoa espera uma reação.
 

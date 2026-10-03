@@ -96,7 +96,7 @@ describe("filtrarCafes", () => {
     expect(ids(filtrados)).toEqual(["gracas-medio", "espinheiro-medio"]);
   });
 
-  it("filtro que todos atendem não exclui ninguém (Recife Coffee no lançamento)", () => {
+  it("filtro que todos atendem não exclui ninguém", () => {
     const cafes = [cafe("a", { selo_ascape: true }), cafe("b", { selo_ascape: true })];
 
     expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, ascape: true }))).toEqual(["a", "b"]);

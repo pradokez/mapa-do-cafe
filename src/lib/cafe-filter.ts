@@ -15,6 +15,8 @@ export type CafeFilters = Record<FiltroBooleano, boolean> & {
   bairros: string[];
   /** Faixas aceitas (união); vazio = filtro desligado. */
   precos: FaixaPreco[];
+  /** Busca livre por nome ou bairro; vazio = filtro desligado. */
+  q: string;
 };
 
 export const FILTROS_VAZIOS: CafeFilters = {
@@ -24,6 +26,7 @@ export const FILTROS_VAZIOS: CafeFilters = {
   coffeeOffice: false,
   bairros: [],
   precos: [],
+  q: "",
 };
 
 const CHAVES = Object.keys(FILTROS_BOOLEANOS) as FiltroBooleano[];
@@ -36,16 +39,30 @@ const aceita = <T>(lista: readonly T[], valor: T) => lista.length === 0 || lista
 
 /**
  * Interseção dos filtros ligados — dentro de bairro e de preço, a união das
- * opções marcadas. Filtro desligado não exclui ninguém. Preserva a ordem.
+ * opções marcadas; na busca, cada palavra precisa casar com o nome ou o
+ * bairro. Filtro desligado não exclui ninguém. Preserva a ordem.
  */
 export function filtrarCafes(cafes: Cafe[], filters: CafeFilters): Cafe[] {
   const ligados = CHAVES.filter((chave) => filters[chave]);
+  const palavras = normalizar(filters.q).split(/\s+/).filter(Boolean);
   return cafes.filter(
     (cafe) =>
       ligados.every((chave) => cafe[FILTROS_BOOLEANOS[chave].campo]) &&
       aceita(filters.bairros, cafe.bairro_slug) &&
-      aceita(filters.precos, cafe.faixa_preco),
+      aceita(filters.precos, cafe.faixa_preco) &&
+      casaBusca(cafe, palavras),
   );
+}
+
+/** Sem acento e em minúsculas: "Graças" e "GRACAS" viram "gracas". */
+function normalizar(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+}
+
+/** Sem palavras (termo vazio ou só espaços), a busca está desligada. */
+function casaBusca(cafe: Cafe, palavras: string[]): boolean {
+  const campos = [normalizar(cafe.nome), normalizar(cafe.bairro)];
+  return palavras.every((palavra) => campos.some((campo) => campo.includes(palavra)));
 }
 
 /** Leitura mínima de params: `URLSearchParams` e o `useSearchParams()` do Next. */
@@ -71,6 +88,7 @@ export function parseFilters(params: ParamsLike, bairrosValidos?: readonly strin
   filters.bairros = Array.from(new Set(lista(params.get("bairro"))))
     .filter((slug) => !bairrosValidos || bairrosValidos.includes(slug))
     .sort();
+  filters.q = params.get("q")?.trim() ?? "";
   return filters;
 }
 
@@ -90,6 +108,9 @@ export function serializeFilters(filters: CafeFilters, base?: URLSearchParams): 
   }
   definirLista(params, "bairro", [...filters.bairros].sort());
   definirLista(params, "preco", FAIXAS.filter((faixa) => filters.precos.includes(faixa)));
+  const q = filters.q.trim();
+  if (q) params.set("q", q);
+  else params.delete("q");
   return params.toString().replace(/%24/g, "$").replace(/%2C/g, ",");
 }
 
@@ -101,7 +122,10 @@ function definirLista(params: URLSearchParams, param: string, valores: string[])
 /** Algum filtro ligado? Decide se "Limpar filtros" aparece. */
 export function temFiltroAtivo(filters: CafeFilters): boolean {
   return (
-    CHAVES.some((chave) => filters[chave]) || filters.bairros.length > 0 || filters.precos.length > 0
+    CHAVES.some((chave) => filters[chave]) ||
+    filters.bairros.length > 0 ||
+    filters.precos.length > 0 ||
+    filters.q.trim() !== ""
   );
 }
 

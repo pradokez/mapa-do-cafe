@@ -1,5 +1,4 @@
 import { CafeDirectory } from "@/components/cafe-directory";
-import { SiteHeader } from "@/components/site-header";
 import { listCafesAtivos } from "@/lib/cafe-repository";
 
 // Dinâmica: o HTML já sai filtrado pelos params da URL (`?pets=true`), sem
@@ -12,7 +11,6 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col lg:h-screen">
-      <SiteHeader />
       <CafeDirectory cafes={cafes} />
     </div>
   );

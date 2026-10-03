@@ -88,6 +88,84 @@ describe("filtrarCafes", () => {
   });
 });
 
+describe("filtrarCafes — busca", () => {
+  const busca = (q: string): CafeFilters => ({ ...FILTROS_VAZIOS, q });
+
+  it("casa pelo nome do café", () => {
+    const cafes = [cafe("borsoi", { nome: "Borsoi Café" }), cafe("fiore", { nome: "Fiore" })];
+
+    expect(ids(filtrarCafes(cafes, busca("borsoi")))).toEqual(["borsoi"]);
+  });
+
+  it("casa pelo bairro do café", () => {
+    const cafes = [
+      cafe("a", { nome: "Fiore", bairro: "Espinheiro" }),
+      cafe("b", { nome: "Borsoi", bairro: "Boa Viagem" }),
+    ];
+
+    expect(ids(filtrarCafes(cafes, busca("viagem")))).toEqual(["b"]);
+  });
+
+  it("não diferencia maiúsculas de minúsculas", () => {
+    const cafes = [cafe("a", { nome: "Borsoi Café" }), cafe("b", { nome: "Fiore" })];
+
+    expect(ids(filtrarCafes(cafes, busca("BORSOI")))).toEqual(["a"]);
+    expect(ids(filtrarCafes(cafes, busca("fIoRe")))).toEqual(["b"]);
+  });
+
+  it("não diferencia acentos, nos dois sentidos", () => {
+    const cafes = [
+      cafe("gracas", { nome: "Fiore", bairro: "Graças" }),
+      cafe("cafe", { nome: "Cafe Santa Clara", bairro: "Pina" }),
+    ];
+
+    expect(ids(filtrarCafes(cafes, busca("gracas")))).toEqual(["gracas"]);
+    expect(ids(filtrarCafes(cafes, busca("GRAÇAS")))).toEqual(["gracas"]);
+    expect(ids(filtrarCafes(cafes, busca("café santa")))).toEqual(["cafe"]);
+  });
+
+  it("termo que não casa com nada devolve lista vazia", () => {
+    const cafes = [cafe("a", { nome: "Fiore", bairro: "Graças" })];
+
+    expect(filtrarCafes(cafes, busca("padaria"))).toEqual([]);
+  });
+
+  it.each([
+    ["vazio", ""],
+    ["só com espaços", "   "],
+  ])("termo %s não filtra", (_, q) => {
+    const cafes = [cafe("a"), cafe("b")];
+
+    expect(ids(filtrarCafes(cafes, busca(q)))).toEqual(["a", "b"]);
+  });
+
+  it("ignora espaços nas bordas do termo", () => {
+    const cafes = [cafe("a", { nome: "Fiore" }), cafe("b", { nome: "Borsoi" })];
+
+    expect(ids(filtrarCafes(cafes, busca("  fiore  ")))).toEqual(["a"]);
+  });
+
+  it("com várias palavras, cada uma precisa casar com o nome ou o bairro", () => {
+    const cafes = [
+      cafe("fiore-gracas", { nome: "Fiore", bairro: "Graças" }),
+      cafe("fiore-pina", { nome: "Fiore", bairro: "Pina" }),
+      cafe("borsoi-gracas", { nome: "Borsoi", bairro: "Graças" }),
+    ];
+
+    expect(ids(filtrarCafes(cafes, busca("fiore  graças")))).toEqual(["fiore-gracas"]);
+  });
+
+  it("combina com os demais filtros (interseção)", () => {
+    const cafes = [
+      cafe("fiore-pets", { nome: "Fiore", aceita_pets: true }),
+      cafe("fiore", { nome: "Fiore" }),
+      cafe("borsoi-pets", { nome: "Borsoi", aceita_pets: true }),
+    ];
+
+    expect(ids(filtrarCafes(cafes, { ...busca("fiore"), pets: true }))).toEqual(["fiore-pets"]);
+  });
+});
+
 describe("parseFilters", () => {
   it("lê cada param `=true` como filtro ligado", () => {
     const params = new URLSearchParams("ascape=true&pets=true&estacionamento=true&coffee_office=true");
@@ -132,6 +210,11 @@ describe("parseFilters", () => {
     expect(parseFilters(new URLSearchParams("bairro=nao-existe"), validos)).toEqual(FILTROS_VAZIOS);
   });
 
+  it("lê `q` como termo de busca, sem espaços nas bordas", () => {
+    expect(parseFilters(new URLSearchParams("q=+caf%C3%A9+gra%C3%A7as+")).q).toBe("café graças");
+    expect(parseFilters(new URLSearchParams("q=%20%20"))).toEqual(FILTROS_VAZIOS);
+  });
+
   it("param desconhecido não atrapalha os conhecidos", () => {
     const params = new URLSearchParams("utm_source=instagram&pets=true&ordem=nome");
 
@@ -154,6 +237,13 @@ describe("serializeFilters", () => {
     });
 
     expect(params).toBe("bairro=espinheiro,gracas&preco=$,$$");
+  });
+
+  it("emite `q` sem espaços nas bordas; termo vazio ou só com espaços some da URL", () => {
+    expect(serializeFilters({ ...FILTROS_VAZIOS, q: " café graças " })).toBe(
+      "q=caf%C3%A9+gra%C3%A7as",
+    );
+    expect(serializeFilters({ ...FILTROS_VAZIOS, q: "   " }, new URLSearchParams("q=fiore"))).toBe("");
   });
 
   it("sem filtro ligado não emite nada", () => {
@@ -189,7 +279,9 @@ describe("serializeFilters", () => {
     { precos: ["$", "$$", "$$$"] },
     { bairros: ["gracas"] },
     { bairros: ["boa-viagem", "espinheiro", "gracas"], precos: ["$$"], pets: true },
-  ])("ida e volta com bairro e preço é estável: %o", (parcial) => {
+    { q: "café" },
+    { q: "fiore & cia, 100%", ascape: true, precos: ["$"] },
+  ])("ida e volta com bairro, preço e busca é estável: %o", (parcial) => {
     const filters = { ...FILTROS_VAZIOS, ...parcial };
 
     expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
@@ -209,6 +301,10 @@ describe("temFiltroAtivo", () => {
   it("bairro ou preço marcado também conta como filtro ativo", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, bairros: ["gracas"] })).toBe(true);
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, precos: ["$"] })).toBe(true);
+  });
+
+  it("busca preenchida conta como filtro ativo (\"Limpar filtros\" também a limpa)", () => {
+    expect(temFiltroAtivo({ ...FILTROS_VAZIOS, q: "fiore" })).toBe(true);
   });
 });
 

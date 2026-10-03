@@ -47,7 +47,7 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta para o Supabase: `listCafesAtivos()`, `getCafeBySlug(slug)`. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
-| `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor). **Não usar `useEffect` para sincronizar.** |
+| `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
 Os quatro módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
@@ -104,6 +104,8 @@ Seis filtros. Toda filtragem é compartilhável; ausência de param = filtro des
 | Busca | `q` | texto livre, debounce 300 ms |
 
 Ida e volta precisa ser estável: estado → params → estado devolve o mesmo estado. Param desconhecido ou malformado é ignorado em silêncio, nunca quebra a página.
+
+**Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo (440×42) existe **só no header desktop da home** — desvio consciente: o design também o põe no detalhe, mas lá não há lista para filtrar. No mobile ele chega com o layout mobile (#13); até lá, um link com `?q=` já filtra.
 
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
 

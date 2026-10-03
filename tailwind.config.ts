@@ -22,7 +22,8 @@ const config: Config = {
         seal: { bg: "#F6E8DF", fg: "#8F3F1F" },
         open: "#3F6B3A",
         "map-bg": "#1E1B19",
-        "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3" },
+        "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
+        "map-pin": "#F1E6D8",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

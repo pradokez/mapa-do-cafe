@@ -129,6 +129,16 @@ export function temFiltroAtivo(filters: CafeFilters): boolean {
   );
 }
 
+/**
+ * Badge do botão de filtros (mobile): cada booleano ligado, cada bairro e cada
+ * faixa marcados contam 1. A busca fica de fora — ela aparece no próprio campo.
+ */
+export function contarFiltrosAtivos(filters: CafeFilters): number {
+  return (
+    CHAVES.filter((chave) => filters[chave]).length + filters.bairros.length + filters.precos.length
+  );
+}
+
 export type BairroOpcao = { slug: string; nome: string };
 
 /** Opções do filtro de bairro: cada bairro dos cafés uma vez, em ordem alfabética pt-BR. */

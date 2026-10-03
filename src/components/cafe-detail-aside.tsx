@@ -1,4 +1,5 @@
 import { CafeMap } from "@/components/cafe-map";
+import { Distancia } from "@/components/distancia";
 import { InstagramIcon, NavigationIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { googleMapsUrl, instagramUrl } from "@/lib/format";
@@ -6,7 +7,7 @@ import { googleMapsUrl, instagramUrl } from "@/lib/format";
 const CTA =
   "flex h-[46px] items-center justify-center gap-2 rounded-full text-[14.5px] font-semibold transition-colors";
 
-/** Aside do detalhe: mini mapa, endereço e atalhos de saída. A distância entra na #12. */
+/** Aside do detalhe: mini mapa, endereço (com a distância, se houver posição) e atalhos de saída. */
 export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; className?: string }) {
   const instagram = instagramUrl(cafe);
 
@@ -20,6 +21,8 @@ export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; classNam
         <span className="text-[14.5px] font-semibold text-espresso">{cafe.endereco}</span>
         <span className="text-[13px] text-ink-3">
           {cafe.bairro}, {cafe.cidade} – PE
+          {/* Só as coordenadas: o café inteiro não precisa ir para o cliente. */}
+          <Distancia destino={{ lat: cafe.lat, lng: cafe.lng }} sufixo=" de você" />
         </span>
       </div>
       <div className="flex flex-col gap-2">

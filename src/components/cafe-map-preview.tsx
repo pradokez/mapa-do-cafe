@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
+import { Distancia } from "@/components/distancia";
 import { ChevronRightIcon, XIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
@@ -30,7 +31,10 @@ export function CafeMapPreview({ cafe, onClose, style }: Props) {
         <CafePhotoFrame photo={photo} className="size-[72px] flex-none rounded-[9px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-[3px] pr-5 pt-0.5">
           <span className="font-display text-base leading-[1.2] text-espresso">{cafe.nome}</span>
-          <span className="text-[12.5px] text-ink-3">{localLabel(cafe)}</span>
+          <span className="text-[12.5px] text-ink-3">
+            {localLabel(cafe)}
+            <Distancia destino={cafe} />
+          </span>
           <span className="mt-1 inline-flex items-center gap-1 text-[12.5px] font-semibold text-terracotta group-hover:text-terracotta-hover">
             Ver detalhes
             <ChevronRightIcon size={13} strokeWidth={2.2} />

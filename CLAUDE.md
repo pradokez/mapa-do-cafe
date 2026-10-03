@@ -175,7 +175,7 @@ Vem do design. Não reinventar na implementação.
 - Avaliações: "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." + botão "Avise-me quando abrir"
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Comodidades" · "Horário de funcionamento"
-- Distância: `1,2 km` (vírgula); no detalhe, "1,2 km de você"
+- Distância: `1,2 km` (vírgula), depois do local: `Graças · 1,2 km`; no detalhe, "1,2 km de você"
 
 **Desvios conscientes no detalhe** (#4, #5) — o design não cobria esses casos:
 
@@ -196,6 +196,10 @@ O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem 
 Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em UTC e, das 21h à meia-noite, já estaria no dia seguinte. Por isso `/cafes/[slug]` é **dinâmica** (`force-dynamic`), não ISR — HTML cacheado atravessaria a meia-noite com o dia errado. O Vitest roda com `TZ=UTC` para pegar esse tipo de bug.
 
 Distância depende de geolocalização do navegador. Negada, indisponível ou não decidida: a distância **não aparece** e o card mostra só o bairro — sem erro, sem insistir. O layout precisa ficar correto nos dois estados.
+
+A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamento de página (a posição sobrevive à navegação client-side). Se a Permissions API já diz `denied`, nem chamamos o navegador. A ordem da lista **não** muda com a posição — ordenar por proximidade é Fase 3.
+
+**Desvio consciente no formato** — o design só mostra `0,8 km`…`9,3 km`: abaixo de 1 km, a distância sai em **metros, de 10 em 10** (`850 m`), com piso de `10 m` (nunca `0 m`); o que arredonda para 1000 m já sai como `1,0 km`. Longe de Recife, separador de milhar: `2.130,4 km`.
 
 ## Convenções
 

@@ -1,6 +1,6 @@
 # Mapa do Café
 
-Diretório de cafés especiais em Recife e Olinda, PE. Layout Airbnb-style: lista de cards à esquerda, mapa Mapbox interativo fixo à direita (desktop); FAB lista/mapa no mobile.
+Diretório de cafés especiais em Recife, Olinda e Jaboatão dos Guararapes, PE. Layout Airbnb-style: lista de cards à esquerda, mapa Mapbox interativo fixo à direita (desktop); FAB lista/mapa no mobile.
 
 **PRD (fonte de verdade):** https://github.com/pradokez/mapa-do-cafe/issues/1 — leia antes de decidir qualquer coisa que este arquivo não cubra.
 
@@ -67,13 +67,17 @@ Tabela `cafes` (PostgreSQL + PostGIS), migration em `supabase/migrations/`:
 id uuid, slug text unique,
 nome, bairro,                      -- bairro: exibição ("Graças")
 bairro_slug,                       -- filtro ("gracas")
-endereco, cidade,                  -- cidade: 'Recife' | 'Olinda'
+endereco, cidade,                  -- cidade: 'Recife' | 'Olinda' | 'Jaboatão dos Guararapes'
 lat, lng,
 location geography(Point, 4326),   -- gerado de lat/lng; Fase 3: busca por raio
 selo_ascape boolean,               -- filtro "Recife Coffee"
+selo_eu_amo_cafe boolean,          -- festival Eu Amo Café (6ª edição, 2026)
 aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
+acessivel_pcd boolean,             -- cadeira de rodas (fonte: Google)
+opcoes_vegetarianas boolean,       -- vegetarianas/veganas
+tem_ar_condicionado boolean,       -- nullable: null = sem informação (o Google não tem o atributo)
 faixa_preco text,                  -- '$' | '$$' | '$$$'
 horario_funcionamento jsonb,       -- 7 chaves segunda…domingo; "HH:MM – HH:MM", turnos por ", ", ou "Fechado"
 instagram, telefone,               -- nullable; instagram é URL completa
@@ -86,20 +90,24 @@ O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `
 
 Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`).
 
-**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (29 cafés: 27 ativos, 3 em Olinda). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro de Recife/Olinda, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
+**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (53 cafés: 51 ativos, 4 em Olinda, 2 em Jaboatão — associados da ASCAPE e cafeterias de café especial que não são). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro da região (Recife, Olinda, Jaboatão), `tem_ar_condicionado` só `true`/`false`/`null`, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
 
-Revisão de lançamento (#14): **O Melhor Cantinho da Cidade** e **A Vida é Bela** dividem de fato o endereço R. Francisco Lacerda, 394 (Várzea) — as coordenadas estão afastadas ~44 m **de propósito**, para os pins não se sobreporem. O `palatsi-ilha-do-leite` tem bairro "Ilha do Leite" e endereço terminando em "- Paissandu": revisado e **mantido**.
+Revisão de lançamento (#14): **O Melhor Cantinho da Cidade** e **A Vida é Bela** dividem de fato o endereço R. Francisco Lacerda, 394 (Várzea) — as coordenadas estão afastadas ~44 m **de propósito**, para os pins não se sobreporem. Na #38, o JSON novo chegou com os dois a 8 m; as coordenadas da #14 foram mantidas. Também na #38, `borsoi-cafe` virou `borsoi-cafe-riomar` (mesmo `id`); `/cafes/borsoi-cafe` redireciona (308, `next.config.mjs`). O `palatsi-ilha-do-leite` tem bairro "Ilha do Leite" e endereço terminando em "- Paissandu": revisado e **mantido**.
 
 ## Filtros e URL
 
-Seis filtros. Toda filtragem é compartilhável; ausência de param = filtro desligado.
+Dez filtros. Toda filtragem é compartilhável; ausência de param = filtro desligado.
 
 | Filtro | Param | Formato |
 |---|---|---|
 | Selo Recife Coffee | `ascape` | `true` |
+| Selo Eu Amo Café | `eu_amo_cafe` | `true` |
 | Aceita pets | `pets` | `true` |
 | Tem estacionamento | `estacionamento` | `true` |
 | Permite coffee office | `coffee_office` | `true` |
+| Acessível para PcD | `pcd` | `true` |
+| Opções vegetarianas | `vegetariano` | `true` |
+| Ar-condicionado | `ar_condicionado` | `true` — `null` (sem informação) não passa, como `false` |
 | Bairro (**multi-select**) | `bairro` | slugs por vírgula — `gracas,espinheiro` |
 | Faixa de preço (multi) | `preco` | `$,$$` |
 | Busca | `q` | texto livre, debounce 300 ms |
@@ -108,15 +116,17 @@ Ida e volta precisa ser estável: estado → params → estado devolve o mesmo e
 
 **Busca** casa por nome ou bairro, sem caixa nem acento; com várias palavras, cada uma precisa casar com um dos dois (cidade fica de fora). O campo existe **só no header da home** — 440×42 no desktop; no mobile, largura total entre o header e os chips (desvio consciente: o design mobile não tem busca). O design também o põe no detalhe, mas lá não há lista para filtrar.
 
+**Barra de filtros (#38):** só os dois selos, "Tem estacionamento", bairro e preço viram chip. No desktop, os outros cinco booleanos (pets, coffee office, PcD, vegetariano, ar-condicionado) ficam no dropdown **"Mais filtros"** — checkbox que aplica na hora, como o de bairro; rótulo `Mais filtros` → `Mais filtros · N`. No mobile não há "Mais filtros": o sheet do botão de filtros tem todos.
+
 **Bairro é multi-select** — desvio consciente do design, que desenhou escolha única. Dropdown desktop e bottom sheet mobile usam checkbox; "Todos os bairros" limpa a seleção. Rótulo do chip: `Bairro` → nome do bairro → `N bairros`.
 
 ## Mobile (abaixo de `lg`)
 
-Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral (rótulos curtos do design — "Pets", "Estacionamento", "Coffee office" —, com o rótulo inteiro como nome acessível), cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
+Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): header com logo e botão de filtros, busca, chips de 36 px com scroll lateral (Recife Coffee, Eu Amo Café, "Estacionamento" — rótulo curto, com o inteiro como nome acessível —, bairro e preço), cards compactos (thumb 92×92; 1 coluna abaixo de `sm`, 2 de `sm` a `lg`) e FAB de 50 px "Ver mapa" / "Ver lista". O mapa do mobile só monta quando a visão "mapa" é pedida — o celular não baixa o Mapbox à toa.
 
 - **Visão lista/mapa é estado local**, fora da URL e do histórico: a home sempre abre na lista. Os filtros (na URL) sobrevivem à troca; voltar para a lista fecha o card do pin.
 - **Bottom sheets com rascunho** (Radix Dialog, `ui/sheet.tsx`): marcar opções não mexe na URL; "Ver N cafés" conta o resultado do rascunho e é o único que aplica (uma entrada no histórico). Esc ou toque no fundo descartam. Sem arrasto: a alça é decorativa.
-- **Desvio consciente — dois sheets:** no design, o botão de filtros e o chip de bairro abriam o mesmo sheet de bairros. Aqui o **botão de filtros** abre um sheet com o selo, os 3 atributos e a faixa de preço (linhas de 48 px, como o de bairro); o **chip de bairro** abre o sheet de bairros.
+- **Desvio consciente — dois sheets:** no design, o botão de filtros e o chip de bairro abriam o mesmo sheet de bairros. Aqui o **botão de filtros** abre um sheet com os 2 selos, os 6 atributos e a faixa de preço (linhas de 48 px, como o de bairro); o **chip de bairro** abre o sheet de bairros.
 - **Badge** do botão de filtros: cada booleano, cada bairro e cada faixa contam 1; a busca não entra (`contarFiltrosAtivos`).
 - **Card do pin:** o mesmo `CafeMapPreview` do desktop, preso embaixo (14 px das laterais, acima do FAB), **com X** — desvio do design, que não tem como fechar por teclado nem leitor de tela.
 
@@ -166,7 +176,7 @@ Duas linhas alinhadas à direita, formando uma unidade:
 | `card-line` | `#EFE6DA` | Borda de card |
 | `price-off` | `#D8CBBB` | `$` apagado na faixa de preço |
 | `hover-soft` | `#F5EEE5` | Hover de item de lista e botão neutro |
-| `seal-bg` / `seal-fg` | `#F6E8DF` / `#8F3F1F` | Badge Recife Coffee |
+| `seal-bg` / `seal-fg` | `#F6E8DF` / `#8F3F1F` | Badges dos selos (Recife Coffee, Eu Amo Café) |
 | `open` | `#3F6B3A` | "Aberto hoje" |
 | `map-bg` | `#1E1B19` | Fundo do mapa |
 
@@ -185,8 +195,9 @@ Vem do design. Não reinventar na implementação.
 - Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Elevado — desvio consciente: o design dizia "Especial", que num diretório de cafés especiais soava como qualidade, não preço
 - Avaliações: "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." + botão "Avise-me quando abrir"
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
-- Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Comodidades" · "Horário de funcionamento"
+- Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Selo Eu Amo Café" · "Comodidades" · "Horário de funcionamento"
 - Distância: `1,2 km` (vírgula), depois do local: `Graças · 1,2 km`; no detalhe, "1,2 km de você"
+- Local no card (`localLabel`): em Recife, só o bairro; fora, bairro e cidade pelo nome curto — `Casa Caiada, Olinda`, `Candeias, Jaboatão`. No detalhe (trilha e endereço), "Jaboatão dos Guararapes" inteiro
 
 **Desvios conscientes no detalhe** (#4, #5) — o design não cobria esses casos:
 
@@ -195,7 +206,7 @@ Vem do design. Não reinventar na implementação.
 - Nota depois do horário, antes de "Avaliações": "Informações podem mudar. Na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
 - "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
-- Tags de "Comodidades" = as opções de filtro (selo + 3 booleanos) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
+- Tags de "Comodidades" = as opções de filtro (2 selos + 6 booleanos; ar-condicionado só quando `true`) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
 - Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título
 - Carrossel: `max(4, fotos)` slots — fotos reais nunca são cortadas. Placeholder tem legenda "foto · {nome}", não as legendas por slot do design ("Salão", "Fachada"…), que prometeriam fotos inexistentes. Abaixo de `lg`, 260 px de altura e swipe
 
@@ -246,7 +257,7 @@ E2E está fora da Fase 1.
 
 | Fase | Escopo |
 |---|---|
-| **Fase 1 — MVP** | Seed 29 cafés (27 ativos) · Listagem · Mapa · 6 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
+| **Fase 1 — MVP** | Seed 53 cafés (51 ativos) · Listagem · Mapa · 10 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
 | **Fase 3 — Comunidade** | Avaliações · "Aberto agora" · sugestão de café · busca por raio (PostGIS) |
 
@@ -255,8 +266,8 @@ Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, aut
 ## Notas operacionais
 
 - **Supabase free hiberna após ~1 semana sem uso.** Num site de portfólio que pode ficar dias sem visita, o primeiro acesso depois disso é lento. Saiba disso antes de mandar o link para alguém.
-- **Risco de dado:** horário, faixa de preço, pets e coffee office mudam e não têm fonte oficial. Sem admin (Fase 2), corrigir exige deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
-- O filtro **Recife Coffee é redundante no lançamento** (todos os 29 do seed são ASCAPE). É intencional: passa a discriminar conforme o diretório crescer. O badge nos cards continua comunicando o selo.
+- **Risco de dado:** horário, faixa de preço, pets, coffee office e os atributos da #38 mudam e não têm fonte oficial. Em `acessivel_pcd` e `opcoes_vegetarianas`, `false` muitas vezes quer dizer "sem informação" (sobretudo fora da ASCAPE); `tem_ar_condicionado` tem só 5 confirmados, o resto é `null` e pede curadoria. Faltam Instagrams (Saltim, Mafrita, Tokyo's, Soto, Amaro, CoffeeTown). Sem admin (Fase 2), corrigir exige deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
+- O filtro **Recife Coffee** era redundante no lançamento (todos os 29 eram ASCAPE); desde a #38 ele discrimina (35 dos 51 ativos).
 
 ## Links
 

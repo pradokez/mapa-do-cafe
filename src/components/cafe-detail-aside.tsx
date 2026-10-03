@@ -1,3 +1,4 @@
+import { CafeMap } from "@/components/cafe-map";
 import { InstagramIcon, NavigationIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { googleMapsUrl, instagramUrl } from "@/lib/format";
@@ -5,7 +6,7 @@ import { googleMapsUrl, instagramUrl } from "@/lib/format";
 const CTA =
   "flex h-[46px] items-center justify-center gap-2 rounded-full text-[14.5px] font-semibold transition-colors";
 
-/** Aside do detalhe: endereço e atalhos de saída. O mini mapa entra na #6; a distância, na #12. */
+/** Aside do detalhe: mini mapa, endereço e atalhos de saída. A distância entra na #12. */
 export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; className?: string }) {
   const instagram = instagramUrl(cafe);
 
@@ -14,6 +15,7 @@ export function CafeDetailAside({ cafe, className = "" }: { cafe: Cafe; classNam
       aria-label="Como chegar"
       className={`flex flex-col gap-4 rounded-[18px] border border-card-line bg-white p-3.5 shadow-[0_1px_2px_rgba(44,26,14,.06),0_12px_30px_-16px_rgba(44,26,14,.2)] ${className}`}
     >
+      <CafeMap cafes={[cafe]} selectedId={cafe.id} variant="mini" className="h-[230px] rounded-[12px]" />
       <div className="flex flex-col gap-1 px-1">
         <span className="text-[14.5px] font-semibold text-espresso">{cafe.endereco}</span>
         <span className="text-[13px] text-ink-3">

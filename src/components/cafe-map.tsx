@@ -292,7 +292,7 @@ export function CafeMap({
 function createPinElement(
   cafe: Cafe,
   variant: "full" | "mini",
-  handlers: { current: Pick<Props, "onHover" | "onSelect" | "onClose"> },
+  handlers: { current: Pick<Props, "onHover" | "onSelect"> },
 ): HTMLElement {
   const interactive = Boolean(handlers.current.onSelect);
   const el = document.createElement(interactive ? "button" : "div");

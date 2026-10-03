@@ -69,7 +69,7 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
-          <ul className="mt-auto flex min-h-4 pt-1 items-center gap-3 text-ink-2">
+          <ul className="mt-auto flex min-h-4 items-center gap-3 pt-1 text-ink-2">
             {atributos.map(({ key, label, Icon }) => (
               <li key={key} title={label} className="inline-flex">
                 <Icon />

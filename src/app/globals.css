@@ -6,4 +6,9 @@
   body {
     @apply bg-cream font-sans text-espresso antialiased;
   }
+
+  /* Foco visível em toda superfície clicável, na paleta. */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-terracotta;
+  }
 }

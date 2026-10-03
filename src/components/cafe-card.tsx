@@ -28,9 +28,9 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
   const atributos = atributosDo(cafe);
 
   return (
-    <Link href={`/cafes/${cafe.slug}`} className="block rounded-2xl">
+    <Link href={`/cafes/${cafe.slug}`} className="block h-full rounded-2xl">
       <article
-        className={`flex flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
+        className={`flex h-full flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
       >
         <CafePhotoFrame photo={photo} className="aspect-[16/10] rounded-[11px]">
           {cafe.selo_ascape && (
@@ -49,12 +49,18 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
           )}
         </CafePhotoFrame>
 
-        <div className="flex flex-col gap-1.5 px-1">
-          <div className="flex items-baseline justify-between gap-2.5">
-            <h2 className="text-pretty font-display text-[19px] leading-[1.2] text-espresso">
+        <div className="flex flex-1 flex-col gap-1.5 px-1">
+          <div className="flex items-start justify-between gap-2.5">
+            {/* Duas linhas reservadas mesmo com nome curto: bairro e ícones ficam na
+                mesma altura em todos os cards. O corte é só visual; o nome inteiro
+                continua no DOM para leitor de tela e aparece no hover. */}
+            <h2
+              title={cafe.nome}
+              className="line-clamp-2 min-h-[2.4em] text-pretty font-display text-[19px] leading-[1.2] text-espresso"
+            >
               {cafe.nome}
             </h2>
-            <span className="flex-none text-[13px] font-semibold tracking-[.05em] text-espresso">
+            <span className="flex-none pt-1 text-[13px] font-semibold tracking-[.05em] text-espresso">
               <FaixaPrecoSimbolos faixa={cafe.faixa_preco} />
               <span className="sr-only">Faixa de preço: {faixaPrecoNome(cafe.faixa_preco)}</span>
             </span>
@@ -63,7 +69,7 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
-          <ul className="mt-1 flex min-h-4 items-center gap-3 text-ink-2">
+          <ul className="mt-auto flex min-h-4 pt-1 items-center gap-3 text-ink-2">
             {atributos.map(({ key, label, Icon }) => (
               <li key={key} title={label} className="inline-flex">
                 <Icon />

@@ -2,8 +2,10 @@ import { CafeDirectory } from "@/components/cafe-directory";
 import { SiteHeader } from "@/components/site-header";
 import { listCafesAtivos } from "@/lib/cafe-repository";
 
-// ISR: o seed só muda com deploy, que já invalida o cache.
-export const revalidate = 3600;
+// Dinâmica: o HTML já sai filtrado pelos params da URL (`?pets=true`), sem
+// piscar a lista completa até a hidratação. Os cafés vêm do cache de 1 h do
+// `cafe-repository`, então isso não custa uma query por visita.
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const cafes = await listCafesAtivos();

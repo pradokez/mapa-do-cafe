@@ -7,13 +7,13 @@ import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
 
-export function CafeCard({ cafe }: { cafe: Cafe }) {
+export function CafeCard({ cafe, highlighted = false }: { cafe: Cafe; highlighted?: boolean }) {
   const [photo] = resolveCafePhotos(cafe);
   const atributos = atributosDo(cafe);
 
   return (
     <Link href={`/cafes/${cafe.slug}`} className="block rounded-2xl">
-      <article className="flex flex-col gap-3 rounded-2xl border border-card-line bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_14px_28px_-10px_rgba(44,26,14,.22),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+      <article className={`flex flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 ${highlighted ? "border-terracotta" : "border-card-line"} hover:-translate-y-[3px] hover:shadow-[0_14px_28px_-10px_rgba(44,26,14,.22),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:transition-none motion-reduce:hover:translate-y-0`}>
         <div
           className="relative aspect-[16/10] overflow-hidden rounded-[11px]"
           style={photo.kind === "placeholder" ? { background: photo.background } : undefined}

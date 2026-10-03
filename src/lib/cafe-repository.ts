@@ -30,3 +30,19 @@ export async function listCafesAtivos(): Promise<Cafe[]> {
   }
   return data.sort(compararPorNome);
 }
+
+/** Café ativo pelo slug, ou `null` se não existe ou está inativo (→ 404). */
+export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
+  const { data, error } = await client()
+    .from("cafes")
+    .select(CAFE_COLUMNS.join(", "))
+    .eq("slug", slug)
+    .eq("ativo", true)
+    .maybeSingle()
+    .overrideTypes<Cafe, { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao buscar o café "${slug}": ${error.message}`);
+  }
+  return data;
+}

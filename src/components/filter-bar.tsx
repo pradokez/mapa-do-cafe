@@ -1,13 +1,9 @@
-import { CarIcon, CoffeeIcon, LaptopIcon, PawIcon } from "@/components/icons";
+import { ATRIBUTOS } from "@/components/cafe-atributos";
+import { CoffeeIcon } from "@/components/icons";
 import type { CafeFilters, FiltroBooleano } from "@/lib/cafe-filter";
 
-/** Chips na ordem e com os rótulos do design. */
-const CHIPS = [
-  { chave: "ascape", label: "Recife Coffee", Icon: CoffeeIcon },
-  { chave: "pets", label: "Aceita pets", Icon: PawIcon },
-  { chave: "estacionamento", label: "Tem estacionamento", Icon: CarIcon },
-  { chave: "coffeeOffice", label: "Permite coffee office", Icon: LaptopIcon },
-] as const satisfies ReadonlyArray<{ chave: FiltroBooleano; label: string; Icon: unknown }>;
+/** Chips na ordem do design: o selo e os atributos, com os mesmos rótulos do card. */
+const CHIPS = [{ filtro: "ascape", label: "Recife Coffee", Icon: CoffeeIcon }, ...ATRIBUTOS] as const;
 
 const CHIP =
   "inline-flex h-[38px] flex-none items-center gap-2 rounded-full border px-[15px] text-[13.5px] font-medium transition-colors duration-200 motion-reduce:transition-none";
@@ -30,13 +26,13 @@ export function FilterBar({ filters, onToggle }: Props) {
       aria-label="Filtros"
       className="flex h-16 flex-none items-center gap-2 overflow-x-auto border-b border-line px-7 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {CHIPS.map(({ chave, label, Icon }) => (
+      {CHIPS.map(({ filtro, label, Icon }) => (
         <button
-          key={chave}
+          key={filtro}
           type="button"
-          aria-pressed={filters[chave]}
-          onClick={() => onToggle(chave)}
-          className={`${CHIP} ${filters[chave] ? CHIP_ON : CHIP_OFF}`}
+          aria-pressed={filters[filtro]}
+          onClick={() => onToggle(filtro)}
+          className={`${CHIP} ${filters[filtro] ? CHIP_ON : CHIP_OFF}`}
         >
           <Icon size={16} strokeWidth={2} />
           {label}

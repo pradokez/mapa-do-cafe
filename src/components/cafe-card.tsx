@@ -1,27 +1,37 @@
 import Link from "next/link";
 
 import { atributosDo } from "@/components/cafe-atributos";
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
 import { CoffeeIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
 
-export function CafeCard({ cafe }: { cafe: Cafe }) {
+// Card elevado. A sombra difusa é terracota, a cor do pin ativo — desvio
+// consciente do design, que usa espresso; a sombra curta de contato segue espresso.
+const LIFTED =
+  "-translate-y-[3px] shadow-[0_14px_28px_-10px_rgba(181,86,47,.35),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:translate-y-0";
+const LIFT_ON_HOVER =
+  "hover:-translate-y-[3px] hover:shadow-[0_14px_28px_-10px_rgba(181,86,47,.35),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:hover:translate-y-0";
+
+/**
+ * Destaque do card vindo de fora dele. `lifted`: elevado, como no hover do
+ * próprio card (vale para foco de teclado). `linked`: elevado e com borda
+ * terracota — o pin dele está em hover ou com o preview aberto no mapa.
+ */
+export type CardHighlight = "lifted" | "linked";
+
+export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHighlight }) {
   const [photo] = resolveCafePhotos(cafe);
   const atributos = atributosDo(cafe);
 
   return (
     <Link href={`/cafes/${cafe.slug}`} className="block rounded-2xl">
-      <article className="flex flex-col gap-3 rounded-2xl border border-card-line bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow] duration-200 hover:-translate-y-[3px] hover:shadow-[0_14px_28px_-10px_rgba(44,26,14,.22),0_2px_4px_rgba(44,26,14,.05)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-        <div
-          className="relative aspect-[16/10] overflow-hidden rounded-[11px]"
-          style={photo.kind === "placeholder" ? { background: photo.background } : undefined}
-        >
-          {photo.kind === "url" && (
-            // eslint-disable-next-line @next/next/no-img-element -- fotos do Storage chegam na Fase 2
-            <img src={photo.src} alt="" className="absolute inset-0 size-full object-cover" />
-          )}
+      <article
+        className={`flex flex-col gap-3 rounded-2xl border bg-white px-2.5 pb-3.5 pt-2.5 shadow-[0_1px_2px_rgba(44,26,14,.06)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none ${highlight ? LIFTED : LIFT_ON_HOVER} ${highlight === "linked" ? "border-terracotta" : "border-card-line"}`}
+      >
+        <CafePhotoFrame photo={photo} className="aspect-[16/10] rounded-[11px]">
           {cafe.selo_ascape && (
             <span className="absolute left-2.5 top-2.5 inline-flex h-[26px] items-center gap-[5px] rounded-full bg-cream px-2.5 text-xs font-semibold text-espresso shadow-[0_1px_3px_rgba(44,26,14,.15)]">
               <CoffeeIcon size={13} strokeWidth={2.2} className="text-terracotta" />
@@ -36,7 +46,7 @@ export function CafeCard({ cafe }: { cafe: Cafe }) {
               foto · {cafe.nome}
             </span>
           )}
-        </div>
+        </CafePhotoFrame>
 
         <div className="flex flex-col gap-1.5 px-1">
           <div className="flex items-baseline justify-between gap-2.5">

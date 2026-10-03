@@ -3,7 +3,6 @@
 import { useSyncExternalStore } from "react";
 
 import { CafeMap } from "@/components/cafe-map";
-import type { Cafe } from "@/lib/cafe";
 
 // Breakpoint `lg` do Tailwind: abaixo dele o mapa da home não existe (o FAB
 // lista/mapa do mobile é a #13), e o celular não baixa o Mapbox à toa.
@@ -15,12 +14,12 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-export function HomeMap({ cafes }: { cafes: Cafe[] }) {
+export function HomeMap(props: Omit<React.ComponentProps<typeof CafeMap>, "variant" | "className">) {
   const isDesktop = useSyncExternalStore(
     subscribe,
     () => window.matchMedia(DESKTOP).matches,
     () => false,
   );
 
-  return isDesktop ? <CafeMap cafes={cafes} className="h-full" /> : null;
+  return isDesktop ? <CafeMap {...props} className="h-full" /> : null;
 }

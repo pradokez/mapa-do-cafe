@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import type { PhotoSource } from "@/lib/cafe-photos";
 
@@ -51,24 +52,21 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {photos.map((photo, k) => (
-          <div
+          <CafePhotoFrame
             key={k}
+            photo={photo}
             role="group"
             aria-roledescription="slide"
             aria-label={`${k + 1} de ${total}`}
             aria-hidden={k !== index}
-            className="relative flex h-full flex-[0_0_100%] items-end px-[26px] py-[22px]"
-            style={photo.kind === "placeholder" ? { background: photo.background } : undefined}
+            className="flex h-full flex-[0_0_100%] items-end px-[26px] py-[22px]"
           >
-            {photo.kind === "url" ? (
-              // eslint-disable-next-line @next/next/no-img-element -- fotos do Storage chegam na Fase 2
-              <img src={photo.src} alt="" className="absolute inset-0 size-full object-cover" />
-            ) : (
+            {photo.kind === "placeholder" && (
               <span aria-hidden="true" className="text-[11.5px] uppercase tracking-[.1em] text-espresso/55">
                 foto · {nome}
               </span>
             )}
-          </div>
+          </CafePhotoFrame>
         ))}
       </div>
 

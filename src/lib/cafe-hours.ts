@@ -90,3 +90,10 @@ function isRegistro(value: unknown): value is Record<string, unknown> {
 function valorDoDia(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 }
+
+/** Complemento de "Fechado hoje": "abre amanhã" (microcopy fixado) ou "abre sábado". */
+export function proximaAberturaLabel(proxima: "amanha" | DiaSemana): string {
+  if (proxima === "amanha") return "abre amanhã";
+  const { label } = DIAS.find(({ dia }) => dia === proxima)!;
+  return `abre ${label.toLocaleLowerCase("pt-BR")}`;
+}

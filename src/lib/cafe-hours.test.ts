@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { DiaSemana } from "./cafe";
 
-import { resumoHorario } from "./cafe-hours";
+import { proximaAberturaLabel, resumoHorario } from "./cafe-hours";
 
 // 2026-10-05 é uma segunda-feira. Meio-dia em Recife (UTC−3) = 15:00Z.
 const em = (dia: number) => new Date(Date.UTC(2026, 9, 5 + dia, 15));
@@ -165,5 +165,16 @@ describe("resumoHorario › jsonb incompleto, vazio ou ausente", () => {
     const resumo = resumoHorario({ ...SEMANA, segunda: undefined }, em(6));
 
     expect(resumo.hoje.proximaAbertura).toBe("terca");
+  });
+});
+
+describe("proximaAberturaLabel", () => {
+  it.each([
+    ["amanha", "abre amanhã"],
+    ["terca", "abre terça"],
+    ["sabado", "abre sábado"],
+    ["domingo", "abre domingo"],
+  ] as const)("%s → %s", (proxima, label) => {
+    expect(proximaAberturaLabel(proxima)).toBe(label);
   });
 });

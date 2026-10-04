@@ -351,6 +351,18 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 
 E2E está fora da Fase 1.
 
+## Segurança (#59)
+
+Rodada de testes de exploit contra o próprio site, para provar que as garantias do admin se sustentam diante de um atacante. Relatório e evidências em [`docs/security/pentest-2026-10.md`](./docs/security/pentest-2026-10.md) — repita a rodada completa (e recrie o relatório, datado) antes de divulgar o link do admin, e a cada mudança de política de RLS.
+
+**Onde moram os testes:**
+- `pnpm test` (offline, a cada commit): guardas estáticas em `src/lib/fronteiras.test.ts` (toda Server Action de escrita começa com `requireAdmin()`; só o `cafe-repository` lê tabela; nenhuma chave no bundle), `src/lib/admin/require-admin.test.ts`, payloads maliciosos em `src/lib/cafe-dados.test.ts` e open redirect em `src/lib/admin-auth.test.ts`.
+- `pnpm test:security` (contra um Supabase real): `security/` — RLS, Storage e o exploit HTTP das Server Actions. Fora do CI; pula sozinho sem `.env.security`.
+
+**Como rodar os que escrevem:** num **projeto Supabase descartável** (as mesmas migrations + seed, criado para a rodada e **apagado ao fim** — nunca produção), com um `.env.security` na raiz (gitignored): `SECURITY_SUPABASE_URL`, `SECURITY_PUBLISHABLE_KEY`, `SECURITY_SECRET_KEY` (o **service_role JWT legado** — a `sb_secret_…` nova dá "Invalid API key" no `supabase-js`), `SECURITY_APP_URL`. A trava em `security/env.ts` recusa escrever se a URL for a de produção. Login por email vem **desligado** num projeto novo: habilite no descartável (Management API `config/auth` → `external_email_enabled: true`, mantendo `disable_signup: true`) para o teste de usuário autenticado sem papel. O exploit das actions precisa de `pnpm build` (os action IDs) e de um `next start` apontado para o descartável. Os só de leitura e de negação podem rodar em produção.
+
+**O que nunca pode regredir:** anônimo não lê café inativo nem escreve em `cafes`/`cafe_fotos`/bucket; usuário autenticado sem `app_metadata.role='admin'` é barrado pela RLS, mesmo com `user_metadata.role='admin'`; Server Action sem sessão ou cross-origin não grava; signup público desligado; nenhuma secret key (`sb_secret_`, `service_role`) nem token `sk.` do Mapbox no bundle. Os headers de segurança (`SECURITY_HEADERS` no `next.config.mjs`) valem para todo o site.
+
 ## Fases
 
 | Fase | Escopo |

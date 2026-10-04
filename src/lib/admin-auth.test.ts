@@ -54,6 +54,10 @@ describe("destinoSeguro", () => {
     ["subindo de pasta", "/admin/../cafes"],
     ["javascript:", "javascript:alert(1)"],
     ["a própria tela de login", "/admin/login"],
+    ["barra codificada vira //", "/%2F%2Fevil.example"],
+    ["subida de pasta codificada", "/admin/%2e%2e/%2e%2e/cafes"],
+    ["backslash + host", "/\\/evil.example"],
+    ["muito longo", `/admin/${"a".repeat(3000)}`],
   ])("%s cai em /admin", (_, next) => {
     expect(destinoSeguro(next)).toBe("/admin");
   });

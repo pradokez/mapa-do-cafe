@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:security": "vitest run --config vitest.security.config.ts",
     "seed:build": "tsx scripts/build-seed.ts"
   },
   "dependencies": {

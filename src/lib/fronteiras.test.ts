@@ -72,3 +72,37 @@ describe("fronteira do Mapbox", () => {
     expect(comCodigo(/["']mapbox-gl(\/[^"']*)?["']/)).toEqual(["components/cafe-map.tsx"]);
   });
 });
+
+// Guarda de segurança (#59): a checagem de admin mora DENTRO de cada Server
+// Action de escrita, não só na página. Uma action que esquecesse o
+// `requireAdmin()` — ou o chamasse depois de já ler/gravar — seria chamável por
+// `fetch` direto, sem sessão (ver docs/security/pentest-2026-10.md).
+describe("toda Server Action de escrita começa com requireAdmin", () => {
+  const ACOES_DE_ESCRITA = ["admin/status-actions.ts", "admin/fotos-actions.ts", "admin/cafe-actions.ts"];
+  // Qualquer leitura, escrita ou efeito: nada pode vir antes do `requireAdmin()`.
+  const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
+
+  const corpos = (codigo: string): { nome: string; corpo: string }[] => {
+    const blocos: { nome: string; corpo: string }[] = [];
+    const inicio = /export async function (\w+)/g;
+    let atual: RegExpExecArray | null;
+    while ((atual = inicio.exec(codigo)) !== null) {
+      const proximo = inicio.lastIndex;
+      const fim = codigo.indexOf("export async function", proximo);
+      blocos.push({ nome: atual[1], corpo: codigo.slice(atual.index, fim === -1 ? undefined : fim) });
+    }
+    return blocos;
+  };
+
+  for (const arquivo of ACOES_DE_ESCRITA) {
+    const codigo = readFileSync(join(SRC, "lib", arquivo), "utf8");
+    for (const { nome, corpo } of corpos(codigo)) {
+      it(`${arquivo} › ${nome}() chama requireAdmin antes de qualquer efeito`, () => {
+        const admin = corpo.indexOf("await requireAdmin()");
+        const efeito = corpo.search(EFEITO);
+        expect(admin, "não chama requireAdmin()").toBeGreaterThanOrEqual(0);
+        if (efeito >= 0) expect(admin, "requireAdmin() vem depois de um efeito").toBeLessThan(efeito);
+      });
+    }
+  }
+});

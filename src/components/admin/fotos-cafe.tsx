@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { Cafe } from "@/lib/cafe";
 import { hojeEmRecife } from "@/lib/foto-upload";
 import { isHttpUrl } from "@/lib/url";
@@ -21,11 +23,11 @@ export function FotosCafe({ cafe }: { cafe: Pick<Cafe, "id" | "nome" | "fotos"> 
         <ul className="flex flex-wrap gap-3" aria-label={`Fotos no ar (${fotos.length})`}>
           {fotos.map((src, i) => (
             <li key={src} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element -- já otimizada no upload; #52 troca por next/image */}
-              <img
+              <Image
                 src={src}
                 alt={`Foto ${i + 1} de ${fotos.length} — ${cafe.nome}`}
-                loading="lazy"
+                width={112}
+                height={112}
                 className="size-[112px] rounded-lg border border-card-line object-cover"
               />
               {i === 0 && (

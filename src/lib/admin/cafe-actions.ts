@@ -1,15 +1,22 @@
 "use server";
 
 /**
- * Edição dos dados de um café (#48). A validação é a mesma do formulário
- * (`cafe-dados`), mas é esta que vale: um payload montado à mão passa por
- * aqui do mesmo jeito. Quem decide o acesso é a RLS (`private.is_admin()`).
+ * Cadastro (#53) e edição (#48) dos dados de um café. A validação é a mesma do
+ * formulário (`cafe-dados`), mas é esta que vale: um payload montado à mão passa
+ * por aqui do mesmo jeito. Quem decide o acesso é a RLS (`private.is_admin()`).
  */
 import { revalidatePath } from "next/cache";
 
 import { isUuid } from "@/lib/admin-auth";
 import type { Cafe } from "@/lib/cafe";
-import { coordenadasDaUrl, ehLinkDoMaps, validarDadosCafe, type Coordenadas, type ErrosDados } from "@/lib/cafe-dados";
+import {
+  coordenadasDaUrl,
+  ehLinkDoMaps,
+  validarDadosCafe,
+  validarNovoCafe,
+  type Coordenadas,
+  type ErrosDados,
+} from "@/lib/cafe-dados";
 import { getCafeById } from "@/lib/cafe-repository";
 import { createSessionClient } from "@/lib/supabase-server";
 
@@ -43,6 +50,37 @@ export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<
   // A lista do painel (nome, bairro, cidade) e o cabeçalho desta página.
   revalidatePath("/admin", "layout");
   return { ok: true, cafe: salvo };
+}
+
+export type ResultadoCadastro = { ok: true; id: string } | { ok: false; erro: string | null; erros?: ErrosDados };
+
+/** Violação de `unique` no Postgres: em `cafes`, só o slug é único. */
+const SLUG_REPETIDO = "23505";
+
+/**
+ * Cadastra um café **fora do ar**: a administradora sobe as fotos e o põe no ar
+ * pela seção Status (#47), que revalida o site. O `id` sai daqui, para reler o
+ * café pelo repositório sem `.select` na escrita.
+ */
+export async function cadastrarCafe(campos: unknown): Promise<ResultadoCadastro> {
+  await requireAdmin();
+
+  const validacao = validarNovoCafe(campos);
+  if (!validacao.ok) return { ok: false, erro: null, erros: validacao.erros };
+
+  const id = crypto.randomUUID();
+  const { slug } = validacao.valores;
+  const { error } = await createSessionClient()
+    .from("cafes")
+    .insert({ ...validacao.valores, id, ativo: false });
+  if (error?.code === SLUG_REPETIDO) {
+    return { ok: false, erro: null, erros: { slug: `Já existe um café em /cafes/${slug}. Escolha outro endereço.` } };
+  }
+  if (error) return { ok: false, erro: ERRO_GERAL };
+
+  // Fora do ar, o site público não muda; só a lista do painel.
+  revalidatePath("/admin", "layout");
+  return { ok: true, id };
 }
 
 export type ResultadoCoordenadas = { ok: true; coordenadas: Coordenadas } | { ok: false; erro: string };

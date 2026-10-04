@@ -1,5 +1,6 @@
 import type { Cafe } from "@/lib/cafe";
 import { hojeEmRecife } from "@/lib/foto-upload";
+import { isHttpUrl } from "@/lib/url";
 
 import { FotoUploadForm } from "./foto-upload-form";
 
@@ -9,18 +10,21 @@ import { FotoUploadForm } from "./foto-upload-form";
  * Ordenar, remover e ver a autorização de cada foto vêm na #51.
  */
 export function FotosCafe({ cafe }: { cafe: Pick<Cafe, "id" | "nome" | "fotos"> }) {
+  // Mesmo filtro do site (`resolveCafePhotos`): só URL http(s) vira `src`.
+  const fotos = cafe.fotos.filter(isHttpUrl);
+
   return (
     <div className="mt-3 flex flex-col gap-6">
-      {cafe.fotos.length === 0 ? (
+      {fotos.length === 0 ? (
         <p className="text-[14px] text-ink-2">Nenhuma foto ainda — o café aparece com o placeholder listrado.</p>
       ) : (
-        <ul className="flex flex-wrap gap-3" aria-label={`Fotos no ar (${cafe.fotos.length})`}>
-          {cafe.fotos.map((src, i) => (
+        <ul className="flex flex-wrap gap-3" aria-label={`Fotos no ar (${fotos.length})`}>
+          {fotos.map((src, i) => (
             <li key={src} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element -- já otimizada no upload; #52 troca por next/image */}
               <img
                 src={src}
-                alt={`Foto ${i + 1} de ${cafe.fotos.length} — ${cafe.nome}`}
+                alt={`Foto ${i + 1} de ${fotos.length} — ${cafe.nome}`}
                 loading="lazy"
                 className="size-[112px] rounded-lg border border-card-line object-cover"
               />

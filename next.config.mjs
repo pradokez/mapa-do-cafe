@@ -1,3 +1,5 @@
+import { redirectsParaCanonico } from "./src/lib/site-url.mjs";
+
 /**
  * Headers do admin (#43): fora de busca, fora de cache e fora de iframe
  * (clickjacking). Valem também para o redirect do middleware.
@@ -21,6 +23,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // #50: a URL da Vercel não serve uma cópia do site, mesmo com o SSO desligado.
+      ...redirectsParaCanonico(),
       // #38: o Borsoi do RioMar ganhou slug próprio; links antigos continuam valendo.
       { source: "/cafes/borsoi-cafe", destination: "/cafes/borsoi-cafe-riomar", permanent: true },
     ];

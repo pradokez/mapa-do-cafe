@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { caminhoDoCafe } from "@/lib/cafe";
 import { listCafesAtivos } from "@/lib/cafe-repository";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.mjs";
 
 // Como a home: lido a cada request, mas do cache de `listCafesAtivos` — café
 // desativado sai do sitemap quando esse cache vira. Sem `lastModified`: o

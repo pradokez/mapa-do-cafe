@@ -272,9 +272,18 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 
 **Desvio consciente no formato** — o design só mostra `0,8 km`…`9,3 km`: abaixo de 1 km, a distância sai em **metros, de 10 em 10** (`850 m`), com piso de `10 m` (nunca `0 m`); o que arredonda para 1000 m já sai como `1,0 km`. Longe de Recife, separador de milhar: `2.130,4 km`.
 
+## Domínio (#50)
+
+**`https://mapadocafe-pe.com.br`**, na raiz — é o canônico. O resto converge para ele por 308:
+
+- `www` → raiz: configurado no painel da Vercel (Domains), não no código.
+- `*.vercel.app` de produção → raiz: `redirectsParaCanonico()` no `next.config.mjs`, com destino `siteUrl()`. Só com `VERCEL_ENV=production` — previews seguem acessíveis (atrás do SSO da Vercel) — e nunca quando o próprio canônico é `.vercel.app` (seria loop). Por isso `site-url` é `.mjs`: o `next.config.mjs` não importa TypeScript.
+- **Desvio consciente — token do Mapbox sem restrição de URL.** O token padrão não aceita restrição, e criar um token restrito não está disponível na conta gratuita. Quem copiar o `pk.…` do bundle consegue usá-lo em outro site. Aceito porque a conta **não tem cartão**: o uso tem teto rígido, então o pior caso é a cota grátis acabar e o mapa parar até o mês virar — nunca cobrança. **Cadastrar cartão exige antes restringir o token** (domínio + `localhost:3000`/`3001`), senão abuso vira fatura.
+- Supabase Auth: Site URL é o domínio; Redirect URLs, o domínio e `localhost:3000`. O login do admin não depende delas (senha + TOTP por Server Action, sem link por email).
+
 ## SEO (#44)
 
-`NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.ts`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é. Imagens de compartilhamento ficam na #49.
+`NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.mjs`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é. Imagens de compartilhamento ficam na #49.
 
 **Ícones (#60):** convenções de arquivo do App Router — `src/app/favicon.ico` (16+32), `icon.svg` e `apple-icon.png` (180, quadrado cheio; o iOS arredonda) —, sem `metadata.icons` nem `<link>` à mão. `manifest.ts` só põe o ícone na tela inicial do Android (`icon-192`/`icon-512` em `public/`, `display: "browser"`): não é PWA, sem service worker. Os arquivos vieram sem a proveniência C2PA (`<metadata>` no SVG, chunk `caBX` nos PNGs, com os pixels intactos).
 

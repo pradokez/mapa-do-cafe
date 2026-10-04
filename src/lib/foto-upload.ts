@@ -9,7 +9,7 @@ const MB = 1024 * 1024;
 
 /** O que a administradora pode escolher. O navegador converte para WebP antes de subir. */
 export const TIPOS_ENTRADA = ["image/jpeg", "image/png", "image/webp"] as const;
-export const MAX_ENTRADA = 15 * MB;
+const MAX_ENTRADA = 15 * MB;
 
 type Arquivo = { type: string; size: number };
 
@@ -22,8 +22,12 @@ export function checarArquivo({ type, size }: Arquivo): string | null {
 }
 
 /** O que o bucket `cafe-fotos` aceita — espelha `allowed_mime_types` e `file_size_limit`. */
-export const TIPO_FOTO = "image/webp";
-export const MAX_FOTO = 2 * MB;
+const TIPO_FOTO = "image/webp";
+const MAX_FOTO = 2 * MB;
+
+export const ERRO_SEM_WEBP =
+  "Este navegador não consegue converter a foto para WebP. Use o Chrome, o Edge ou o Firefox.";
+export const ERRO_WEBP_GRANDE = "A foto convertida passou de 2 MB. Tente uma foto com menos detalhes.";
 
 /**
  * Resultado da conversão, antes de subir. O Safari ignora o pedido de WebP do
@@ -35,12 +39,8 @@ export function checarWebp({ type, size }: Arquivo): string | null {
   return null;
 }
 
-export const ERRO_SEM_WEBP =
-  "Este navegador não consegue converter a foto para WebP. Use o Chrome, o Edge ou o Firefox.";
-export const ERRO_WEBP_GRANDE = "A foto convertida passou de 2 MB. Tente uma foto com menos detalhes.";
-
 /** Lado maior da foto publicada: nítida no carrossel, leve no card. */
-export const LADO_MAIOR = 1600;
+const LADO_MAIOR = 1600;
 
 /** Tamanho para redimensionar no navegador: lado maior em `LADO_MAIOR`, sem ampliar. */
 export function dimensoesDestino(largura: number, altura: number): { largura: number; altura: number } {

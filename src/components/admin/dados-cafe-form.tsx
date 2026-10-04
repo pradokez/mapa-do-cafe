@@ -243,8 +243,8 @@ export function DadosCafeForm(props: Props) {
     setSalvando(true);
     let indo = false;
     try {
-      if (!edicao) {
-        const resultado = await (props as Cadastro).cadastrar(payload);
+      if ("cadastrar" in props) {
+        const resultado = await props.cadastrar(payload);
         if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
         // Fica "Salvando…" até a página do café abrir: nada de cadastrar duas vezes.
         indo = true;
@@ -252,7 +252,7 @@ export function DadosCafeForm(props: Props) {
         router.push(`/admin/cafes/${resultado.id}?novo=1`);
         return;
       }
-      const resultado = await edicao.salvar(payload);
+      const resultado = await props.salvar(payload);
       if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
       // O que o banco guardou, já normalizado (telefone formatado, Instagram em URL).
       const novo = estadoDe(resultado.cafe);

@@ -9,10 +9,12 @@ import { dentroDaRegiao, lerNumero, type Coordenadas } from "@/lib/cafe-dados";
 
 const PIN_ID = "posicao";
 
-function posicaoDe(lat: string, lng: string): Coordenadas | null {
-  const posicao = { lat: lerNumero(lat), lng: lerNumero(lng) };
-  if (posicao.lat === null || posicao.lng === null) return null;
-  return dentroDaRegiao(posicao as Coordenadas) ? (posicao as Coordenadas) : null;
+/** Posição que o pin pode mostrar: os dois números e dentro da `REGIAO`. */
+function posicaoDe(textoLat: string, textoLng: string): Coordenadas | null {
+  const lat = lerNumero(textoLat);
+  const lng = lerNumero(textoLng);
+  if (lat === null || lng === null || !dentroDaRegiao({ lat, lng })) return null;
+  return { lat, lng };
 }
 
 /**

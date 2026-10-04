@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
 import { ArrowLeftIcon } from "@/components/icons";
-import { getCafeById } from "@/lib/cafe-repository";
+import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
 type Props = { params: { id: string } };
@@ -26,7 +26,7 @@ const SECOES = [
 
 export default async function AdminCafe({ params }: Props) {
   await requireAdmin();
-  const cafe = await getCafeById(params.id);
+  const [cafe, fotos] = await Promise.all([getCafeById(params.id), listFotosDoCafe(params.id)]);
   if (!cafe) notFound();
 
   return (
@@ -57,7 +57,7 @@ export default async function AdminCafe({ params }: Props) {
           <h2 id="secao-fotos" className={TITULO_SECAO}>
             Fotos
           </h2>
-          <FotosCafe cafe={cafe} />
+          <FotosCafe cafe={cafe} fotos={fotos} />
         </section>
         {SECOES.map((secao) => (
           <section

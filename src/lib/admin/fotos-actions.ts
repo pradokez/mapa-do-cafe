@@ -12,12 +12,14 @@
  *    apagado: não existe foto no bucket sem autorização registrada.
  *
  * Se o passo 3 nem chega ao servidor, o formulário chama `descartarUpload`.
- * Quem decide o acesso, em cada passo, é a RLS (`private.is_admin()`).
+ * Depois de no ar, a foto muda de posição (`reordenarFoto`) ou sai
+ * (`removerFoto`) — #51. Quem decide o acesso, em cada passo, é a RLS (`private.is_admin()`).
  */
 import { revalidatePath } from "next/cache";
 
 import { BUCKET_FOTOS } from "@/lib/cafe-photos";
-import { fotoRegistrada, getCafeById } from "@/lib/cafe-repository";
+import { fotoRegistrada, getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
+import { moverFoto, ordensParaGravar, type Movimento } from "@/lib/foto-ordem";
 import {
   caminhoDaFoto,
   checarWebp,
@@ -101,10 +103,14 @@ export async function registrarFoto(
     .insert({ cafe_id: cafe.id, storage_path: caminho, ...validacao.valores });
   if (error) return falhar({ ok: false, erro: ERRO_GERAL });
 
-  revalidarCafe(cafe.slug);
-  // O painel inteiro: a lista (nº de fotos) e esta página (miniaturas).
-  revalidatePath("/admin", "layout");
+  revalidarFotos(cafe.slug);
   return { ok: true };
+}
+
+/** O site (capa, carrossel) e o painel inteiro: a lista (nº de fotos) e esta página. */
+function revalidarFotos(slug: string) {
+  revalidarCafe(slug);
+  revalidatePath("/admin", "layout");
 }
 
 /**
@@ -117,4 +123,73 @@ export async function descartarUpload(cafeId: string, caminho: string): Promise<
   if (await fotoRegistrada(caminho)) return;
 
   await createSessionClient().storage.from(BUCKET_FOTOS).remove([caminho]);
+}
+
+export type ResultadoAcaoFoto = { ok: true } | { ok: false; erro: string };
+
+const ERRO_FOTO = "Esta foto não foi encontrada. Recarregue a página.";
+const ERRO_ORDEM = "Não deu para mudar a ordem agora. Tente de novo em instantes.";
+const ERRO_REMOCAO = "Não deu para remover a foto agora. Tente de novo em instantes.";
+
+/** Café e foto conferidos no servidor: o id vindo do cliente precisa ser de uma foto deste café. */
+async function fotoDoCafe(cafeId: string, fotoId: string) {
+  const cafe = await getCafeById(String(cafeId));
+  if (!cafe) return null;
+  const fotos = await listFotosDoCafe(cafe.id);
+  const foto = fotos.find((f) => f.id === fotoId);
+  return foto ? { cafe, fotos, foto } : null;
+}
+
+/**
+ * Sobe, desce ou leva a foto para a capa. Grava `ordem` = posição só onde
+ * muda; uma gravação que falhe no meio deixa um estado válido (sem `unique`,
+ * empate cai no `criado_em`) que a próxima tentativa corrige.
+ */
+export async function reordenarFoto(cafeId: string, fotoId: string, movimento: Movimento): Promise<ResultadoAcaoFoto> {
+  await requireAdmin();
+
+  const achado = await fotoDoCafe(cafeId, fotoId);
+  if (!achado) return { ok: false, erro: ERRO_FOTO };
+  const { cafe, fotos } = achado;
+
+  const nova = moverFoto(
+    fotos.map((f) => f.id),
+    fotoId,
+    movimento,
+  );
+  if (!nova) return { ok: false, erro: ERRO_ORDEM };
+
+  const supabase = createSessionClient();
+  for (const { id, ordem } of ordensParaGravar(fotos, nova)) {
+    const { error } = await supabase.from("cafe_fotos").update({ ordem }).eq("id", id).eq("cafe_id", cafe.id);
+    if (error) {
+      revalidarFotos(cafe.slug);
+      return { ok: false, erro: ERRO_ORDEM };
+    }
+  }
+
+  revalidarFotos(cafe.slug);
+  return { ok: true };
+}
+
+/**
+ * Apaga a linha e depois o arquivo — nessa ordem: se o Storage falhar, sobra
+ * um arquivo órfão (inofensivo, fora do site), nunca uma linha apontando para
+ * um arquivo que não existe. Sem a última foto, o trigger esvazia
+ * `cafes.fotos` e o café volta ao placeholder.
+ */
+export async function removerFoto(cafeId: string, fotoId: string): Promise<ResultadoAcaoFoto> {
+  await requireAdmin();
+
+  const achado = await fotoDoCafe(cafeId, fotoId);
+  if (!achado) return { ok: false, erro: ERRO_FOTO };
+  const { cafe, foto } = achado;
+
+  const supabase = createSessionClient();
+  const { error } = await supabase.from("cafe_fotos").delete().eq("id", foto.id).eq("cafe_id", cafe.id);
+  if (error) return { ok: false, erro: ERRO_REMOCAO };
+
+  await supabase.storage.from(BUCKET_FOTOS).remove([foto.storage_path]);
+  revalidarFotos(cafe.slug);
+  return { ok: true };
 }

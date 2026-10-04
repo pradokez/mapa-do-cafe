@@ -5,7 +5,12 @@
  * teste e conferir o banco por fora da RLS).
  */
 
-/** O ref do projeto de produção. Se a URL de teste for esta, escrita é proibida. */
+/**
+ * O ref do projeto de produção. Se a URL de teste for esta, escrita é proibida.
+ * Não é segredo (a proteção de produção é a RLS + chave publishable pública +
+ * signup desligado, tudo comprovado no pentest); fica aqui, mesmo em repo
+ * público, como cinto de segurança contra escrever em produção por engano.
+ */
 export const PROD_REF = "jazbgmkscobpbffsmtes";
 
 export const SUPABASE_URL = process.env.SECURITY_SUPABASE_URL ?? "";

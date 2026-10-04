@@ -1,11 +1,13 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 import { definirStatus } from "@/lib/admin/status-actions";
 
 import { botaoCtaClass, botaoNeutroClass, Erro } from "./form";
+
+const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
 
 const TEXTO = {
   noAr: {
@@ -35,7 +37,9 @@ export function StatusForm({ cafeId, nome, ativo }: { cafeId: string; nome: stri
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [salvando, iniciar] = useTransition();
+  // Estado próprio, não `useTransition`: no React 18, a transição async deixa
+  // de estar pendente antes de a action responder.
+  const [salvando, setSalvando] = useState(false);
   const texto = ativo ? TEXTO.noAr : TEXTO.foraDoAr;
 
   const abrirOuFechar = (abrir: boolean) => {
@@ -45,16 +49,16 @@ export function StatusForm({ cafeId, nome, ativo }: { cafeId: string; nome: stri
     setAberto(abrir);
   };
 
-  const confirmar = () => {
-    iniciar(async () => {
-      const resultado = await definirStatus(cafeId, !ativo);
-      if (!resultado.ok) {
-        setErro(resultado.erro);
-        return;
-      }
-      setAviso(texto.feito);
-      setAberto(false);
-    });
+  const confirmar = async () => {
+    setSalvando(true);
+    const resultado = await definirStatus(cafeId, !ativo).catch(() => null);
+    setSalvando(false);
+    if (!resultado?.ok) {
+      setErro(resultado?.erro ?? ERRO_REDE);
+      return;
+    }
+    setAviso(texto.feito);
+    setAberto(false);
   };
 
   return (

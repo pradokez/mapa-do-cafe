@@ -43,17 +43,18 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-filter` | `src/lib/cafe-filter.ts` | **Puro.** Aplica estado de filtro sobre lista de cafés, e serializa/desserializa esse estado para `URLSearchParams`. Não importa React, Supabase nem Mapbox. |
 | `cafe-hours` | `src/lib/cafe-hours.ts` | **Puro.** `(jsonb de horário, data)` → aberto hoje, horário de hoje, lista dos 7 dias com hoje marcado. |
 | `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`) + ordenação por proximidade. Trata explicitamente "sem origem conhecida". |
-| `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. |
+| `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. `urlsPublicasDasFotos` transforma os caminhos de `cafes.fotos` em URLs públicas do bucket `cafe-fotos`. |
 | `cafe-seo` | `src/lib/cafe-seo.ts` | **Puro.** `(café)` → título, meta description e JSON-LD `CafeOrCoffeeShop`. "Fechado" vira 00:00–00:00; dia sem informação fica fora do JSON-LD. |
-| `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta de leitura do Supabase. Público (sem sessão): `listCafesAtivos()` (cache de 1 h, tag `cafes`), `getCafeBySlug(slug)`. Admin (sessão do cookie, a RLS decide): `listTodosCafes()`, `getCafeById(id)`. |
+| `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta de leitura do Supabase. Público (sem sessão): `listCafesAtivos()` (cache de 1 h, tag `cafes`), `getCafeBySlug(slug)`. Admin (sessão do cookie, a RLS decide): `listTodosCafes()`, `getCafeById(id)`, `fotoRegistrada(caminho)`. Toda leitura de café sai com `fotos` já em URL pública. |
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
+| `foto-upload` | `src/lib/foto-upload.ts` | **Puro.** Regras do upload de foto, comuns ao formulário e às Server Actions: tipos e limites (entrada JPEG/PNG/WebP ≤ 15 MB; saída WebP ≤ 2 MB), `dimensoesDestino` (lado maior 1600 px), `validarAutorizacao`, `hojeEmRecife`, caminho no bucket (`caminhoDaFoto`, `ehCaminhoDoCafe`). |
 | `admin-auth` | `src/lib/admin-auth.ts` | **Puro.** Etapa do login a partir das claims (`senha` → `codigo`/`cadastro-mfa` → `pronto`), `destinoSeguro` (o `next` do login, sem open redirect) e `isUuid`. |
 | `supabase-server` | `src/lib/supabase-server.ts` | `server-only`. Client do Supabase com a sessão do cookie, para Server Components e Server Actions. `supabase-env` tem as envs e as opções do cookie (o middleware também usa). |
-| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. As Server Actions de escrita das próximas issues moram aqui. |
+| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. Fotos (#46): `prepararUpload`, `registrarFoto`, `descartarUpload`. As Server Actions de escrita das próximas issues moram aqui. |
 | `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
-Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `admin-auth`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
+Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `admin-auth`, `foto-upload`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
 Nomes antigos que **não** devem ser usados: `FilterEngine`, `MapController`, `SearchDebouncer`, `PhotoUploader`.
 
@@ -67,7 +68,7 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 |---|---|
 | `/admin/login` | Única acessível sem sessão. Uma tela, etapas decididas no servidor: senha → código de 6 dígitos (ou, sem autenticador ainda, cadastro com QR) |
 | `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá) |
-| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos, Status e Dados (preenchidas pelas próximas issues). Id inexistente ou malformado → 404 do admin |
+| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (miniaturas + envio, #46), Status e Dados (próximas issues). Id inexistente ou malformado → 404 do admin |
 
 **Quem é admin:** `app_metadata.role = 'admin'` (só o service role altera; `user_metadata`, que o usuário edita, nunca conta) **e** segundo fator na sessão (`aal2`). **TOTP é obrigatório** — senha sozinha não lê nem grava nada.
 
@@ -86,6 +87,12 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 - `atualizado_em` é mantido por trigger — não escreva à mão.
 - Depois de gravar, `revalidarCafe(slug)`: invalida a tag `cafes` (cache de `listCafesAtivos`) e o caminho do detalhe.
 - `SUPABASE_SECRET_KEY` (ignora a RLS) não entra no app; o teste de fronteiras falha se aparecer em `src/`.
+- Escrita usa `.from(…)` sem `.select(…)`: o que precisa ser lido de volta passa pelo `cafe-repository` (o teste de fronteiras confere).
+
+**Fotos (#46):** `cafe_fotos` é a fonte da verdade (caminho no bucket, `ordem`, e a autorização: `origem` `propria`|`cedida`, `autorizado_por`, `autorizado_em`, `observacao`). Leitura e escrita só para admin; o público não lê. `cafes.fotos` é **cópia derivada** — os caminhos, na ordem — reescrita por trigger a cada mudança em `cafe_fotos`; outro trigger ignora qualquer valor de `fotos` vindo de fora (inclusive de um payload de edição). Foto nova vai para o fim (`ordem` automática).
+- Bucket público `cafe-fotos`, caminho `{cafe_id}/{uuid}.webp`, **só `image/webp` até 2 MB** (o navegador converte antes). Gravar e remover só admin (políticas em `storage.objects`).
+- Fluxo: o navegador redimensiona (lado maior 1600 px) e converte para WebP; `prepararUpload` valida a autorização e devolve uma URL assinada para um caminho gerado no servidor; o navegador faz `PUT` direto no Storage (sem chave: quem valida é o token; o arquivo não passa pela Vercel); `registrarFoto` grava a linha e revalida. Registro que falha apaga o arquivo; registro que não responde → o formulário chama `descartarUpload` (que não apaga se a linha existir). Órfão só se a aba fechar entre upload e registro — risco aceito, visível no painel do Storage e inofensivo (não aparece no site).
+- Safari não gera WebP no canvas: o formulário recusa e pede Chrome, Edge ou Firefox. Sem fallback JPEG, de propósito.
 
 **Supabase Auth:** signup público **desligado** (`config.toml` e painel), senha de 12+ com maiúscula, minúscula, dígito e símbolo, TOTP ligado. A conta é criada à mão no painel e promovida com `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = '…'`. **Perdeu o autenticador:** remova o fator em Authentication › Users no painel e cadastre de novo no próximo login.
 
@@ -117,7 +124,7 @@ tem_ar_condicionado boolean,       -- nullable: null = sem informação (o Googl
 faixa_preco text,                  -- '$' | '$$' | '$$$'
 horario_funcionamento jsonb,       -- 7 chaves segunda…domingo; "HH:MM – HH:MM", turnos por ", ", ou "Fechado"
 instagram, telefone,               -- nullable; instagram é URL completa
-fotos text[],                      -- vazio na Fase 1; Storage na Fase 2
+fotos text[],                      -- derivada de `cafe_fotos` por trigger: caminhos no bucket, na ordem; nunca escrita à mão
 ativo boolean,
 criado_em, atualizado_em           -- metadado técnico, fora do tipo `Cafe`
 ```
@@ -171,7 +178,7 @@ Abaixo de 1024 px a home vira o layout mobile do design (tela 02, 390×844): hea
 
 ## Fotos: não use Google Places
 
-A Fase 1 lança **inteiramente com placeholder** — gradiente listrado diagonal em tons de café, determinístico por café (o mesmo café gera sempre o mesmo gradiente). Fase 2 liga fotos próprias/autorizadas no Supabase Storage.
+A Fase 1 lança **inteiramente com placeholder** — gradiente listrado diagonal em tons de café, determinístico por café (o mesmo café gera sempre o mesmo gradiente). Na Fase 2 (#46), fotos próprias/autorizadas no Supabase Storage, sempre com registro de autorização (ver "Fotos (#46)" em "Admin e auth"); café sem foto continua com o placeholder.
 
 **Google Places foi avaliado e descartado**, e a decisão não deve ser reaberta sem ler a seção "Fotos" do PRD: os termos proíbem cachear a foto, e o SKU *Place Details Photos* dá só 1.000 eventos grátis/mês a US$ 7,00/1.000 depois — o que daria ~6 visitas/mês antes de começar a pagar. Instagram está fora como fonte de imagem (o campo `instagram` serve só para o link de saída).
 
@@ -290,12 +297,13 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 | `cafe-filter` | Unitário puro — 6 filtros, interseção, multi-select, busca, ida e volta de URL | **Alta** |
 | `cafe-hours` | Unitário puro — aberto/fechado, índice de hoje (atenção a domingo), jsonb incompleto | **Alta** |
 | `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem, ordenação (crescente, sem origem, desempate estável) | **Alta** |
-| `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder | **Alta** |
+| `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder, caminho → URL pública | **Alta** |
+| `foto-upload` | Unitário puro — tipos e limites, dimensões, autorização (obrigatórios, data em Recife, sem futuro), caminho de outro café recusado | **Alta** |
 | `cafe-repository` | Integração — instância de teste do Supabase, **não mock** | Média (pós-MVP) |
 | `cafe-card`, `filter-bar` | Componente — interação visível (clique no chip muda a URL) | Média |
 | `admin-auth` | Unitário puro — etapas do login (role só em `app_metadata`, `aal1`/`aal2`, com e sem autenticador), `destinoSeguro` contra open redirect, `isUuid` | **Alta** |
-| `fronteiras` | Guarda estática — só o `cafe-repository` lê tabela, quem pode importar `@supabase/*`, nenhuma chave em `NEXT_PUBLIC_`, nenhuma secret key | **Alta** |
-| RLS de admin, trigger | **Sem banco de teste** — verificação manual em produção depois da migration, num `begin … rollback` simulando claims | — |
+| `fronteiras` | Guarda estática — só o `cafe-repository` lê tabela (fora dele, `.from` só para escrever, no admin), quem pode importar `@supabase/*`, nenhuma chave em `NEXT_PUBLIC_`, nenhuma secret key | **Alta** |
+| RLS de admin, triggers (`atualizado_em`, `cafes.fotos`), bucket | **Sem banco de teste** — verificação manual em produção depois da migration, num `begin … rollback` simulando claims | — |
 | `cafe-map` | **Sem teste automatizado** — Mapbox em jsdom custa muito e entrega pouco. Verificação manual. | — |
 
 E2E está fora da Fase 1.

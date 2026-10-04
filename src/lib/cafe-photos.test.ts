@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe } from "./cafe";
 
-import { resolveCafePhotos } from "./cafe-photos";
+import { resolveCafePhotos, urlsPublicasDasFotos } from "./cafe-photos";
 
 const ID = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
 
@@ -104,5 +104,36 @@ describe("resolveCafePhotos", () => {
       { kind: "url", src: "https://exemplo.com/a.jpg" },
       { kind: "url", src: "http://exemplo.com/b.jpg" },
     ]);
+  });
+});
+
+describe("urlsPublicasDasFotos (caminho do Storage → URL pública)", () => {
+  const BASE = "https://xyz.supabase.co";
+  const CAMINHO = `${ID}/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d.webp`;
+
+  it("caminho do bucket cafe-fotos vira URL pública, na ordem", () => {
+    const outro = `${ID}/0b3a4c1e-2d5f-4a6b-8c7d-9e0f1a2b3c4d.webp`;
+
+    expect(urlsPublicasDasFotos([CAMINHO, outro], BASE)).toEqual([
+      `${BASE}/storage/v1/object/public/cafe-fotos/${CAMINHO}`,
+      `${BASE}/storage/v1/object/public/cafe-fotos/${outro}`,
+    ]);
+  });
+
+  it("barra no fim da URL do projeto não duplica", () => {
+    expect(urlsPublicasDasFotos([CAMINHO], `${BASE}/`)).toEqual([
+      `${BASE}/storage/v1/object/public/cafe-fotos/${CAMINHO}`,
+    ]);
+  });
+
+  it("o resultado é o que resolveCafePhotos mostra no lugar do placeholder", () => {
+    const [foto] = resolveCafePhotos({ id: ID, fotos: urlsPublicasDasFotos([CAMINHO], BASE) });
+    expect(foto).toEqual({ kind: "url", src: `${BASE}/storage/v1/object/public/cafe-fotos/${CAMINHO}` });
+  });
+
+  it("fotos ausentes ou malformadas não quebram", () => {
+    expect(urlsPublicasDasFotos(null, BASE)).toEqual([]);
+    const [foto] = resolveCafePhotos({ id: ID, fotos: urlsPublicasDasFotos(["../x", 42], BASE) });
+    expect(foto.kind).toBe("placeholder");
   });
 });

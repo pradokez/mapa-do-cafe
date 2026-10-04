@@ -42,7 +42,7 @@ export interface Cafe {
   instagram: string | null;
   /** Ex.: "(81) 99455-7497". */
   telefone: string | null;
-  /** Vazio na Fase 1; URLs do Supabase Storage na Fase 2. */
+  /** URLs públicas do Storage, na ordem (a primeira é a capa). No banco é cópia derivada de `cafe_fotos`, com caminhos no bucket — o `cafe-repository` os transforma em URL. */
   fotos: string[];
   ativo: boolean;
 }

@@ -10,6 +10,7 @@ import {
   ERRO_WEBP_GRANDE,
   MAX_AUTORIZADO_POR,
   MAX_OBSERVACAO,
+  ROTULO_ORIGEM,
   TIPOS_ENTRADA,
   checarArquivo,
   checarWebp,
@@ -218,8 +219,8 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
         <fieldset aria-describedby={descricao("origem")}>
           <legend className={labelClass}>Origem</legend>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Opcao valor="propria">Própria</Opcao>
-            <Opcao valor="cedida">Cedida pelo café</Opcao>
+            <Opcao valor="propria">{ROTULO_ORIGEM.propria}</Opcao>
+            <Opcao valor="cedida">{ROTULO_ORIGEM.cedida}</Opcao>
           </div>
           <Erro id="erro-origem" erro={erros.origem} className="mt-1.5" />
         </fieldset>

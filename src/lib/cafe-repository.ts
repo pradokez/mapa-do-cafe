@@ -8,6 +8,7 @@ import { unstable_cache } from "next/cache";
 import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
+import type { Autorizacao } from "./foto-upload";
 import { createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
 
@@ -118,4 +119,33 @@ export async function fotoRegistrada(storagePath: string): Promise<boolean> {
     throw new Error(`Falha ao conferir a foto ${storagePath}: ${error.message}`);
   }
   return (count ?? 0) > 0;
+}
+
+/** Foto de um café no admin: URL pública, posição e a autorização registrada. */
+export type FotoDoCafe = Autorizacao & { id: string; storage_path: string; ordem: number; url: string };
+
+/**
+ * Admin: fotos do café em `cafe_fotos`, na ordem do site (o mesmo desempate do
+ * trigger que deriva `cafes.fotos`). Só o admin lê a tabela — a RLS decide.
+ */
+export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
+  if (!isUuid(cafeId)) return [];
+
+  const { data, error } = await createSessionClient()
+    .from("cafe_fotos")
+    .select("id, storage_path, ordem, origem, autorizado_por, autorizado_em, observacao")
+    .eq("cafe_id", cafeId)
+    .order("ordem")
+    .order("criado_em")
+    .order("id")
+    .overrideTypes<Omit<FotoDoCafe, "url">[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar as fotos do café ${cafeId}: ${error.message}`);
+  }
+  const urls = urlsPublicasDasFotos(
+    data.map((foto) => foto.storage_path),
+    supabaseEnv().url,
+  );
+  return data.map((foto, i) => ({ ...foto, url: urls[i] }));
 }

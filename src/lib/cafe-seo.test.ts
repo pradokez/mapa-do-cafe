@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { cafe } from "./cafe.fixture";
-import { descricaoCafe, jsonLdCafe, tituloCafe } from "./cafe-seo";
+import { descricaoCafe, imagemCompartilhamento, jsonLdCafe, tituloCafe } from "./cafe-seo";
 
 describe("tituloCafe", () => {
   it("é o nome do café seguido do nome do site", () => {
@@ -148,5 +148,37 @@ describe("jsonLdCafe", () => {
       expect(horas({})).toBeUndefined();
       expect(horas(null)).toBeUndefined();
     });
+  });
+});
+
+describe("imagemCompartilhamento", () => {
+  it("café sem foto usa a imagem gerada, 1200×630, pelo caminho relativo ao metadataBase", () => {
+    const c = cafe("x", { slug: "borsoi-cafe-riomar", fotos: [] });
+    expect(imagemCompartilhamento(c)).toMatchObject({
+      url: "/cafes/borsoi-cafe-riomar/og",
+      width: 1200,
+      height: 630,
+      type: "image/png",
+    });
+  });
+
+  it("café com foto usa a capa (fotos[0]) como está, em WebP e sem dimensões fixas", () => {
+    const capa = "https://xyz.supabase.co/storage/v1/object/public/cafe-fotos/a/1.webp";
+    const c = cafe("x", { fotos: [capa, "https://xyz.supabase.co/storage/v1/object/public/cafe-fotos/a/2.webp"] });
+    const imagem = imagemCompartilhamento(c);
+    expect(imagem).toMatchObject({ url: capa, type: "image/webp" });
+    expect(imagem).not.toHaveProperty("width");
+  });
+
+  it("foto que não é URL http(s) é ignorada: cai na imagem gerada", () => {
+    const c = cafe("x", { slug: "x", fotos: ["javascript:alert(1)"] });
+    expect(imagemCompartilhamento(c).url).toBe("/cafes/x/og");
+  });
+
+  it("o texto alternativo diz o nome e o local, com a cidade fora do Recife", () => {
+    const recife = cafe("a", { nome: "Borsoi Café", bairro: "Pina", cidade: "Recife" });
+    const olinda = cafe("b", { nome: "Café do Alto", bairro: "Carmo", cidade: "Olinda" });
+    expect(imagemCompartilhamento(recife).alt).toBe("Borsoi Café · Pina");
+    expect(imagemCompartilhamento(olinda).alt).toBe("Café do Alto · Carmo, Olinda");
   });
 });

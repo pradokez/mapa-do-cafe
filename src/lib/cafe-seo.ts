@@ -1,6 +1,6 @@
-import type { Cafe, DiaSemana } from "./cafe";
+import { caminhoDoCafe, type Cafe, type DiaSemana } from "./cafe";
 import { FECHADO, horarioDaSemana } from "./cafe-hours";
-import { faixaPrecoNome, instagramUrl } from "./format";
+import { faixaPrecoNome, instagramUrl, localLabel } from "./format";
 import { isHttpUrl } from "./url";
 
 /**
@@ -10,6 +10,13 @@ import { isHttpUrl } from "./url";
 
 export const SITE_NOME = "Mapa do Café";
 export const SITE_DESCRICAO = "Diretório de cafés especiais em Recife, Olinda e Jaboatão dos Guararapes.";
+
+/**
+ * Campos de Open Graph comuns a todas as páginas. O `openGraph` de uma página
+ * substitui o do layout por inteiro (o Next não mescla em profundidade): quem
+ * define o seu repete esta base.
+ */
+export const OPEN_GRAPH_BASE = { siteName: SITE_NOME, locale: "pt_BR", type: "website" } as const;
 
 // Os rótulos de `SELOS` (components/cafe-atributos) vêm com ícones React; aqui só o texto.
 const SELOS = [
@@ -64,6 +71,29 @@ export function jsonLdCafe(cafe: Cafe, url: string): Record<string, unknown> {
     ...(instagram && { sameAs: [instagram] }),
     // Só foto real: o placeholder listrado não é imagem do café.
     ...(fotos.length > 0 && { image: fotos }),
+  };
+}
+
+/** Tamanho da imagem gerada (`/cafes/[slug]/og` e a da home): o 1,91:1 do Open Graph. */
+export const OG_LARGURA = 1200;
+export const OG_ALTURA = 630;
+
+/**
+ * Imagem de compartilhamento do café (Open Graph e Twitter Card). Com foto, a
+ * capa como está — a mesma do carrossel, em WebP e na proporção dela. Sem foto,
+ * a imagem gerada em `/cafes/[slug]/og`, pelo caminho: o `metadataBase` a torna
+ * absoluta.
+ */
+export function imagemCompartilhamento(cafe: Pick<Cafe, "slug" | "fotos" | "nome" | "bairro" | "cidade">) {
+  const alt = `${cafe.nome} · ${localLabel(cafe)}`;
+  const capa = cafe.fotos.find(isHttpUrl);
+  if (capa) return { url: capa, type: "image/webp", alt };
+  return {
+    url: `${caminhoDoCafe(cafe)}/og`,
+    alt,
+    width: OG_LARGURA,
+    height: OG_ALTURA,
+    type: "image/png",
   };
 }
 

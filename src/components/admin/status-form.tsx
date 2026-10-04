@@ -5,11 +5,7 @@ import { useState, useTransition } from "react";
 
 import { definirStatus } from "@/lib/admin/status-actions";
 
-import { Erro } from "./form";
-
-const BOTAO = "h-[46px] rounded-full px-6 text-[14.5px] font-semibold transition-colors disabled:opacity-60";
-const BOTAO_NEUTRO = `${BOTAO} border border-line-strong bg-white text-espresso hover:bg-hover-soft`;
-const BOTAO_CTA = `${BOTAO} bg-terracotta text-on-terracotta hover:bg-terracotta-hover`;
+import { botaoCtaClass, botaoNeutroClass, Erro } from "./form";
 
 const TEXTO = {
   noAr: {
@@ -66,7 +62,7 @@ export function StatusForm({ cafeId, nome, ativo }: { cafeId: string; nome: stri
       <p className="text-[14px] text-ink-2">{texto.estado}</p>
 
       <Dialog.Root open={aberto} onOpenChange={abrirOuFechar}>
-        <Dialog.Trigger className={`${ativo ? BOTAO_NEUTRO : BOTAO_CTA} self-start`}>{texto.acao}</Dialog.Trigger>
+        <Dialog.Trigger className={`${ativo ? botaoNeutroClass : botaoCtaClass} self-start`}>{texto.acao}</Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-espresso/40" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-cream p-6 shadow-xl">
@@ -78,10 +74,10 @@ export function StatusForm({ cafeId, nome, ativo }: { cafeId: string; nome: stri
             </Dialog.Description>
             <Erro erro={erro} className="mt-3" />
             <div className="mt-6 flex flex-wrap justify-end gap-2.5">
-              <Dialog.Close disabled={salvando} className={BOTAO_NEUTRO}>
+              <Dialog.Close disabled={salvando} className={botaoNeutroClass}>
                 Cancelar
               </Dialog.Close>
-              <button type="button" onClick={confirmar} disabled={salvando} className={BOTAO_CTA}>
+              <button type="button" onClick={confirmar} disabled={salvando} className={botaoCtaClass}>
                 {salvando ? "Salvando…" : texto.acao}
               </button>
             </div>

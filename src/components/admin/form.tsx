@@ -4,6 +4,10 @@ export const inputClass =
   "h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-[16px] text-espresso placeholder:text-placeholder";
 export const labelClass = "mb-1.5 block text-[13.5px] font-semibold text-ink-2";
 
+const botaoClass = "h-[46px] rounded-full px-6 text-[14.5px] font-semibold transition-colors disabled:opacity-60";
+export const botaoCtaClass = `${botaoClass} bg-terracotta text-on-terracotta hover:bg-terracotta-hover`;
+export const botaoNeutroClass = `${botaoClass} border border-line-strong bg-white text-espresso hover:bg-hover-soft`;
+
 /**
  * Mensagem de erro anunciada ao aparecer. Fica sempre no DOM (vazia some), para
  * o leitor de tela já conhecer a região; o `id` liga ao campo por `aria-describedby`.

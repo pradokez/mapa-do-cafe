@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
@@ -8,9 +7,19 @@ import { CafeCarousel } from "@/components/cafe-carousel";
 import { CafeDetailAside } from "@/components/cafe-detail-aside";
 import { CafeHoursPanel } from "@/components/cafe-hours-panel";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
-import { ArrowLeftIcon, InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
+import { InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
+import {
+  DETALHE_ASIDE_POSICAO,
+  DETALHE_COLUNA,
+  DETALHE_GRADE,
+  DETALHE_MAIN,
+  DETALHE_NOME,
+  DETALHE_TAG,
+  DETALHE_TRILHA,
+} from "@/components/medidas";
 import { NotifyButton } from "@/components/notify-button";
 import { SiteHeader } from "@/components/site-header";
+import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
 import { resumoHorario } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
@@ -41,9 +50,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // Slots do carrossel do hero (design); faltas viram placeholder.
 const HERO_SLOTS = 4;
 
-const TAG =
-  "inline-flex h-[38px] items-center gap-2 rounded-full border border-line-strong bg-white px-[15px] text-sm text-espresso";
-
 export default async function CafePage({ params }: Props) {
   const cafe = await getCafe(params.slug);
   if (!cafe) notFound();
@@ -60,12 +66,9 @@ export default async function CafePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <SiteHeader />
-      <main className="mx-auto max-w-[1200px] px-4 pb-20 pt-[22px] sm:px-7 xl:px-0">
-        <nav aria-label="Trilha" className="mb-[18px] flex items-center gap-3.5 text-[13.5px] text-ink-3">
-          <Link href="/" className="inline-flex flex-none items-center gap-1.5 font-semibold text-espresso">
-            <ArrowLeftIcon size={15} strokeWidth={2} />
-            Voltar ao mapa
-          </Link>
+      <main className={DETALHE_MAIN}>
+        <nav aria-label="Trilha" className={DETALHE_TRILHA}>
+          <VoltarAoMapa />
           <span aria-hidden="true" className="h-3.5 w-px flex-none bg-chip-line" />
           <span className="min-w-0 truncate">
             {cafe.cidade} · {cafe.bairro} · {cafe.nome}
@@ -74,9 +77,8 @@ export default async function CafePage({ params }: Props) {
 
         <CafeCarousel photos={resolveCafePhotos(cafe, { minSlots: HERO_SLOTS })} nome={cafe.nome} />
 
-        {/* Mobile: título → aside → corpo. Desktop: aside fixo na 2ª coluna. */}
-        <div className="mt-8 grid items-start gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-16 lg:gap-y-0">
-          <div className="flex flex-col lg:col-start-1">
+        <div className={DETALHE_GRADE}>
+          <div className={DETALHE_COLUNA}>
             {selos.length > 0 && (
               <ul className="mb-3.5 flex flex-wrap gap-2">
                 {selos.map(({ key, label, Icon }) => (
@@ -90,7 +92,7 @@ export default async function CafePage({ params }: Props) {
                 ))}
               </ul>
             )}
-            <h1 className="text-balance font-display text-[36px] leading-[1.05] tracking-[-0.015em] text-espresso lg:text-[58px]">
+            <h1 className={`${DETALHE_NOME} text-balance font-display text-espresso`}>
               {cafe.nome}
             </h1>
             <p className="mt-3.5 flex items-start gap-2 text-[15px] text-ink-2">
@@ -104,19 +106,19 @@ export default async function CafePage({ params }: Props) {
             </p>
           </div>
 
-          <CafeDetailAside cafe={cafe} className="lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1" />
+          <CafeDetailAside cafe={cafe} className={DETALHE_ASIDE_POSICAO} />
 
-          <div className="flex flex-col lg:col-start-1">
+          <div className={DETALHE_COLUNA}>
             <hr className="mb-[30px] hidden border-line lg:block lg:mt-[30px]" />
             <h2 className="mb-3.5 text-xs font-semibold uppercase tracking-[.12em] text-ink-3">Comodidades</h2>
             <ul className="flex flex-wrap gap-2">
               {[...selos, ...atributosDo(cafe)].map(({ key, label, Icon }) => (
-                <li key={key} className={TAG}>
+                <li key={key} className={DETALHE_TAG}>
                   <Icon strokeWidth={1.9} />
                   {label}
                 </li>
               ))}
-              <li className={TAG}>
+              <li className={DETALHE_TAG}>
                 <span className="font-bold tracking-[.05em]">
                   <FaixaPrecoSimbolos faixa={cafe.faixa_preco} />
                 </span>

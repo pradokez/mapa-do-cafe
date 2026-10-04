@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { SearchIcon } from "@/components/icons";
+import { BUSCA_MOLDURA } from "@/components/medidas";
 
 const DEBOUNCE_MS = 300;
 
@@ -46,7 +47,7 @@ export function SearchField({ value, onSearch }: Props) {
   }, [texto, enviado, onSearch]);
 
   return (
-    <label className="flex h-[42px] w-full cursor-text items-center gap-2.5 rounded-full border border-line-strong bg-white px-[18px] text-ink-3 shadow-[0_1px_2px_rgba(44,26,14,.05)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta lg:w-[440px]">
+    <label className={`${BUSCA_MOLDURA} cursor-text focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta`}>
       <SearchIcon size={16} strokeWidth={2} />
       <input
         type="search"

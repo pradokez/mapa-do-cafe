@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { CARROSSEL } from "@/components/medidas";
 import type { PhotoSource } from "@/lib/cafe-photos";
 
 // Deslocamento horizontal mínimo para um toque contar como swipe.
@@ -45,7 +46,7 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
           go(dx < 0 ? index + 1 : index - 1);
         }
       }}
-      className="relative h-[260px] overflow-hidden rounded-[18px] lg:h-[500px]"
+      className={CARROSSEL}
     >
       <div
         className="flex size-full transition-transform duration-[450ms] ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none"

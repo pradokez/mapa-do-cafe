@@ -4,6 +4,7 @@ import { useRef } from "react";
 
 import { CafeCard, type CardHighlight } from "@/components/cafe-card";
 import { EmptyCupIllustration } from "@/components/empty-cup-illustration";
+import { LISTA_GRADE, LISTA_SECTION, LISTA_TOPO } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
 import { contadorLabel } from "@/lib/format";
 
@@ -41,9 +42,9 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
       ref={sectionRef}
       tabIndex={-1}
       aria-label="Cafés"
-      className="flex min-h-full flex-col px-4 pb-[110px] pt-3.5 focus:outline-none lg:px-7 lg:pb-8 lg:pt-5"
+      className={`${LISTA_SECTION} focus:outline-none`}
     >
-      <div className="mb-2.5 flex min-h-6 items-center justify-between gap-4 px-0.5 lg:mb-4 lg:px-0">
+      <div className={LISTA_TOPO}>
         <p aria-live="polite" className="text-[12.5px] text-ink-3 lg:text-[13px]">{contadorLabel(cafes.length)}</p>
         {limpar && (
           <button
@@ -58,10 +59,7 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
       {cafes.length === 0 ? (
         <EmptyState onLimpar={limpar} />
       ) : (
-        // De `lg` até 1220 px, 1 coluna: abaixo disso as 6 fichas de comodidade
-        // (198 px) não cabem numa linha num card de meia coluna — 1180 px bastaria
-        // com barra de rolagem sobreposta, mas não com a permanente (~15 px).
-        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-1 lg:gap-[18px] min-[1220px]:grid-cols-2">
+        <ul className={LISTA_GRADE}>
           {cafes.map((cafe) => (
             <li
               key={cafe.id}

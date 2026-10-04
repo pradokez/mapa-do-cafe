@@ -64,8 +64,8 @@ export function StatusForm({ cafeId, nome, ativo }: { cafeId: string; nome: stri
       <Dialog.Root open={aberto} onOpenChange={abrirOuFechar}>
         <Dialog.Trigger className={`${ativo ? botaoNeutroClass : botaoCtaClass} self-start`}>{texto.acao}</Dialog.Trigger>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-espresso/40" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-cream p-6 shadow-xl">
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/45" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-cream p-6 shadow-xl focus:outline-none">
             <Dialog.Title className="font-display text-[22px] leading-[1.2] text-espresso">
               {texto.titulo(nome)}
             </Dialog.Title>

@@ -11,9 +11,9 @@ import type { DiaSemana } from "./cafe";
 export const FECHADO = "Fechado";
 
 /** Ordem de exibição. Nunca vem de `Object.keys`: o jsonb não preserva ordem. */
-const ORDEM: readonly DiaSemana[] = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
+export const DIAS_DA_SEMANA: readonly DiaSemana[] = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
 
-const LABEL: Record<DiaSemana, string> = {
+export const NOME_DO_DIA: Record<DiaSemana, string> = {
   segunda: "Segunda",
   terca: "Terça",
   quarta: "Quarta",
@@ -58,7 +58,7 @@ export interface ResumoHorario {
  */
 export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
   const iHoje = INDICE_WEEKDAY[weekdayEmRecife.format(data)];
-  const dias = horarioDaSemana(horario).map((d, i) => ({ ...d, label: LABEL[d.dia], hoje: i === iHoje }));
+  const dias = horarioDaSemana(horario).map((d, i) => ({ ...d, label: NOME_DO_DIA[d.dia], hoje: i === iHoje }));
 
   const valor = dias[iHoje].horario;
   const hoje: StatusHoje =
@@ -77,7 +77,7 @@ export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
  */
 export function horarioDaSemana(horario: unknown): { dia: DiaSemana; horario: string | null }[] {
   const registro = isRegistro(horario) ? horario : {};
-  return ORDEM.map((dia) => ({ dia, horario: valorDoDia(registro[dia]) }));
+  return DIAS_DA_SEMANA.map((dia) => ({ dia, horario: valorDoDia(registro[dia]) }));
 }
 
 function proximaAbertura(dias: DiaHorario[], iHoje: number): "amanha" | DiaSemana | null {
@@ -88,7 +88,7 @@ function proximaAbertura(dias: DiaHorario[], iHoje: number): "amanha" | DiaSeman
   return null;
 }
 
-function isRegistro(value: unknown): value is Record<string, unknown> {
+export function isRegistro(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -102,7 +102,7 @@ function valorDoDia(value: unknown): string | null {
 /** Complemento de "Fechado hoje": "abre amanhã" (microcopy fixado) ou "abre sábado". */
 export function proximaAberturaLabel(proxima: "amanha" | DiaSemana): string {
   if (proxima === "amanha") return "abre amanhã";
-  return `abre ${LABEL[proxima].toLocaleLowerCase("pt-BR")}`;
+  return `abre ${NOME_DO_DIA[proxima].toLocaleLowerCase("pt-BR")}`;
 }
 
 /**

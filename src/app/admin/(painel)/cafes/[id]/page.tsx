@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
 import { StatusForm } from "@/components/admin/status-form";
-import { ArrowLeftIcon } from "@/components/icons";
+import { ArrowLeftIcon, ChevronDownIcon } from "@/components/icons";
+import { coordenadasDoLink, salvarDadosCafe } from "@/lib/admin/cafe-actions";
+import { caminhoDoCafe } from "@/lib/cafe";
 import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
@@ -17,12 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: cafe?.nome ?? "Café não encontrado" };
 }
 
-// Seção que a próxima issue preenche (#48 dados).
 const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
-
-const SECOES = [
-  { id: "dados", titulo: "Dados", texto: "Em breve: edição de todos os dados do café." },
-];
 
 export default async function AdminCafe({ params }: Props) {
   await requireAdmin();
@@ -65,18 +63,29 @@ export default async function AdminCafe({ params }: Props) {
           </h2>
           <StatusForm cafeId={cafe.id} nome={cafe.nome} ativo={cafe.ativo} />
         </section>
-        {SECOES.map((secao) => (
-          <section
-            key={secao.id}
-            aria-labelledby={`secao-${secao.id}`}
-            className="rounded-xl border border-card-line bg-white px-5 py-4"
-          >
-            <h2 id={`secao-${secao.id}`} className={TITULO_SECAO}>
-              {secao.titulo}
-            </h2>
-            <p className="mt-1.5 text-[14px] text-ink-2">{secao.texto}</p>
-          </section>
-        ))}
+        {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
+        <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
+          {/* `summary` aceita só heading e conteúdo inline: grade em vez de um `div` em volta. */}
+          <summary className="-mx-5 -my-4 grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-x-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <h2 className={TITULO_SECAO}>Dados</h2>
+            <span className="col-start-1 mt-1.5 text-[14px] text-ink-2">Editar nome, endereço, comodidades, horário…</span>
+            <ChevronDownIcon
+              size={18}
+              strokeWidth={2}
+              className="col-start-2 row-span-2 row-start-1 text-ink-2 transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <p className="mt-6 text-[13.5px] text-ink-3">
+            Endereço no site: <code className="text-ink-2">{caminhoDoCafe(cafe)}</code> — não muda, para não quebrar
+            links já compartilhados.
+          </p>
+          <DadosCafeForm
+            cafe={cafe}
+            ativo={cafe.ativo}
+            salvar={salvarDadosCafe.bind(null, cafe.id)}
+            buscarCoordenadas={coordenadasDoLink}
+          />
+        </details>
       </div>
     </>
   );

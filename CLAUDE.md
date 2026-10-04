@@ -271,7 +271,7 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 
 - `www` → raiz: configurado no painel da Vercel (Domains), não no código.
 - `*.vercel.app` de produção → raiz: `redirectsParaCanonico()` no `next.config.mjs`, com destino `siteUrl()`. Só com `VERCEL_ENV=production` — previews seguem acessíveis (atrás do SSO da Vercel) — e nunca quando o próprio canônico é `.vercel.app` (seria loop). Por isso `site-url` é `.mjs`: o `next.config.mjs` não importa TypeScript.
-- Token do Mapbox restrito por URL (domínio + `localhost:3000`/`3001`): copiado para outro site, não carrega. Mudar a restrição não pede deploy.
+- **Desvio consciente — token do Mapbox sem restrição de URL.** O token padrão não aceita restrição, e criar um token restrito não está disponível na conta gratuita. Quem copiar o `pk.…` do bundle consegue usá-lo em outro site. Aceito porque a conta **não tem cartão**: o uso tem teto rígido, então o pior caso é a cota grátis acabar e o mapa parar até o mês virar — nunca cobrança. **Cadastrar cartão exige antes restringir o token** (domínio + `localhost:3000`/`3001`), senão abuso vira fatura.
 - Supabase Auth: Site URL é o domínio; Redirect URLs, o domínio e `localhost:3000`. O login do admin não depende delas (senha + TOTP por Server Action, sem link por email).
 
 ## SEO (#44)

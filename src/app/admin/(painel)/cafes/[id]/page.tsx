@@ -5,10 +5,11 @@ import { notFound } from "next/navigation";
 import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
+import { StatusForm } from "@/components/admin/status-form";
 import { ArrowLeftIcon, ChevronDownIcon } from "@/components/icons";
 import { coordenadasDoLink, salvarDadosCafe } from "@/lib/admin/cafe-actions";
 import { caminhoDoCafe } from "@/lib/cafe";
-import { getCafeById } from "@/lib/cafe-repository";
+import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
 type Props = { params: { id: string } };
@@ -21,12 +22,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
 
-// Seção que a próxima issue preenche (#47 status).
-const SECOES = [{ id: "status", titulo: "Status", texto: "Em breve: tirar o café do ar e colocar de volta." }];
-
 export default async function AdminCafe({ params }: Props) {
   await requireAdmin();
-  const cafe = await getCafeById(params.id);
+  const [cafe, fotos] = await Promise.all([getCafeById(params.id), listFotosDoCafe(params.id)]);
   if (!cafe) notFound();
 
   return (
@@ -57,7 +55,13 @@ export default async function AdminCafe({ params }: Props) {
           <h2 id="secao-fotos" className={TITULO_SECAO}>
             Fotos
           </h2>
-          <FotosCafe cafe={cafe} />
+          <FotosCafe cafe={cafe} fotos={fotos} />
+        </section>
+        <section aria-labelledby="secao-status" className="rounded-xl border border-card-line bg-white px-5 py-4">
+          <h2 id="secao-status" className={TITULO_SECAO}>
+            Status
+          </h2>
+          <StatusForm cafeId={cafe.id} nome={cafe.nome} ativo={cafe.ativo} />
         </section>
         {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
         <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
@@ -82,18 +86,6 @@ export default async function AdminCafe({ params }: Props) {
             buscarCoordenadas={coordenadasDoLink}
           />
         </details>
-        {SECOES.map((secao) => (
-          <section
-            key={secao.id}
-            aria-labelledby={`secao-${secao.id}`}
-            className="rounded-xl border border-card-line bg-white px-5 py-4"
-          >
-            <h2 id={`secao-${secao.id}`} className={TITULO_SECAO}>
-              {secao.titulo}
-            </h2>
-            <p className="mt-1.5 text-[14px] text-ink-2">{secao.texto}</p>
-          </section>
-        ))}
       </div>
     </>
   );

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe } from "./cafe";
 
-import { resolveCafePhotos, urlsPublicasDasFotos } from "./cafe-photos";
+import { resolveCafePhotos, tonsDoPlaceholder, urlsPublicasDasFotos } from "./cafe-photos";
 
 const ID = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
 
@@ -135,5 +135,14 @@ describe("urlsPublicasDasFotos (caminho do Storage → URL pública)", () => {
     expect(urlsPublicasDasFotos(null, BASE)).toEqual([]);
     const [foto] = resolveCafePhotos({ id: ID, fotos: urlsPublicasDasFotos(["../x", 42], BASE) });
     expect(foto.kind).toBe("placeholder");
+  });
+});
+
+describe("tonsDoPlaceholder", () => {
+  it("são as duas cores do placeholder do café — a imagem de compartilhamento repete as listras do card", () => {
+    const [a, b] = tonsDoPlaceholder({ id: ID });
+    expect(placeholderOf({ id: ID, fotos: [] })).toBe(
+      `repeating-linear-gradient(135deg, ${a} 0 14px, ${b} 14px 28px)`,
+    );
   });
 });

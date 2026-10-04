@@ -66,6 +66,9 @@ export function hojeEmRecife(agora: Date): string {
 
 export type Origem = "propria" | "cedida";
 
+/** Nome da origem na tela — o mesmo no formulário e na lista de fotos. */
+export const ROTULO_ORIGEM: Record<Origem, string> = { propria: "Própria", cedida: "Cedida pelo café" };
+
 /** Registro de autorização de uma foto — espelha as colunas de `cafe_fotos`. */
 export type Autorizacao = {
   origem: Origem;

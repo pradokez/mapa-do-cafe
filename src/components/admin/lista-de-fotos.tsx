@@ -8,12 +8,15 @@ import { ArrowDownIcon, ArrowUpIcon, TrashIcon } from "@/components/icons";
 import { removerFoto, reordenarFoto } from "@/lib/admin/fotos-actions";
 import type { FotoDoCafe } from "@/lib/cafe-repository";
 import { moverFoto, type Movimento } from "@/lib/foto-ordem";
+import { ROTULO_ORIGEM } from "@/lib/foto-upload";
 
 import { Erro } from "./form";
 import { RemoverFotoDialog } from "./remover-foto-dialog";
 
-const ORIGEM = { propria: "Própria", cedida: "Cedida pelo café" } as const;
 const ERRO_ACAO = "Não deu para salvar agora. Tente de novo em instantes.";
+
+/** Texto alternativo da foto, igual na lista e no diálogo de remoção. */
+const altDaFoto = (indice: number, total: number, nome: string) => `Foto ${indice + 1} de ${total} — ${nome}`;
 
 /** `AAAA-MM-DD` → `DD/MM/AAAA`, sem `Date` (nada de fuso no meio). */
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
@@ -144,7 +147,7 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
                   {/* eslint-disable-next-line @next/next/no-img-element -- já otimizada no upload; #52 troca por next/image */}
                   <img
                     src={foto.url}
-                    alt={`Foto ${i + 1} de ${total} — ${nome}`}
+                    alt={altDaFoto(i, total, nome)}
                     loading="lazy"
                     className="size-[112px] rounded-lg border border-card-line object-cover"
                   />
@@ -158,7 +161,7 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
                 <div className="flex min-w-0 flex-1 flex-col gap-3">
                   <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-1 text-[13.5px]">
                     <dt className="text-ink-3">Origem</dt>
-                    <dd className="font-semibold text-espresso">{ORIGEM[foto.origem]}</dd>
+                    <dd className="font-semibold text-espresso">{ROTULO_ORIGEM[foto.origem]}</dd>
                     <dt className="text-ink-3">Autorização</dt>
                     <dd className="text-ink-2">
                       {foto.autorizado_por}, em {dataBr(foto.autorizado_em)}
@@ -224,7 +227,7 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
       </p>
 
       <RemoverFotoDialog
-        foto={aRemover && { url: aRemover.foto.url, alt: `Foto ${aRemover.indice + 1} de ${total} — ${nome}` }}
+        foto={aRemover && { url: aRemover.foto.url, alt: altDaFoto(aRemover.indice, total, nome) }}
         removendo={ocupado}
         erro={erroRemocao}
         onConfirmar={remover}

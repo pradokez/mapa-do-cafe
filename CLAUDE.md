@@ -49,12 +49,13 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
 | `foto-upload` | `src/lib/foto-upload.ts` | **Puro.** Regras do upload de foto, comuns ao formulário e às Server Actions: tipos e limites (entrada JPEG/PNG/WebP ≤ 15 MB; saída WebP ≤ 2 MB), `dimensoesDestino` (lado maior 1600 px), `validarAutorizacao`, `hojeEmRecife`, caminho no bucket (`caminhoDaFoto`, `ehCaminhoDoCafe`). |
+| `cafe-dados` | `src/lib/cafe-dados.ts` | **Puro.** Validação e normalização dos dados de um café no admin (#48), comum ao formulário e à Server Action: `validarDadosCafe` espelha as constraints de `cafes` (cidade, faixa, 7 dias de horário, lat/lng dentro da `REGIAO`), deriva `bairro_slug` (`slugify`), normaliza Instagram e telefone; horário ↔ turnos do formulário (`turnosDoHorario`/`horarioDosTurnos`, `validarHorarioDia`); coordenadas de link do Google Maps (`coordenadasDaUrl`, `ehLinkDoMaps`, `parDeCoordenadas`). |
 | `admin-auth` | `src/lib/admin-auth.ts` | **Puro.** Etapa do login a partir das claims (`senha` → `codigo`/`cadastro-mfa` → `pronto`), `destinoSeguro` (o `next` do login, sem open redirect) e `isUuid`. |
 | `supabase-server` | `src/lib/supabase-server.ts` | `server-only`. Client do Supabase com a sessão do cookie, para Server Components e Server Actions. `supabase-env` tem as envs e as opções do cookie (o middleware também usa). |
-| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. Fotos (#46): `prepararUpload`, `registrarFoto`, `descartarUpload`. As Server Actions de escrita das próximas issues moram aqui. |
+| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. Fotos (#46): `prepararUpload`, `registrarFoto`, `descartarUpload`. Dados (#48): `salvarDadosCafe`, `coordenadasDoLink`. As Server Actions de escrita das próximas issues moram aqui. |
 | `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
-Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `admin-auth`, `foto-upload`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
+Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `cafe-dados`, `admin-auth`, `foto-upload`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
 
 Nomes antigos que **não** devem ser usados: `FilterEngine`, `MapController`, `SearchDebouncer`, `PhotoUploader`.
 
@@ -68,7 +69,7 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 |---|---|
 | `/admin/login` | Única acessível sem sessão. Uma tela, etapas decididas no servidor: senha → código de 6 dígitos (ou, sem autenticador ainda, cadastro com QR) |
 | `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá) |
-| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (miniaturas + envio, #46), Status e Dados (próximas issues). Id inexistente ou malformado → 404 do admin |
+| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (miniaturas + envio, #46), Dados (formulário de edição, #48, recolhido num `<details>`) e Status (próxima issue). Id inexistente ou malformado → 404 do admin |
 
 **Quem é admin:** `app_metadata.role = 'admin'` (só o service role altera; `user_metadata`, que o usuário edita, nunca conta) **e** segundo fator na sessão (`aal2`). **TOTP é obrigatório** — senha sozinha não lê nem grava nada.
 
@@ -93,6 +94,12 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 - Bucket público `cafe-fotos`, caminho `{cafe_id}/{uuid}.webp`, **só `image/webp` até 2 MB** (o navegador converte antes). Gravar e remover só admin (políticas em `storage.objects`).
 - Fluxo: o navegador redimensiona (lado maior 1600 px) e converte para WebP; `prepararUpload` valida a autorização e devolve uma URL assinada para um caminho gerado no servidor; o navegador faz `PUT` direto no Storage (sem chave: quem valida é o token; o arquivo não passa pela Vercel); `registrarFoto` grava a linha e revalida. Registro que falha apaga o arquivo; registro que não responde → o formulário chama `descartarUpload` (que não apaga se a linha existir). Órfão só se a aba fechar entre upload e registro — risco aceito, visível no painel do Storage e inofensivo (não aparece no site).
 - Safari não gera WebP no canvas: o formulário recusa e pede Chrome, Edge ou Firefox. Sem fallback JPEG, de propósito.
+
+**Dados (#48):** formulário com todos os campos de `Cafe` menos `id`, `slug`, `fotos` (trigger) e `ativo` (seção Status). `validarDadosCafe` roda no cliente e de novo em `salvarDadosCafe`, que só grava o que ele devolve — chave a mais no payload é ignorada.
+- **Slug bloqueado** na edição: mudar quebraria links compartilhados. `bairro_slug` não é campo: sai de `slugify(bairro)`, para o filtro não ganhar bairro duplicado.
+- **Normaliza ao salvar:** Instagram (`@u`, `u` ou link do perfil) → `https://instagram.com/u`, recusando outro site ou post; telefone com DDD → `(81) 99908-4986` / `(81) 3071-6834`; lat/lng aceitam vírgula decimal. Opcional vazio → `null`.
+- **Horário estruturado:** "Fechado" ou de 1 a 3 turnos com `<input type="time">`, e "Repetir nos dias seguintes" na Segunda. Turnos em ordem e sem sobreposição; só o último pode virar a meia-noite (`14:00 – 00:00`). `24:00` só como fechamento (`00:00 – 24:00`, café 24 h): no formulário, que não tem 24:00, é `00:00 – 00:00`.
+- **Desvio consciente — link do Google Maps → coordenadas.** O botão "Buscar coordenadas" segue o redirect do link curto (`maps.app.goo.gl/…`) e lê o ponto do lugar (`!3d…!4d…`) na URL completa — sem API nem chave. O formato não tem contrato: se o Google mudar, dá erro e lat/lng são preenchidos à mão. `coordenadasDoLink` segue no máximo 3 redirects, conferindo a cada salto que é `https` e host do Maps (`ehLinkDoMaps`), para não virar proxy (SSRF). O link não é salvo.
 
 **Supabase Auth:** signup público **desligado** (`config.toml` e painel), senha de 12+ com maiúscula, minúscula, dígito e símbolo, TOTP ligado. A conta é criada à mão no painel e promovida com `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' where email = '…'`. **Perdeu o autenticador:** remova o fator em Authentication › Users no painel e cadastre de novo no próximo login.
 
@@ -318,6 +325,7 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 | `cafe-hours` | Unitário puro — aberto/fechado, índice de hoje (atenção a domingo), jsonb incompleto | **Alta** |
 | `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem, ordenação (crescente, sem origem, desempate estável) | **Alta** |
 | `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder, caminho → URL pública | **Alta** |
+| `cafe-dados` | Unitário puro — cada constraint do banco, horário (turnos, "Fechado", meia-noite, sobreposição), Instagram e telefone, opcionais vazios, coordenadas de link do Maps e hosts aceitos; os 53 cafés do seed passam sem mudança | **Alta** |
 | `foto-upload` | Unitário puro — tipos e limites, dimensões, autorização (obrigatórios, data em Recife, sem futuro), caminho de outro café recusado | **Alta** |
 | `cafe-repository` | Integração — instância de teste do Supabase, **não mock** | Média (pós-MVP) |
 | `cafe-card`, `filter-bar` | Componente — interação visível (clique no chip muda a URL) | Média |
@@ -341,7 +349,8 @@ Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, aut
 ## Notas operacionais
 
 - **Supabase free hiberna após ~1 semana sem uso.** Num site de portfólio que pode ficar dias sem visita, o primeiro acesso depois disso é lento. Saiba disso antes de mandar o link para alguém.
-- **Risco de dado:** horário, faixa de preço, pets, coffee office e os atributos da #38 mudam e não têm fonte oficial. Em `acessivel_pcd` e `opcoes_vegetarianas`, `false` muitas vezes quer dizer "sem informação" (sobretudo fora da ASCAPE); `tem_ar_condicionado` tem só 5 confirmados, o resto é `null` e pede curadoria. Faltam Instagrams (Saltim, Mafrita, Tokyo's, Soto, Amaro, CoffeeTown). Sem admin (Fase 2), corrigir exige deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
+- **Risco de dado:** horário, faixa de preço, pets, coffee office e os atributos da #38 mudam e não têm fonte oficial. Em `acessivel_pcd` e `opcoes_vegetarianas`, `false` muitas vezes quer dizer "sem informação" (sobretudo fora da ASCAPE); `tem_ar_condicionado` tem só 5 confirmados, o resto é `null` e pede curadoria. Faltam Instagrams (Saltim, Mafrita, Tokyo's, Soto, Amaro, CoffeeTown). Desde a #48, o admin corrige sem deploy. `permite_coffee_office` é o mais subjetivo dos quatro e o que mais frustra se estiver errado.
+- **Pins colados pelo admin.** A regra "nenhum par de cafés ativos a menos de 30 m" só é garantida pelo teste do seed; o formulário do admin (#48) valida um café por vez e não compara com os outros. Depois de mudar coordenadas pelo admin, confira no mapa se um pin não esconde outro.
 - **Login do admin sem captcha.** As Server Actions chamam o Supabase de IPs da Vercel, então o rate limit de login por IP não separa atacante de administradora (e pode bloqueá-la por minutos). O TOTP limita o estrago de uma senha vazada; um captcha (Cloudflare Turnstile, suportado pelo Supabase Auth) fica para uma possível Fase 4, se houver necessidade.
 - O filtro **Recife Coffee** era redundante no lançamento (todos os 29 eram ASCAPE); desde a #38 ele discrimina (35 dos 51 ativos).
 

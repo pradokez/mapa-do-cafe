@@ -12,7 +12,7 @@ import { caminhoDoCafe } from "@/lib/cafe";
 import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
-type Props = { params: { id: string } };
+type Props = { params: { id: string }; searchParams: { novo?: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await requireAdmin();
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
 
-export default async function AdminCafe({ params }: Props) {
+export default async function AdminCafe({ params, searchParams }: Props) {
   await requireAdmin();
   const [cafe, fotos] = await Promise.all([getCafeById(params.id), listFotosDoCafe(params.id)]);
   if (!cafe) notFound();
@@ -49,6 +49,13 @@ export default async function AdminCafe({ params }: Props) {
           <VerNoSite slug={cafe.slug} ativo={cafe.ativo} />
         </div>
       </header>
+
+      {/* Vindo do cadastro (#53): o próximo passo é aqui. */}
+      {searchParams.novo === "1" && !cafe.ativo && (
+        <p role="status" className="mb-4 rounded-lg bg-seal-bg px-4 py-3 text-[14px] font-medium text-seal-fg">
+          Café cadastrado. Ele está fora do ar: suba as fotos e coloque no ar na seção Status.
+        </p>
+      )}
 
       <div className="flex flex-col gap-4">
         <section aria-labelledby="secao-fotos" className="rounded-xl border border-card-line bg-white px-5 py-4">

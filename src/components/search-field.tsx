@@ -47,7 +47,7 @@ export function SearchField({ value, onSearch }: Props) {
   }, [texto, enviado, onSearch]);
 
   return (
-    <label className={`${BUSCA_MOLDURA} cursor-text focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta `}>
+    <label className={`${BUSCA_MOLDURA} cursor-text focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-terracotta`}>
       <SearchIcon size={16} strokeWidth={2} />
       <input
         type="search"

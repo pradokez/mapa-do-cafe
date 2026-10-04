@@ -27,6 +27,8 @@ yarn-error.log*
 
 # local env files
 .env*.local
+# chaves do projeto Supabase descartável dos testes de segurança (#59)
+.env.security
 
 # vercel
 .vercel

@@ -19,6 +19,13 @@ const nextConfig = {
   // direto do Supabase ao navegador. Nenhuma imagem passa por `/_next/image`
   // (nem conta no bandwidth da Vercel), e não é preciso listar o host.
   images: { unoptimized: true },
+  experimental: {
+    // Fontes das imagens de compartilhamento (#49), lidas do disco por `src/lib/og/imagens.tsx`.
+    outputFileTracingIncludes: {
+      "/opengraph-image": ["./src/lib/og/fonts/*.ttf"],
+      "/cafes/[slug]/og": ["./src/lib/og/fonts/*.ttf"],
+    },
+  },
   async headers() {
     return [
       { source: "/admin", headers: ADMIN_HEADERS },

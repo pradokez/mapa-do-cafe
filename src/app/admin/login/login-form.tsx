@@ -11,7 +11,7 @@ import {
   sair,
   type LoginState,
 } from "@/lib/admin/auth-actions";
-import { Erro, inputClass, labelClass } from "@/components/admin/form";
+import { botaoCtaClass, Erro, inputClass, labelClass } from "@/components/admin/form";
 
 const INICIAL: LoginState = { erro: null };
 
@@ -177,7 +177,7 @@ function Enviar({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="mt-1 h-[46px] rounded-full bg-terracotta px-6 text-[14.5px] font-semibold text-on-terracotta transition-colors hover:bg-terracotta-hover disabled:opacity-60"
+      className={`mt-1 ${botaoCtaClass}`}
     >
       {pending ? "Aguarde…" : children}
     </button>

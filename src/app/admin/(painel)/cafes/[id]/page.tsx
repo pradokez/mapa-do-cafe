@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
+import { StatusForm } from "@/components/admin/status-form";
 import { ArrowLeftIcon } from "@/components/icons";
-import { getCafeById } from "@/lib/cafe-repository";
+import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
 type Props = { params: { id: string } };
@@ -16,17 +17,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: cafe?.nome ?? "Café não encontrado" };
 }
 
-// Seções que as próximas issues preenchem (#47 status, #48 dados).
+// Seção que a próxima issue preenche (#48 dados).
 const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
 
 const SECOES = [
-  { id: "status", titulo: "Status", texto: "Em breve: tirar o café do ar e colocar de volta." },
   { id: "dados", titulo: "Dados", texto: "Em breve: edição de todos os dados do café." },
 ];
 
 export default async function AdminCafe({ params }: Props) {
   await requireAdmin();
-  const cafe = await getCafeById(params.id);
+  const [cafe, fotos] = await Promise.all([getCafeById(params.id), listFotosDoCafe(params.id)]);
   if (!cafe) notFound();
 
   return (
@@ -57,7 +57,13 @@ export default async function AdminCafe({ params }: Props) {
           <h2 id="secao-fotos" className={TITULO_SECAO}>
             Fotos
           </h2>
-          <FotosCafe cafe={cafe} />
+          <FotosCafe cafe={cafe} fotos={fotos} />
+        </section>
+        <section aria-labelledby="secao-status" className="rounded-xl border border-card-line bg-white px-5 py-4">
+          <h2 id="secao-status" className={TITULO_SECAO}>
+            Status
+          </h2>
+          <StatusForm cafeId={cafe.id} nome={cafe.nome} ativo={cafe.ativo} />
         </section>
         {SECOES.map((secao) => (
           <section

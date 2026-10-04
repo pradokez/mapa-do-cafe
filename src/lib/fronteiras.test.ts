@@ -33,6 +33,10 @@ describe("fronteiras do Supabase", () => {
     expect(comCodigo(/\.select\(/).filter((caminho) => caminho !== "lib/cafe-repository.ts")).toEqual([]);
   });
 
+  it("café nunca é apagado: sai do ar com `ativo = false` (o banco também não tem política de delete)", () => {
+    expect(comCodigo(/\.from\(\s*["'`]cafes["'`]\s*\)[^;]*\.delete\(/)).toEqual([]);
+  });
+
   it("só o repositório, o módulo de sessão, o admin e o middleware importam o Supabase", () => {
     const permitido = (caminho: string) =>
       [

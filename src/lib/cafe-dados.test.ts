@@ -413,6 +413,55 @@ describe("validarDadosCafe", () => {
   });
 });
 
+// Payloads que o formulário nunca montaria, mas que um atacante envia direto
+// na Server Action (#59). A validação do servidor é a que vale: ela recusa, ou
+// descarta o campo proibido. Ver docs/security/pentest-2026-10.md.
+describe("payloads maliciosos (#59)", () => {
+  const base = () => dadosDe(seed.find((c) => c.slug === "borsoi-cafe-riomar")!);
+
+  it("slug com path traversal, barra ou ponto é recusado", () => {
+    for (const slug of ["../cafes", "..%2fadmin", "cafe/../x", "cafe.do.bairro", "cafe/sub"]) {
+      expect(validarSlug(slug), slug).toMatchObject({ ok: false });
+    }
+  });
+
+  it("instagram com javascript:, data: ou outro host é recusado", () => {
+    for (const valor of ["javascript:alert(1)", "data:text/html,<script>", "https://evil.com/user", "//evil.com"]) {
+      expect(normalizarInstagram(valor), valor).toMatchObject({ ok: false });
+    }
+  });
+
+  it("lat/lng não finitos (NaN, Infinity, string de texto) não passam", () => {
+    for (const valor of [Infinity, -Infinity, NaN, "1e9", "abc", "--8"]) {
+      const r = validarDadosCafe({ ...base(), lat: valor, lng: valor });
+      expect(r.ok, String(valor)).toBe(false);
+    }
+  });
+
+  it("mass assignment: id, location, criado_em e atualizado_em nunca são gravados", () => {
+    const r = validarDadosCafe({
+      ...base(),
+      id: "00000000-0000-0000-0000-000000000000",
+      slug: "outro",
+      fotos: ["hack.webp"],
+      ativo: true,
+      location: "SRID=4326;POINT(0 0)",
+      criado_em: "1999-01-01",
+      atualizado_em: "1999-01-01",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok)
+      for (const chave of ["id", "slug", "fotos", "ativo", "location", "criado_em", "atualizado_em"]) {
+        expect(r.valores, chave).not.toHaveProperty(chave);
+      }
+  });
+
+  it("nome com </script> passa a validação (o escape é no render do JSON-LD, cafe-seo)", () => {
+    const r = validarDadosCafe({ ...base(), nome: 'Café </script><img src=x onerror=alert(1)>' });
+    expect(r.ok).toBe(true);
+  });
+});
+
 describe("validarNovoCafe (cadastro: os dados mais o slug)", () => {
   const base = () => ({ ...dadosDe(seed.find((c) => c.slug === "borsoi-cafe-riomar")!), slug: "cafe-novo" });
 

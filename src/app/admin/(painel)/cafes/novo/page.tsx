@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
-import { ArrowLeftIcon } from "@/components/icons";
+import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { cadastrarCafe, coordenadasDoLink } from "@/lib/admin/cafe-actions";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
@@ -14,13 +13,7 @@ export default async function NovoCafe() {
 
   return (
     <>
-      <Link
-        href="/admin"
-        className="mb-5 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-2 hover:text-espresso"
-      >
-        <ArrowLeftIcon size={14} strokeWidth={2} />
-        Todos os cafés
-      </Link>
+      <VoltarAoPainel />
 
       <header className="mb-6">
         <h1 className="font-display text-[32px] leading-[1.1] text-espresso">Novo café</h1>

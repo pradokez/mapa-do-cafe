@@ -15,6 +15,13 @@ const ADMIN_HEADERS = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Fontes das imagens de compartilhamento (#49), lidas do disco por `src/lib/og/imagens.tsx`.
+    outputFileTracingIncludes: {
+      "/opengraph-image": ["./src/lib/og/fonts/*.ttf"],
+      "/cafes/[slug]/og": ["./src/lib/og/fonts/*.ttf"],
+    },
+  },
   async headers() {
     return [
       { source: "/admin", headers: ADMIN_HEADERS },

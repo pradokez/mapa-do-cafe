@@ -24,7 +24,14 @@ import { caminhoDoCafe } from "@/lib/cafe";
 import { resumoHorario } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { getCafeBySlug } from "@/lib/cafe-repository";
-import { descricaoCafe, jsonLdCafe, SITE_NOME, tituloCafe } from "@/lib/cafe-seo";
+import {
+  descricaoCafe,
+  imagemCompartilhamento,
+  jsonLdCafe,
+  OPEN_GRAPH_BASE,
+  SITE_NOME,
+  tituloCafe,
+} from "@/lib/cafe-seo";
 import { faixaPrecoNome } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url.mjs";
 
@@ -40,10 +47,15 @@ const getCafe = cache(getCafeBySlug);
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cafe = await getCafe(params.slug);
   if (!cafe) return { title: `Café não encontrado · ${SITE_NOME}`, robots: { index: false } };
+  const title = tituloCafe(cafe);
+  const description = descricaoCafe(cafe);
+  const imagem = imagemCompartilhamento(cafe);
   return {
-    title: tituloCafe(cafe),
-    description: descricaoCafe(cafe),
+    title,
+    description,
     alternates: { canonical: caminhoDoCafe(cafe) },
+    openGraph: { ...OPEN_GRAPH_BASE, title, description, url: caminhoDoCafe(cafe), images: [imagem] },
+    twitter: { card: "summary_large_image", title, description, images: [imagem] },
   };
 }
 

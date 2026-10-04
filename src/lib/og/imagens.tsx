@@ -153,6 +153,9 @@ export async function imagemDoCafe(cafe: Pick<Cafe, "id" | "nome" | "bairro" | "
   );
 }
 
+/** A frase da imagem da home — também o texto alternativo dela. */
+export const CHAMADA_HOME = "Cafés especiais em Recife, Olinda e Jaboatão";
+
 /** Home (e fallback do site): o logo em exibição sobre as listras, e o que é o site. */
 export async function imagemDaHome() {
   return new ImageResponse(
@@ -164,6 +167,7 @@ export async function imagemDaHome() {
           justifyContent: "center",
           width: "100%",
           height: "100%",
+          // Sem café, um par fixo de tons do placeholder (o da chave vazia).
           ...listras(tonsDoPlaceholder({ id: "" })),
         }}
       >
@@ -181,7 +185,7 @@ export async function imagemDaHome() {
         >
           <Logo tamanho={104} />
           <div style={{ fontFamily: "DM Sans", fontSize: 38, color: COR.ink2 }}>
-            Cafés especiais em Recife, Olinda e Jaboatão
+            {CHAMADA_HOME}
           </div>
         </div>
       </div>

@@ -51,3 +51,15 @@ describe("CafeList — estado vazio", () => {
     expect(screen.queryByRole("heading", { name: "Xícara vazia por aqui" })).toBeNull();
   });
 });
+
+describe("CafeList — fotos", () => {
+  it("só os 4 primeiros cards baixam a foto de cara; o resto espera a viewport", () => {
+    const cafes = ["a", "b", "c", "d", "e", "f"].map((id) =>
+      cafe(id, { fotos: [`https://x.supabase.co/storage/v1/object/public/cafe-fotos/${id}.webp`] }),
+    );
+    render(<CafeList cafes={cafes} />);
+
+    const lazy = cafes.map(({ id }) => screen.getByRole("img", { name: `Foto de ${id}` }).getAttribute("loading"));
+    expect(lazy).toEqual([null, null, null, null, "lazy", "lazy"]);
+  });
+});

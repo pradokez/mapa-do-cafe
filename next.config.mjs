@@ -15,6 +15,10 @@ const ADMIN_HEADERS = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // #52: as fotos já chegam em WebP redimensionado do upload (#46) e vão
+  // direto do Supabase ao navegador. Nenhuma imagem passa por `/_next/image`
+  // (nem conta no bandwidth da Vercel), e não é preciso listar o host.
+  images: { unoptimized: true },
   experimental: {
     // Fontes das imagens de compartilhamento (#49), lidas do disco por `src/lib/og/imagens.tsx`.
     outputFileTracingIncludes: {

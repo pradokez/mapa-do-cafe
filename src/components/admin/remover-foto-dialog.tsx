@@ -3,6 +3,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRef } from "react";
 
+import { FotoDoStorage } from "@/components/foto-do-storage";
+
 import { Erro } from "./form";
 
 type Props = {
@@ -47,10 +49,12 @@ export function RemoverFotoDialog({ foto, removendo, erro, onConfirmar, onCancel
             Remover esta foto?
           </DialogPrimitive.Title>
           {foto && (
-            // eslint-disable-next-line @next/next/no-img-element -- já otimizada no upload; #52 troca por next/image
-            <img
+            // width/height só dão a proporção; quem manda no tamanho é a classe.
+            <FotoDoStorage
               src={foto.url}
               alt={foto.alt}
+              width={352}
+              height={160}
               className="mt-4 h-[160px] w-full rounded-lg border border-card-line object-cover"
             />
           )}

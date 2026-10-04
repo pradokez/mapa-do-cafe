@@ -4,6 +4,7 @@
 // diálogo de confirmação.
 import { useEffect, useRef, useState } from "react";
 
+import { FotoDoStorage } from "@/components/foto-do-storage";
 import { ArrowDownIcon, ArrowUpIcon, TrashIcon } from "@/components/icons";
 import { removerFoto, reordenarFoto } from "@/lib/admin/fotos-actions";
 import type { FotoDoCafe } from "@/lib/cafe-repository";
@@ -144,11 +145,11 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
             return (
               <li key={foto.id} data-foto={foto.id} className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:gap-4">
                 <div className="relative flex-none self-start">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- já otimizada no upload; #52 troca por next/image */}
-                  <img
+                  <FotoDoStorage
                     src={foto.url}
                     alt={altDaFoto(i, total, nome)}
-                    loading="lazy"
+                    width={112}
+                    height={112}
                     className="size-[112px] rounded-lg border border-card-line object-cover"
                   />
                   {i === 0 && (

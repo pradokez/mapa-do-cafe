@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import { CafePhotoFrame } from "@/components/cafe-photo-frame";
+import { CafePhotoFrame, type Carregamento } from "@/components/cafe-photo-frame";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { CARROSSEL } from "@/components/medidas";
 import type { PhotoSource } from "@/lib/cafe-photos";
@@ -23,6 +23,15 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const total = photos.length;
   const go = (i: number) => setIndex((i + total) % total);
+  // A capa tem preload; a foto à vista e as vizinhas (as setas dão a volta)
+  // carregam já, para o slide nunca chegar vazio. O lazy nativo mede distância
+  // em pixels, não em swipes: sozinho, não garante a vizinha da última foto
+  // (que está a uma seta da capa) e, no celular, baixaria quase todas.
+  const carregamento = (k: number): Carregamento => {
+    if (k === 0) return "priority";
+    const distancia = Math.min(Math.abs(k - index), total - Math.abs(k - index));
+    return distancia <= 1 ? "eager" : "lazy";
+  };
 
   return (
     <section
@@ -56,6 +65,8 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
           <CafePhotoFrame
             key={k}
             photo={photo}
+            alt={`Foto de ${nome}`}
+            carregamento={carregamento(k)}
             role="group"
             aria-roledescription="slide"
             aria-label={`${k + 1} de ${total}`}
@@ -93,7 +104,7 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
 
           {/* O contador visual fica fora da árvore de acessibilidade: quem
               anuncia a troca é o live region, já que slide de placeholder
-              não tem texto acessível (legenda decorativa, img com alt=""). */}
+              não tem texto acessível (a legenda é decorativa). */}
           <span aria-live="polite" className="sr-only">
             Foto {index + 1} de {total}
           </span>

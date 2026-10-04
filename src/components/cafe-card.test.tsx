@@ -82,3 +82,27 @@ describe("CafeCard — comodidades", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 });
+
+describe("CafeCard — foto", () => {
+  const URL_FOTO = "https://x.supabase.co/storage/v1/object/public/cafe-fotos/a/b.webp";
+
+  it("foto real sai direto do Storage, com alt descritivo e lazy", () => {
+    render(<CafeCard cafe={cafe("fiore", { nome: "Fiore", fotos: [URL_FOTO] })} />);
+
+    const foto = screen.getByRole("img", { name: "Foto de Fiore" });
+    expect(foto.getAttribute("src")).toBe(URL_FOTO);
+    expect(foto.getAttribute("loading")).toBe("lazy");
+  });
+
+  it("com priority, a foto não espera chegar perto da viewport", () => {
+    render(<CafeCard cafe={cafe("fiore", { nome: "Fiore", fotos: [URL_FOTO] })} priority />);
+
+    expect(screen.getByRole("img", { name: "Foto de Fiore" }).hasAttribute("loading")).toBe(false);
+  });
+
+  it("café sem foto fica com o placeholder, sem imagem", () => {
+    render(<CafeCard cafe={cafe("fiore", { nome: "Fiore" })} />);
+
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+});

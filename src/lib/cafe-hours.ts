@@ -88,7 +88,7 @@ function proximaAbertura(dias: DiaHorario[], iHoje: number): "amanha" | DiaSeman
   return null;
 }
 
-function isRegistro(value: unknown): value is Record<string, unknown> {
+export function isRegistro(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

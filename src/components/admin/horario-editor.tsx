@@ -2,7 +2,7 @@
 
 // Client: turnos que entram e saem, "Fechado" e "Repetir nos dias seguintes".
 import type { DiaSemana } from "@/lib/cafe";
-import type { HorarioDia } from "@/lib/cafe-dados";
+import { MAX_TURNOS, type HorarioDia } from "@/lib/cafe-dados";
 import { DIAS_DA_SEMANA, NOME_DO_DIA } from "@/lib/cafe-hours";
 import { XIcon } from "@/components/icons";
 
@@ -10,7 +10,6 @@ import { Erro } from "./form";
 
 export type Horario = Record<DiaSemana, HorarioDia>;
 
-const MAX_TURNOS = 3;
 const TURNO_VAZIO = { abre: "", fecha: "" };
 
 const timeClass =

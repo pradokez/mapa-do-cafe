@@ -58,6 +58,13 @@ describe("validarHorarioDia", () => {
     expect(validarHorarioDia("08:60 – 18:00")).toBe("Hora inválida.");
   });
 
+  it("aceita até 3 turnos por dia (o limite do formulário vale também no servidor)", () => {
+    expect(validarHorarioDia("07:00 – 09:00, 11:00 – 13:00, 15:00 – 17:00")).toBeNull();
+    expect(validarHorarioDia("07:00 – 08:00, 09:00 – 10:00, 11:00 – 12:00, 13:00 – 14:00")).toBe(
+      "Use até 3 turnos por dia.",
+    );
+  });
+
   it("recusa turno que abre e fecha na mesma hora", () => {
     expect(validarHorarioDia("08:00 – 08:00")).toBe("O turno precisa fechar depois de abrir.");
   });
@@ -172,13 +179,17 @@ describe("coordenadasDaUrl (link completo do Google Maps)", () => {
   });
 
   it("sem o ponto do lugar, usa o centro da tela ou o ?q=lat,lng", () => {
-    expect(coordenadasDaUrl("https://www.google.com/maps/@-8.0631,-34.8711,15z")).toEqual({ lat: -8.0631, lng: -34.8711 });
+    expect(coordenadasDaUrl("https://www.google.com/maps/@-8.0631,-34.8711,15z")).toEqual({
+      lat: -8.0631,
+      lng: -34.8711,
+    });
     expect(coordenadasDaUrl("https://maps.google.com/?q=-8.0631,-34.8711")).toEqual({ lat: -8.0631, lng: -34.8711 });
   });
 
   it("link sem coordenadas (busca por nome) ou que não é URL dá null", () => {
     expect(coordenadasDaUrl("https://www.google.com/maps/search/borsoi+cafe")).toBeNull();
     expect(coordenadasDaUrl("não é link")).toBeNull();
+    expect(coordenadasDaUrl("https://www.google.com/maps/place/%E0%A4%A/@-8.0631,-34.8711,15z")).toBeNull();
   });
 });
 
@@ -204,6 +215,7 @@ describe("ehLinkDoMaps (o servidor só segue links do Google Maps)", () => {
       "https://www.google.com/search?q=cafe",
       "https://user@maps.app.goo.gl/x",
       "https://localhost/maps",
+      "https://maps.app.goo.gl/" + "a".repeat(2100),
       "não é link",
     ]) {
       expect(ehLinkDoMaps(url), url).toBe(false);
@@ -239,14 +251,18 @@ describe("validarDadosCafe", () => {
 
   it("deriva bairro_slug do bairro e ignora o que vier no payload", () => {
     const resultado = validarDadosCafe({ ...base(), bairro: "  Poço da Panela ", bairro_slug: "outro" });
-    expect(resultado.ok && resultado.valores).toMatchObject({ bairro: "Poço da Panela", bairro_slug: "poco-da-panela" });
+    expect(resultado.ok && resultado.valores).toMatchObject({
+      bairro: "Poço da Panela",
+      bairro_slug: "poco-da-panela",
+    });
   });
 
   it("nunca deixa passar id, slug, fotos nem ativo — nem chave desconhecida", () => {
     const resultado = validarDadosCafe({ ...base(), id: "x", slug: "novo-slug", fotos: ["a"], ativo: false, extra: 1 });
     expect(resultado.ok).toBe(true);
     if (resultado.ok) {
-      for (const chave of ["id", "slug", "fotos", "ativo", "extra"]) expect(resultado.valores).not.toHaveProperty(chave);
+      for (const chave of ["id", "slug", "fotos", "ativo", "extra"])
+        expect(resultado.valores).not.toHaveProperty(chave);
     }
   });
 
@@ -306,9 +322,15 @@ describe("validarDadosCafe", () => {
       ...base(),
       horario_funcionamento: { ...base().horario_funcionamento, segunda: "Fechado", feriado: "Fechado" },
     });
-    expect(resultado.ok && Object.keys(resultado.valores.horario_funcionamento).sort()).toEqual(
-      ["domingo", "quarta", "quinta", "sabado", "segunda", "sexta", "terca"],
-    );
+    expect(resultado.ok && Object.keys(resultado.valores.horario_funcionamento).sort()).toEqual([
+      "domingo",
+      "quarta",
+      "quinta",
+      "sabado",
+      "segunda",
+      "sexta",
+      "terca",
+    ]);
     expect(resultado.ok && resultado.valores.horario_funcionamento.segunda).toBe("Fechado");
   });
 

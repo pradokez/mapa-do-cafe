@@ -5,7 +5,7 @@
  */
 
 import type { Cafe, Cidade, DiaSemana, FaixaPreco } from "./cafe";
-import { DIAS_DA_SEMANA, FECHADO } from "./cafe-hours";
+import { DIAS_DA_SEMANA, FECHADO, isRegistro } from "./cafe-hours";
 
 const TURNO = /^(\d{2}:\d{2}) – (\d{2}:\d{2})$/;
 const HORA = /^(\d{2}):(\d{2})$/;
@@ -13,6 +13,16 @@ const DIA_EM_MINUTOS = 24 * 60;
 
 /** "24:00": fim do dia, só como fechamento (café 24 horas: "00:00 – 24:00"). */
 const FIM_DO_DIA = "24:00";
+
+/** Turnos por dia: o formulário oferece até 3 (o máximo no seed é 2). */
+export const MAX_TURNOS = 3;
+
+/** Texto do dia → turnos `[_, abre, fecha]`, ou `null` se algum sai do formato. */
+function lerTurnos(valor: unknown): RegExpExecArray[] | null {
+  if (typeof valor !== "string") return null;
+  const turnos = valor.split(", ").map((turno) => TURNO.exec(turno));
+  return turnos.every((turno) => turno !== null) ? (turnos as RegExpExecArray[]) : null;
+}
 
 /** "HH:MM" → minutos desde 00:00, ou `null` se a hora não existe. */
 function minutos(hora: string): number | null {
@@ -29,17 +39,18 @@ function minutos(hora: string): number | null {
  */
 export function validarHorarioDia(valor: unknown): string | null {
   if (valor === FECHADO) return null;
-  const partes = typeof valor === "string" ? valor.split(", ") : [];
   // Turno do formulário com um dos `<input type="time">` em branco: " – 18:00".
-  if (partes.some((turno) => /^\s*–|–\s*$/.test(turno))) return "Preencha a abertura e o fechamento de cada turno.";
-  const turnos = partes.length > 0 ? partes.map((turno) => TURNO.exec(turno)) : [null];
-  if (turnos.some((turno) => !turno)) return "Use o formato 08:00 – 18:00, ou marque Fechado.";
+  if (typeof valor === "string" && valor.split(", ").some((turno) => /^\s*–|–\s*$/.test(turno))) {
+    return "Preencha a abertura e o fechamento de cada turno.";
+  }
+  const turnos = lerTurnos(valor);
+  if (!turnos) return "Use o formato 08:00 – 18:00, ou marque Fechado.";
+  if (turnos.length > MAX_TURNOS) return `Use até ${MAX_TURNOS} turnos por dia.`;
 
   let fimAnterior = -1;
   for (let i = 0; i < turnos.length; i++) {
-    const turno = turnos[i];
-    const abre = turno![1] === FIM_DO_DIA ? null : minutos(turno![1]);
-    const fecha = minutos(turno![2]);
+    const abre = turnos[i][1] === FIM_DO_DIA ? null : minutos(turnos[i][1]);
+    const fecha = minutos(turnos[i][2]);
     if (abre === null || fecha === null) return "Hora inválida.";
     if (abre === fecha) return "O turno precisa fechar depois de abrir.";
 
@@ -62,14 +73,13 @@ const TURNO_VAZIO: Turno = { abre: "", fecha: "" };
 /** Texto do banco → turnos. Valor fora do formato vira um turno vazio, para preencher de novo. */
 export function turnosDoHorario(valor: unknown): HorarioDia {
   if (valor === FECHADO) return { fechado: true, turnos: [{ ...TURNO_VAZIO }] };
-  const turnos = typeof valor === "string" ? valor.split(", ").map((turno) => TURNO.exec(turno)) : [null];
-  if (turnos.some((turno) => !turno)) return { fechado: false, turnos: [{ ...TURNO_VAZIO }] };
+  const turnos = lerTurnos(valor);
+  if (!turnos) return { fechado: false, turnos: [{ ...TURNO_VAZIO }] };
   // O `<input type="time">` não tem 24:00: no formulário, fechar à meia-noite é 00:00.
-  const turnoDoForm = (turno: RegExpExecArray) => ({
-    abre: turno[1],
-    fecha: turno[2] === FIM_DO_DIA ? "00:00" : turno[2],
-  });
-  return { fechado: false, turnos: turnos.map((turno) => turnoDoForm(turno!)) };
+  return {
+    fechado: false,
+    turnos: turnos.map(([, abre, fecha]) => ({ abre, fecha: fecha === FIM_DO_DIA ? "00:00" : fecha })),
+  };
 }
 
 /** Turnos → texto do banco. Não valida: o resultado passa por `validarHorarioDia`. */
@@ -104,14 +114,10 @@ export function normalizarInstagram(valor: unknown): Normalizado<string | null> 
 
 function usuarioDaUrl(texto: string): string | null {
   if (USUARIO_INSTAGRAM.test(texto)) return texto;
-  try {
-    const url = new URL(/^https?:\/\//i.test(texto) ? texto : `https://${texto}`);
-    if (!["http:", "https:"].includes(url.protocol) || !HOSTS_INSTAGRAM.includes(url.hostname)) return null;
-    const partes = url.pathname.split("/").filter(Boolean);
-    return partes.length === 1 ? partes[0] : null;
-  } catch {
-    return null;
-  }
+  const url = lerUrl(/^https?:\/\//i.test(texto) ? texto : `https://${texto}`);
+  if (!url || !["http:", "https:"].includes(url.protocol) || !HOSTS_INSTAGRAM.includes(url.hostname)) return null;
+  const partes = url.pathname.split("/").filter(Boolean);
+  return partes.length === 1 ? partes[0] : null;
 }
 
 /**
@@ -161,13 +167,14 @@ export function parDeCoordenadas(texto: string): Coordenadas | null {
  * Google mudar, dá `null` e a administradora preenche à mão.
  */
 export function coordenadasDaUrl(url: string): Coordenadas | null {
-  let alvo: URL;
+  const alvo = lerUrl(url);
+  if (!alvo) return null;
+  let caminho: string;
   try {
-    alvo = new URL(url);
+    caminho = decodeURIComponent(alvo.pathname);
   } catch {
-    return null;
+    return null; // `%` malformado
   }
-  const caminho = decodeURIComponent(alvo.pathname);
   const [, lat, lng] =
     new RegExp(`!3d(${DECIMAL})!4d(${DECIMAL})`).exec(caminho) ??
     new RegExp(`/@(${DECIMAL}),(${DECIMAL})`).exec(caminho) ??
@@ -175,6 +182,17 @@ export function coordenadasDaUrl(url: string): Coordenadas | null {
     [];
   return lat === undefined ? null : { lat: Number(lat), lng: Number(lng) };
 }
+
+function lerUrl(texto: string): URL | null {
+  try {
+    return new URL(texto);
+  } catch {
+    return null;
+  }
+}
+
+/** Link de compartilhar tem ~40 caracteres; a URL completa, umas centenas. */
+const MAX_LINK = 2048;
 
 /** Hosts que são só do Maps (qualquer caminho) e hosts do Google em que só `/maps` vale. */
 const HOSTS_MAPS = ["maps.app.goo.gl", "maps.google.com", "maps.google.com.br"];
@@ -186,13 +204,8 @@ const HOSTS_GOOGLE = ["google.com", "www.google.com", "google.com.br", "www.goog
  * virar um proxy para qualquer endereço (SSRF).
  */
 export function ehLinkDoMaps(url: string): boolean {
-  let alvo: URL;
-  try {
-    alvo = new URL(url);
-  } catch {
-    return false;
-  }
-  if (alvo.protocol !== "https:" || alvo.username || alvo.password || alvo.port) return false;
+  const alvo = url.length <= MAX_LINK ? lerUrl(url) : null;
+  if (!alvo || alvo.protocol !== "https:" || alvo.username || alvo.password || alvo.port) return false;
 
   const { hostname, pathname } = alvo;
   if (HOSTS_MAPS.includes(hostname)) return true;
@@ -251,9 +264,6 @@ const OBRIGATORIO: Record<keyof typeof MAX_TEXTO, string> = {
   bairro: "Informe o bairro.",
   endereco: "Informe o endereço.",
 };
-
-const isRegistro = (valor: unknown): valor is Record<string, unknown> =>
-  typeof valor === "object" && valor !== null && !Array.isArray(valor);
 
 /**
  * Valida e normaliza os dados de um café, como chegam do formulário (ou de um

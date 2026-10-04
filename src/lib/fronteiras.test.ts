@@ -25,8 +25,12 @@ const comCodigo = (padrao: RegExp) =>
   arquivos.filter(({ codigo }) => padrao.test(codigo)).map(({ caminho }) => caminho);
 
 describe("fronteiras do Supabase", () => {
-  it("só o cafe-repository lê tabelas (regra 2)", () => {
-    expect(comCodigo(/\.from\(\s*["'`]/)).toEqual(["lib/cafe-repository.ts"]);
+  it("só o cafe-repository lê tabelas (regra 2); fora dele, `.from(…)` só para escrever, no admin", () => {
+    const usamFrom = comCodigo(/\.from\(\s*["'`]/).filter((caminho) => caminho !== "lib/cafe-repository.ts");
+
+    expect(usamFrom.filter((caminho) => !caminho.startsWith("lib/admin/"))).toEqual([]);
+    // Escrita sem `.select(…)`: o que precisa ser lido de volta passa pelo repositório.
+    expect(comCodigo(/\.select\(/).filter((caminho) => caminho !== "lib/cafe-repository.ts")).toEqual([]);
   });
 
   it("só o repositório, o módulo de sessão, o admin e o middleware importam o Supabase", () => {

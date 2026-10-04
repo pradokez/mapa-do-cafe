@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
 import { ArrowLeftIcon } from "@/components/icons";
 import { getCafeById } from "@/lib/cafe-repository";
@@ -15,9 +16,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: cafe?.nome ?? "Café não encontrado" };
 }
 
-// Seções que as próximas issues preenchem (#46/#51 fotos, #47 status, #48 dados).
+// Seções que as próximas issues preenchem (#47 status, #48 dados).
+const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
+
 const SECOES = [
-  { id: "fotos", titulo: "Fotos", texto: "Em breve: envio de fotos com registro de autorização." },
   { id: "status", titulo: "Status", texto: "Em breve: tirar o café do ar e colocar de volta." },
   { id: "dados", titulo: "Dados", texto: "Em breve: edição de todos os dados do café." },
 ];
@@ -51,16 +53,19 @@ export default async function AdminCafe({ params }: Props) {
       </header>
 
       <div className="flex flex-col gap-4">
+        <section aria-labelledby="secao-fotos" className="rounded-xl border border-card-line bg-white px-5 py-4">
+          <h2 id="secao-fotos" className={TITULO_SECAO}>
+            Fotos
+          </h2>
+          <FotosCafe cafe={cafe} />
+        </section>
         {SECOES.map((secao) => (
           <section
             key={secao.id}
             aria-labelledby={`secao-${secao.id}`}
             className="rounded-xl border border-card-line bg-white px-5 py-4"
           >
-            <h2
-              id={`secao-${secao.id}`}
-              className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3"
-            >
+            <h2 id={`secao-${secao.id}`} className={TITULO_SECAO}>
               {secao.titulo}
             </h2>
             <p className="mt-1.5 text-[14px] text-ink-2">{secao.texto}</p>

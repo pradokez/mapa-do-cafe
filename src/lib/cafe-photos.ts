@@ -40,6 +40,26 @@ export function resolveCafePhotos(
   return photos;
 }
 
+/** Bucket público das fotos (#46) — o mesmo da migration `cafe_fotos`. */
+export const BUCKET_FOTOS = "cafe-fotos";
+
+// `{cafe_id}/{uuid}.webp`, o formato que o banco aceita em `cafe_fotos`.
+const CAMINHO_NO_BUCKET = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.webp$/i;
+
+/**
+ * `cafes.fotos` guarda o caminho no bucket, não a URL: o banco não sabe o
+ * endereço do projeto. Quem lê (o `cafe-repository`) passa a URL do Supabase
+ * e recebe as URLs públicas, na ordem. O que não é caminho segue como veio —
+ * `resolveCafePhotos` descarta o que não for URL.
+ */
+export function urlsPublicasDasFotos(fotos: unknown, supabaseUrl: string): string[] {
+  if (!Array.isArray(fotos)) return [];
+  const base = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${BUCKET_FOTOS}/`;
+  return fotos
+    .filter((foto): foto is string => typeof foto === "string")
+    .map((foto) => (CAMINHO_NO_BUCKET.test(foto) ? base + foto : foto));
+}
+
 // FNV-1a 32 bits: estável entre runtimes, sem dependência.
 function hash(text: string): number {
   let h = 0x811c9dc5;

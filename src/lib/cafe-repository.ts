@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 
 import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
+import { urlsPublicasDasFotos } from "./cafe-photos";
 import { createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
 
@@ -17,6 +18,11 @@ function publicClient() {
 }
 
 const SELECT_CAFE = CAFE_COLUMNS.join(", ");
+
+/** `cafes.fotos` guarda caminhos no bucket; quem lê o café recebe URLs públicas. */
+function comFotosPublicas(cafe: Cafe): Cafe {
+  return { ...cafe, fotos: urlsPublicasDasFotos(cafe.fotos, supabaseEnv().url) };
+}
 
 /** Tag do cache da listagem pública — o admin a invalida (`revalidarCafe`). */
 export const CAFES_TAG = "cafes";
@@ -45,7 +51,7 @@ async function fetchCafesAtivos(): Promise<Cafe[]> {
   if (error) {
     throw new Error(`Falha ao listar cafés: ${error.message}`);
   }
-  return data.sort(compararPorNome);
+  return data.map(comFotosPublicas).sort(compararPorNome);
 }
 
 /** Café ativo pelo slug, ou `null` se não existe ou está inativo (→ 404). */
@@ -61,7 +67,7 @@ export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
   if (error) {
     throw new Error(`Falha ao buscar o café "${slug}": ${error.message}`);
   }
-  return data;
+  return data && comFotosPublicas(data);
 }
 
 /**
@@ -78,7 +84,7 @@ export async function listTodosCafes(): Promise<Cafe[]> {
   if (error) {
     throw new Error(`Falha ao listar cafés do admin: ${error.message}`);
   }
-  return data.sort(compararPorNome);
+  return data.map(comFotosPublicas).sort(compararPorNome);
 }
 
 /** Admin: café pelo id, ativo ou não; `null` se não existe (→ 404). */
@@ -95,5 +101,21 @@ export async function getCafeById(id: string): Promise<Cafe | null> {
   if (error) {
     throw new Error(`Falha ao buscar o café ${id}: ${error.message}`);
   }
-  return data;
+  return data && comFotosPublicas(data);
+}
+
+/**
+ * Admin: já existe linha em `cafe_fotos` com este caminho? Antes de descartar
+ * um upload cujo registro não respondeu — se ele gravou, o arquivo fica.
+ */
+export async function fotoRegistrada(storagePath: string): Promise<boolean> {
+  const { count, error } = await createSessionClient()
+    .from("cafe_fotos")
+    .select("id", { count: "exact", head: true })
+    .eq("storage_path", storagePath);
+
+  if (error) {
+    throw new Error(`Falha ao conferir a foto ${storagePath}: ${error.message}`);
+  }
+  return (count ?? 0) > 0;
 }

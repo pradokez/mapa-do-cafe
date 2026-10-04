@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { CAFE_COLUMNS, type Cafe } from "../src/lib/cafe";
+import { dentroDaRegiao, validarHorarioDia } from "../src/lib/cafe-dados";
 import { distanciaKm } from "../src/lib/cafe-distance";
 import { buildSeedSql } from "./build-seed";
 
@@ -37,21 +38,17 @@ describe("seed do Supabase", () => {
   });
 
   it("todo café tem coordenadas dentro da região de Recife, Olinda e Jaboatão", () => {
-    const fora = cafes().filter(
-      ({ lat, lng }) => !(lat > -8.2 && lat < -7.95 && lng > -35.05 && lng < -34.8),
-    );
+    const fora = cafes().filter((cafe) => !dentroDaRegiao(cafe));
 
     expect(fora.map((c) => c.slug)).toEqual([]);
   });
 
-  it("todo café tem os 7 dias de horário, cada um 'Fechado' ou turnos 'HH:MM – HH:MM'", () => {
-    const turno = "\\d{2}:\\d{2} – \\d{2}:\\d{2}";
-    const valido = new RegExp(`^(Fechado|${turno}(, ${turno})*)$`);
+  it("todo café tem os 7 dias de horário, cada um 'Fechado' ou turnos 'HH:MM – HH:MM' (regra do admin)", () => {
     const dias = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
 
     for (const { slug, horario_funcionamento: h } of cafes()) {
       expect(Object.keys(h).sort(), slug).toEqual([...dias].sort());
-      for (const dia of dias) expect(h[dia as keyof typeof h], `${slug}.${dia}`).toMatch(valido);
+      for (const dia of dias) expect(validarHorarioDia(h[dia as keyof typeof h]), `${slug}.${dia}`).toBeNull();
     }
   });
 

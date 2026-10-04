@@ -22,10 +22,12 @@ const borsoi = cafe("borsoi", {
   },
 });
 
-function renderizar(salvar = vi.fn()) {
-  render(<DadosCafeForm cafe={borsoi} ativo salvar={salvar} buscarCoordenadas={vi.fn()} />);
+function renderizar(salvar = vi.fn(), buscarCoordenadas = vi.fn()) {
+  render(<DadosCafeForm cafe={borsoi} ativo salvar={salvar} buscarCoordenadas={buscarCoordenadas} />);
   return salvar;
 }
+
+const valor = (rotulo: string) => (screen.getByLabelText(rotulo) as HTMLInputElement).value;
 
 const salvarBotao = () => screen.getByRole("button", { name: "Salvar alterações" });
 
@@ -42,7 +44,9 @@ describe("DadosCafeForm", () => {
 
     const nome = screen.getByLabelText("Nome");
     expect(nome.getAttribute("aria-invalid")).toBe("true");
-    expect(document.getElementById(nome.getAttribute("aria-describedby")!)?.textContent).toBe("Informe o nome do café.");
+    expect(document.getElementById(nome.getAttribute("aria-describedby")!)?.textContent).toBe(
+      "Informe o nome do café.",
+    );
     expect(document.activeElement).toBe(nome);
 
     expect((telefone as HTMLInputElement).value).toBe("123");
@@ -52,7 +56,9 @@ describe("DadosCafeForm", () => {
   });
 
   it("recusa do servidor (payload que passou no cliente) também aparece por campo", async () => {
-    const salvar = renderizar(vi.fn().mockResolvedValue({ ok: false, erro: null, erros: { endereco: "Endereço recusado." } }));
+    const salvar = renderizar(
+      vi.fn().mockResolvedValue({ ok: false, erro: null, erros: { endereco: "Endereço recusado." } }),
+    );
     await userEvent.click(salvarBotao());
 
     expect(salvar).toHaveBeenCalledOnce();
@@ -102,5 +108,34 @@ describe("DadosCafeForm", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remover segunda, turno 2" }));
     expect(screen.queryByLabelText("Segunda, turno 2: abre")).toBeNull();
+  });
+
+  it("'Buscar coordenadas' preenche lat e lng com o que o servidor tirou do link", async () => {
+    const buscar = vi.fn().mockResolvedValue({ ok: true, coordenadas: { lat: -8.1046346, lng: -34.8875473 } });
+    renderizar(vi.fn(), buscar);
+    await userEvent.type(screen.getByLabelText(/Link do Google Maps/), "https://maps.app.goo.gl/E7D9JZewVfG9fCVL7");
+    await userEvent.click(screen.getByRole("button", { name: "Buscar coordenadas" }));
+
+    expect(buscar).toHaveBeenCalledWith("https://maps.app.goo.gl/E7D9JZewVfG9fCVL7");
+    expect([valor("Latitude"), valor("Longitude")]).toEqual(["-8.1046346", "-34.8875473"]);
+  });
+
+  it("link que não dá coordenadas mostra o erro no campo do link e não mexe em lat/lng", async () => {
+    const erro = "Não deu para tirar as coordenadas desse link. Preencha lat e lng à mão.";
+    renderizar(vi.fn(), vi.fn().mockResolvedValue({ ok: false, erro }));
+    await userEvent.type(screen.getByLabelText(/Link do Google Maps/), "https://maps.app.goo.gl/x");
+    await userEvent.click(screen.getByRole("button", { name: "Buscar coordenadas" }));
+
+    const link = screen.getByLabelText(/Link do Google Maps/);
+    expect(document.getElementById(link.getAttribute("aria-describedby")!)?.textContent).toBe(erro);
+    expect([valor("Latitude"), valor("Longitude")]).toEqual(["-8.05", "-34.9"]);
+  });
+
+  it("colar o par do Google Maps na latitude preenche os dois campos", async () => {
+    renderizar();
+    await userEvent.clear(screen.getByLabelText("Latitude"));
+    await userEvent.paste("-8.0631, -34.8711");
+
+    expect([valor("Latitude"), valor("Longitude")]).toEqual(["-8.0631", "-34.8711"]);
   });
 });

@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { FotoDoStorage } from "@/components/foto-do-storage";
 import type { PhotoSource } from "@/lib/cafe-photos";
 
 /**
@@ -18,13 +17,9 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 
 /**
  * Moldura de uma foto de `resolveCafePhotos`: placeholder vira o fundo
- * listrado, foto real vira `<Image fill>` cobrindo a moldura — que tem tamanho
+ * listrado, foto real vira `<FotoDoStorage fill>` cobrindo a moldura — que tem tamanho
  * próprio, então a foto chegando não mexe no layout. Quem chama dá o tamanho
  * (`className`) e o que vai por cima (`children`: selo, legenda).
- *
- * `unoptimized`: as fotos já chegam em WebP redimensionado do upload (#46) e
- * vão direto do Supabase ao navegador. O `next.config.mjs` liga isso para o
- * site todo; a prop repete aqui porque fora do Next (Vitest) o config não vale.
  */
 export function CafePhotoFrame({
   photo,
@@ -42,11 +37,10 @@ export function CafePhotoFrame({
       style={photo.kind === "placeholder" ? { background: photo.background, ...style } : style}
     >
       {photo.kind === "url" && (
-        <Image
+        <FotoDoStorage
           src={photo.src}
           alt={alt}
           fill
-          unoptimized
           priority={carregamento === "priority"}
           loading={carregamento === "priority" ? undefined : carregamento}
           className="object-cover"

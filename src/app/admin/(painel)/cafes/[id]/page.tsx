@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
-import { ArrowLeftIcon } from "@/components/icons";
+import { ArrowLeftIcon, ChevronDownIcon } from "@/components/icons";
+import { coordenadasDoLink, salvarDadosCafe } from "@/lib/admin/cafe-actions";
+import { caminhoDoCafe } from "@/lib/cafe";
 import { getCafeById } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
@@ -16,13 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: cafe?.nome ?? "Café não encontrado" };
 }
 
-// Seções que as próximas issues preenchem (#47 status, #48 dados).
 const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3";
 
-const SECOES = [
-  { id: "status", titulo: "Status", texto: "Em breve: tirar o café do ar e colocar de volta." },
-  { id: "dados", titulo: "Dados", texto: "Em breve: edição de todos os dados do café." },
-];
+// Seção que a próxima issue preenche (#47 status).
+const SECOES = [{ id: "status", titulo: "Status", texto: "Em breve: tirar o café do ar e colocar de volta." }];
 
 export default async function AdminCafe({ params }: Props) {
   await requireAdmin();
@@ -59,6 +59,30 @@ export default async function AdminCafe({ params }: Props) {
           </h2>
           <FotosCafe cafe={cafe} />
         </section>
+        {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
+        <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
+          <summary className="-mx-5 -my-4 flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <span>
+              <h2 className={TITULO_SECAO}>Dados</h2>
+              <span className="mt-1.5 block text-[14px] text-ink-2">Editar nome, endereço, comodidades, horário…</span>
+            </span>
+            <ChevronDownIcon
+              size={18}
+              strokeWidth={2}
+              className="shrink-0 text-ink-2 transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <p className="mt-6 text-[13.5px] text-ink-3">
+            Endereço no site: <code className="text-ink-2">{caminhoDoCafe(cafe)}</code> — não muda, para não quebrar
+            links já compartilhados.
+          </p>
+          <DadosCafeForm
+            cafe={cafe}
+            ativo={cafe.ativo}
+            salvar={salvarDadosCafe.bind(null, cafe.id)}
+            buscarCoordenadas={coordenadasDoLink}
+          />
+        </details>
         {SECOES.map((secao) => (
           <section
             key={secao.id}

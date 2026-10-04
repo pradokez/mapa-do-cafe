@@ -150,4 +150,14 @@ describe("ListaDeFotos", () => {
     const dialogo = screen.getByRole("alertdialog");
     expect(within(dialogo).getByRole("alert").textContent).toBe("Não deu para remover a foto agora.");
   });
+
+  it("action que não responde (rede caiu) vira erro genérico e libera os botões", async () => {
+    actions.reordenarFoto.mockRejectedValue(new Error("fetch failed"));
+    render(<ListaDeFotos cafeId={CAFE} nome="Café Teste" fotos={TRES} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Descer foto 1 de 3" }));
+
+    expect(screen.getByRole("alert").textContent).toBe("Não deu para salvar agora. Tente de novo em instantes.");
+    expect(screen.getByRole("button", { name: "Descer foto 1 de 3" }).hasAttribute("disabled")).toBe(false);
+  });
 });

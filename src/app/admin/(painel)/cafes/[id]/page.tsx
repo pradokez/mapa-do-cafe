@@ -61,15 +61,14 @@ export default async function AdminCafe({ params }: Props) {
         </section>
         {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
         <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
-          <summary className="-mx-5 -my-4 flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
-            <span>
-              <h2 className={TITULO_SECAO}>Dados</h2>
-              <span className="mt-1.5 block text-[14px] text-ink-2">Editar nome, endereço, comodidades, horário…</span>
-            </span>
+          {/* `summary` aceita só heading e conteúdo inline: grade em vez de um `div` em volta. */}
+          <summary className="-mx-5 -my-4 grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-x-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <h2 className={TITULO_SECAO}>Dados</h2>
+            <span className="col-start-1 mt-1.5 text-[14px] text-ink-2">Editar nome, endereço, comodidades, horário…</span>
             <ChevronDownIcon
               size={18}
               strokeWidth={2}
-              className="shrink-0 text-ink-2 transition-transform group-open:rotate-180"
+              className="col-start-2 row-span-2 row-start-1 text-ink-2 transition-transform group-open:rotate-180"
             />
           </summary>
           <p className="mt-6 text-[13.5px] text-ink-3">

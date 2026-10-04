@@ -13,14 +13,16 @@ import {
   turnosDoHorario,
   validarDadosCafe,
   validarHorarioDia,
+  type DadosCafe,
 } from "./cafe-dados";
 
 const seed: Cafe[] = JSON.parse(readFileSync(new URL("../../supabase/seed/cafes.json", import.meta.url), "utf8"));
 
 /** O que o formulário manda: o café sem o que não se edita. */
-function dadosDe(cafe: Cafe) {
-  const { id: _id, slug: _slug, fotos: _fotos, ativo: _ativo, ...dados } = cafe;
-  return dados;
+function dadosDe(cafe: Cafe): DadosCafe {
+  const dados: Partial<Cafe> = { ...cafe };
+  for (const campo of ["id", "slug", "fotos", "ativo"] as const) delete dados[campo];
+  return dados as DadosCafe;
 }
 
 describe("validarHorarioDia", () => {
@@ -44,6 +46,11 @@ describe("validarHorarioDia", () => {
   it("aceita 24:00 só como fechamento (café 24 horas: '00:00 – 24:00')", () => {
     expect(validarHorarioDia("00:00 – 24:00")).toBeNull();
     expect(validarHorarioDia("24:00 – 08:00")).toBe("Hora inválida.");
+  });
+
+  it("turno com abre ou fecha em branco (como o formulário monta) pede para preencher", () => {
+    expect(validarHorarioDia(" – 18:00")).toBe("Preencha a abertura e o fechamento de cada turno.");
+    expect(validarHorarioDia("08:00 – 12:00,  – ")).toBe("Preencha a abertura e o fechamento de cada turno.");
   });
 
   it("recusa hora que não existe", () => {
@@ -288,7 +295,8 @@ describe("validarDadosCafe", () => {
   });
 
   it("horário com as 7 chaves: dia faltando ou inválido erra naquele dia; chave a mais não é gravada", () => {
-    const { domingo: _domingo, ...semDomingo } = base().horario_funcionamento;
+    const semDomingo: Partial<DadosCafe["horario_funcionamento"]> = { ...base().horario_funcionamento };
+    delete semDomingo.domingo;
     expect(errosDe({ ...base(), horario_funcionamento: { ...semDomingo, sabado: "8h às 12h" } })).toEqual({
       "horario.sabado": "Use o formato 08:00 – 18:00, ou marque Fechado.",
       "horario.domingo": "Use o formato 08:00 – 18:00, ou marque Fechado.",

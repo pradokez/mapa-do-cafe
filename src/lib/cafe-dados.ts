@@ -29,11 +29,15 @@ function minutos(hora: string): number | null {
  */
 export function validarHorarioDia(valor: unknown): string | null {
   if (valor === FECHADO) return null;
-  const turnos = typeof valor === "string" ? valor.split(", ").map((turno) => TURNO.exec(turno)) : [null];
+  const partes = typeof valor === "string" ? valor.split(", ") : [];
+  // Turno do formulário com um dos `<input type="time">` em branco: " – 18:00".
+  if (partes.some((turno) => /^\s*–|–\s*$/.test(turno))) return "Preencha a abertura e o fechamento de cada turno.";
+  const turnos = partes.length > 0 ? partes.map((turno) => TURNO.exec(turno)) : [null];
   if (turnos.some((turno) => !turno)) return "Use o formato 08:00 – 18:00, ou marque Fechado.";
 
   let fimAnterior = -1;
-  for (const [i, turno] of turnos.entries()) {
+  for (let i = 0; i < turnos.length; i++) {
+    const turno = turnos[i];
     const abre = turno![1] === FIM_DO_DIA ? null : minutos(turno![1]);
     const fecha = minutos(turno![2]);
     if (abre === null || fecha === null) return "Hora inválida.";
@@ -61,7 +65,10 @@ export function turnosDoHorario(valor: unknown): HorarioDia {
   const turnos = typeof valor === "string" ? valor.split(", ").map((turno) => TURNO.exec(turno)) : [null];
   if (turnos.some((turno) => !turno)) return { fechado: false, turnos: [{ ...TURNO_VAZIO }] };
   // O `<input type="time">` não tem 24:00: no formulário, fechar à meia-noite é 00:00.
-  const turnoDoForm = (turno: RegExpExecArray) => ({ abre: turno[1], fecha: turno[2] === FIM_DO_DIA ? "00:00" : turno[2] });
+  const turnoDoForm = (turno: RegExpExecArray) => ({
+    abre: turno[1],
+    fecha: turno[2] === FIM_DO_DIA ? "00:00" : turno[2],
+  });
   return { fechado: false, turnos: turnos.map((turno) => turnoDoForm(turno!)) };
 }
 
@@ -169,6 +176,8 @@ export function coordenadasDaUrl(url: string): Coordenadas | null {
   return lat === undefined ? null : { lat: Number(lat), lng: Number(lng) };
 }
 
+/** Hosts que são só do Maps (qualquer caminho) e hosts do Google em que só `/maps` vale. */
+const HOSTS_MAPS = ["maps.app.goo.gl", "maps.google.com", "maps.google.com.br"];
 const HOSTS_GOOGLE = ["google.com", "www.google.com", "google.com.br", "www.google.com.br"];
 
 /**
@@ -186,7 +195,7 @@ export function ehLinkDoMaps(url: string): boolean {
   if (alvo.protocol !== "https:" || alvo.username || alvo.password || alvo.port) return false;
 
   const { hostname, pathname } = alvo;
-  if (hostname === "maps.app.goo.gl" || hostname === "maps.google.com" || hostname === "maps.google.com.br") return true;
+  if (HOSTS_MAPS.includes(hostname)) return true;
   if (hostname === "goo.gl") return pathname.startsWith("/maps/");
   return HOSTS_GOOGLE.includes(hostname) && (pathname === "/maps" || pathname.startsWith("/maps/"));
 }
@@ -229,9 +238,7 @@ export const BOOLEANOS = [
 ] as const satisfies ReadonlyArray<keyof DadosCafe>;
 
 /** Campo com mensagem de erro própria. O horário erra por dia: `horario.segunda`. */
-export type CampoDados =
-  | Exclude<keyof DadosCafe, "bairro_slug" | "horario_funcionamento">
-  | `horario.${DiaSemana}`;
+export type CampoDados = Exclude<keyof DadosCafe, "bairro_slug" | "horario_funcionamento"> | `horario.${DiaSemana}`;
 
 export type ErrosDados = Partial<Record<CampoDados, string>>;
 

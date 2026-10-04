@@ -11,12 +11,10 @@ import {
   sair,
   type LoginState,
 } from "@/lib/admin/auth-actions";
+import { Erro, inputClass, labelClass } from "@/components/admin/form";
 
 const INICIAL: LoginState = { erro: null };
 
-const input =
-  "h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-[16px] text-espresso placeholder:text-placeholder";
-const label = "mb-1.5 block text-[13.5px] font-semibold text-ink-2";
 
 type Props = { etapa: Exclude<EtapaDoLogin, "pronto">; next: string };
 
@@ -34,7 +32,7 @@ function FormSenha({ next }: { next: string }) {
       <Titulo>Entrar no admin</Titulo>
       <input type="hidden" name="next" value={next} />
       <div>
-        <label htmlFor="email" className={label}>
+        <label htmlFor="email" className={labelClass}>
           Email
         </label>
         <input
@@ -46,11 +44,11 @@ function FormSenha({ next }: { next: string }) {
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
-          className={input}
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="senha" className={label}>
+        <label htmlFor="senha" className={labelClass}>
           Senha
         </label>
         <input
@@ -60,7 +58,7 @@ function FormSenha({ next }: { next: string }) {
           required
           maxLength={256}
           autoComplete="current-password"
-          className={input}
+          className={inputClass}
         />
       </div>
       <Erro erro={state.erro} />
@@ -154,7 +152,7 @@ function Titulo({ children }: { children: React.ReactNode }) {
 function CampoCodigo() {
   return (
     <div>
-      <label htmlFor="codigo" className={label}>
+      <label htmlFor="codigo" className={labelClass}>
         Código
       </label>
       <input
@@ -167,17 +165,9 @@ function CampoCodigo() {
         maxLength={6}
         autoComplete="one-time-code"
         autoFocus
-        className={`${input} font-mono tracking-[0.3em]`}
+        className={`${inputClass} font-mono tracking-[0.3em]`}
       />
     </div>
-  );
-}
-
-function Erro({ erro }: { erro: string | null }) {
-  return (
-    <p role="alert" className="text-[14px] font-medium text-terracotta empty:hidden">
-      {erro}
-    </p>
   );
 }
 

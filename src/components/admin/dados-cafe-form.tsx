@@ -1,22 +1,25 @@
 "use client";
 
 // Client: validação imediata (a mesma da Server Action), horário estruturado,
-// coordenadas do link do Maps e aviso de alterações não salvas.
+// coordenadas do link do Maps, slug sugerido (cadastro) e aviso de alterações não salvas.
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ATRIBUTOS, SELOS } from "@/components/cafe-atributos";
-import type { ResultadoCoordenadas, ResultadoSalvar } from "@/lib/admin/cafe-actions";
-import type { DiaSemana } from "@/lib/cafe";
+import type { ResultadoCadastro, ResultadoCoordenadas, ResultadoSalvar } from "@/lib/admin/cafe-actions";
+import type { DiaSemana, FaixaPreco } from "@/lib/cafe";
 import {
   BOOLEANOS,
   CIDADES,
   FAIXAS,
+  MAX_SLUG,
   MAX_TEXTO,
   horarioDosTurnos,
   parDeCoordenadas,
   slugify,
   turnosDoHorario,
   validarDadosCafe,
+  validarNovoCafe,
   type CampoDados,
   type DadosCafe,
   type ErrosDados,
@@ -27,16 +30,37 @@ import { faixaPrecoNome } from "@/lib/format";
 
 import { Erro, botaoCtaClass, inputClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
+import { MapaDePosicao } from "./mapa-de-posicao";
 
 type Booleano = (typeof BOOLEANOS)[number];
 
-/** O que o formulário edita: números como texto (aceita vírgula), horário em turnos. */
-type Estado = Omit<DadosCafe, "lat" | "lng" | "bairro_slug" | "horario_funcionamento" | "instagram" | "telefone"> & {
+/** O que o formulário edita: números como texto (aceita vírgula), horário em turnos. Café novo começa sem faixa. */
+type Estado = Omit<
+  DadosCafe,
+  "lat" | "lng" | "bairro_slug" | "horario_funcionamento" | "instagram" | "telefone" | "faixa_preco"
+> & {
+  faixa_preco: FaixaPreco | "";
   lat: string;
   lng: string;
   instagram: string;
   telefone: string;
   horario: Horario;
+};
+
+/** Café novo: tudo em branco, menos a cidade (quase todos são de Recife) e "Sem informação" no ar-condicionado. */
+const ESTADO_NOVO: Estado = {
+  nome: "",
+  bairro: "",
+  endereco: "",
+  cidade: "Recife",
+  lat: "",
+  lng: "",
+  ...(Object.fromEntries(BOOLEANOS.map((campo) => [campo, false])) as Record<Booleano, boolean>),
+  tem_ar_condicionado: null,
+  faixa_preco: "",
+  instagram: "",
+  telefone: "",
+  horario: Object.fromEntries(DIAS_DA_SEMANA.map((dia) => [dia, turnosDoHorario(undefined)])) as Horario,
 };
 
 function estadoDe(cafe: DadosCafe): Estado {
@@ -89,18 +113,25 @@ const opcaoClass = "flex min-h-11 cursor-pointer items-center gap-2 text-[15px] 
 const marcaClass = "size-[18px] shrink-0 accent-terracotta";
 const invalidoClass = "aria-[invalid=true]:border-terracotta";
 
-type Props = {
+type Edicao = {
   cafe: DadosCafe;
-  /** Server Action já ligada ao café (`salvarDadosCafe.bind(null, id)`); o cadastro (#53) passa a sua. */
+  /** Server Action já ligada ao café (`salvarDadosCafe.bind(null, id)`). */
   salvar: (campos: unknown) => Promise<ResultadoSalvar>;
-  buscarCoordenadas: (link: string) => Promise<ResultadoCoordenadas>;
   /** Café no ar: o sucesso diz que a mudança já está no site. */
   ativo: boolean;
 };
 
-export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props) {
+/** Cadastro (#53): formulário em branco, com slug; o sucesso leva à página do café. */
+type Cadastro = { cadastrar: (campos: unknown) => Promise<ResultadoCadastro> };
+
+type Props = (Edicao | Cadastro) & { buscarCoordenadas: (link: string) => Promise<ResultadoCoordenadas> };
+
+export function DadosCafeForm(props: Props) {
+  const { buscarCoordenadas } = props;
+  const edicao = "cafe" in props ? props : null;
+  const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
-  const [salvo, setSalvo] = useState(() => estadoDe(cafe));
+  const [salvo, setSalvo] = useState(() => (edicao ? estadoDe(edicao.cafe) : ESTADO_NOVO));
   const [estado, setEstado] = useState(salvo);
   const [erros, setErros] = useState<ErrosDados>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -111,6 +142,10 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
   const [link, setLink] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [erroLink, setErroLink] = useState<string | null>(null);
+
+  // Slug do cadastro: segue o nome até ser editado. Apagado (ao sair do campo), volta a seguir.
+  const [slugDigitado, setSlugDigitado] = useState<string | null>(null);
+  const slug = slugDigitado ?? slugify(estado.nome);
 
   const sujo = useMemo(() => JSON.stringify(estado) !== JSON.stringify(salvo), [estado, salvo]);
 
@@ -133,6 +168,16 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
     setEstado((e) => ({ ...e, [campo]: valor }));
     setSucesso(false);
     if (erros[erro]) setErros((atual) => semErros(atual, (campo) => campo === erro));
+  }
+
+  function mudarSlug(valor: string) {
+    setSlugDigitado(valor);
+    if (erros.slug) setErros((atual) => semErros(atual, (campo) => campo === "slug"));
+  }
+
+  function normalizarSlug() {
+    if (slugDigitado === null) return;
+    setSlugDigitado(slugify(slugDigitado) || null);
   }
 
   function mudarHorario(dia: DiaSemana, valor: HorarioDia) {
@@ -191,13 +236,23 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
     setSucesso(false);
     setErroGeral(null);
 
-    const payload = payloadDe(estado);
-    const validacao = validarDadosCafe(payload);
+    const payload = edicao ? payloadDe(estado) : { ...payloadDe(estado), slug };
+    const validacao = edicao ? validarDadosCafe(payload) : validarNovoCafe(payload);
     if (!validacao.ok) return falhar(validacao.erros, null);
 
     setSalvando(true);
+    let indo = false;
     try {
-      const resultado = await salvar(payload);
+      if (!edicao) {
+        const resultado = await (props as Cadastro).cadastrar(payload);
+        if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
+        // Fica "Salvando…" até a página do café abrir: nada de cadastrar duas vezes.
+        indo = true;
+        setSalvo(estado);
+        router.push(`/admin/cafes/${resultado.id}?novo=1`);
+        return;
+      }
+      const resultado = await edicao.salvar(payload);
       if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
       // O que o banco guardou, já normalizado (telefone formatado, Instagram em URL).
       const novo = estadoDe(resultado.cafe);
@@ -208,7 +263,7 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
     } catch {
       setErroGeral("Não deu para salvar agora. Tente de novo em instantes.");
     } finally {
-      setSalvando(false);
+      if (!indo) setSalvando(false);
     }
   }
 
@@ -278,6 +333,31 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
           <legend className={legendClass}>Identificação</legend>
           <div className="flex flex-col gap-5">
             {texto("nome", "Nome")}
+            {!edicao && (
+              <div>
+                <label htmlFor={id("slug")} className={labelClass}>
+                  Endereço no site
+                </label>
+                <input
+                  id={id("slug")}
+                  type="text"
+                  required
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={MAX_SLUG}
+                  value={slug}
+                  onChange={(e) => mudarSlug(e.target.value)}
+                  onBlur={normalizarSlug}
+                  {...aria("slug", "dica-dados-slug")}
+                  className={`${inputClass} ${invalidoClass}`}
+                />
+                <p id="dica-dados-slug" className="mt-1.5 text-[12.5px] text-ink-3">
+                  <code>/cafes/{slug || "…"}</code> — sai do nome; dá para ajustar agora, mas não muda depois de
+                  cadastrar.
+                </p>
+                {erroDe("slug")}
+              </div>
+            )}
             <div className="grid gap-5 sm:grid-cols-2">
               {texto(
                 "bairro",
@@ -368,6 +448,7 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
             <p id="dica-dados-coordenadas" className="-mt-3 text-[12.5px] text-ink-3">
               Colar o par copiado do Google Maps (<code>-8.0631, -34.8711</code>) preenche os dois campos.
             </p>
+            <MapaDePosicao lat={estado.lat} lng={estado.lng} />
           </div>
         </fieldset>
 
@@ -476,12 +557,12 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
           disabled={salvando}
           className={botaoCtaClass}
         >
-          {salvando ? "Salvando…" : "Salvar alterações"}
+          {salvando ? "Salvando…" : edicao ? "Salvar alterações" : "Cadastrar café"}
         </button>
         <Erro erro={erroGeral} />
         {sucesso && (
           <p role="status" className="text-[14px] font-medium text-open">
-            {ativo ? "Salvo. Já está no site." : "Salvo."}
+            {edicao?.ativo ? "Salvo. Já está no site." : "Salvo."}
           </p>
         )}
         {sujo && !salvando && !sucesso && <p className="text-[13.5px] text-ink-3">Alterações não salvas</p>}

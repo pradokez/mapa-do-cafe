@@ -27,8 +27,9 @@ export function siteUrl(env = process.env) {
  * @param {Env} [env]
  */
 export function redirectsParaCanonico(env = process.env) {
+  if (env.VERCEL_ENV !== "production") return [];
   const canonico = siteUrl(env);
-  if (env.VERCEL_ENV !== "production" || canonico.hostname.endsWith(".vercel.app")) return [];
+  if (canonico.hostname.endsWith(".vercel.app")) return [];
   return [
     {
       source: "/:path*",

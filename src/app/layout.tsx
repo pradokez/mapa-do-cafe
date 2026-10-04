@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Caprasimo, DM_Sans } from "next/font/google";
 import { SITE_DESCRICAO, SITE_NOME } from "@/lib/cafe-seo";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.mjs";
 
 import "./globals.css";
 

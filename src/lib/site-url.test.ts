@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { siteUrl } from "./site-url";
+import { siteUrl } from "./site-url.mjs";
 
 describe("siteUrl", () => {
   it("usa NEXT_PUBLIC_SITE_URL quando definida", () => {

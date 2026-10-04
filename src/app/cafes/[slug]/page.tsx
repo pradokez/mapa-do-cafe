@@ -17,7 +17,7 @@ import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { getCafeBySlug } from "@/lib/cafe-repository";
 import { descricaoCafe, jsonLdCafe, SITE_NOME, tituloCafe } from "@/lib/cafe-seo";
 import { faixaPrecoNome } from "@/lib/format";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.mjs";
 
 // Dinâmico: "hoje" no horário precisa ser o dia da visita. Com ISR, a página
 // gerada às 23h50 seria servida depois da meia-noite com o dia anterior.

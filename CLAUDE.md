@@ -51,7 +51,7 @@ Node 24 (`.nvmrc`), pnpm.
 | `foto-upload` | `src/lib/foto-upload.ts` | **Puro.** Regras do upload de foto, comuns ao formulário e às Server Actions: tipos e limites (entrada JPEG/PNG/WebP ≤ 15 MB; saída WebP ≤ 2 MB), `dimensoesDestino` (lado maior 1600 px), `validarAutorizacao`, `hojeEmRecife`, caminho no bucket (`caminhoDaFoto`, `ehCaminhoDoCafe`). |
 | `admin-auth` | `src/lib/admin-auth.ts` | **Puro.** Etapa do login a partir das claims (`senha` → `codigo`/`cadastro-mfa` → `pronto`), `destinoSeguro` (o `next` do login, sem open redirect) e `isUuid`. |
 | `supabase-server` | `src/lib/supabase-server.ts` | `server-only`. Client do Supabase com a sessão do cookie, para Server Components e Server Actions. `supabase-env` tem as envs e as opções do cookie (o middleware também usa). |
-| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. Fotos (#46): `prepararUpload`, `registrarFoto`, `descartarUpload`. As Server Actions de escrita das próximas issues moram aqui. |
+| `admin/*` | `src/lib/admin/` | `requireAdmin()`, Server Actions de auth (`entrar`, `iniciarCadastroMfa`, `confirmarCodigo`, `sair`) e `revalidarCafe(slug)`. Fotos (#46): `prepararUpload`, `registrarFoto`, `descartarUpload`. Status (#47): `definirStatus` (estado-alvo, idempotente). As Server Actions de escrita das próximas issues moram aqui. |
 | `use-filter-params` | `src/hooks/use-filter-params.ts` | Liga `cafe-filter` à URL: lê com `useSearchParams`, escreve com `history.pushState` (o Next sincroniza sem round-trip; `router.push` re-renderizaria a home dinâmica no servidor) — a busca (`q`) usa `replaceState`, para "voltar" não desfazer letra por letra. **Não usar `useEffect` para sincronizar.** |
 
 Os módulos puros (`cafe-filter`, `cafe-hours`, `cafe-distance`, `cafe-photos`, `cafe-seo`, `admin-auth`, `foto-upload`) **não importam React**. É isso que os torna testáveis sem montar nada — não quebre essa propriedade.
@@ -68,7 +68,7 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 |---|---|
 | `/admin/login` | Única acessível sem sessão. Uma tela, etapas decididas no servidor: senha → código de 6 dígitos (ou, sem autenticador ainda, cadastro com QR) |
 | `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá) |
-| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (miniaturas + envio, #46), Status e Dados (próximas issues). Id inexistente ou malformado → 404 do admin |
+| `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (miniaturas + envio, #46), Status (tirar do ar / colocar no ar, com confirmação nos dois sentidos, #47) e Dados (próxima issue). Id inexistente ou malformado → 404 do admin |
 
 **Quem é admin:** `app_metadata.role = 'admin'` (só o service role altera; `user_metadata`, que o usuário edita, nunca conta) **e** segundo fator na sessão (`aal2`). **TOTP é obrigatório** — senha sozinha não lê nem grava nada.
 

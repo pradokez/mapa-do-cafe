@@ -38,7 +38,16 @@ const MAX_MOBILE = 5;
  * ser um botão próprio, fora do `<a>`. Fichas e selinhos ficam acima da camada
  * do link para mostrar a dica no hover.
  */
-export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHighlight }) {
+export function CafeCard({
+  cafe,
+  highlight,
+  priority = false,
+}: {
+  cafe: Cafe;
+  highlight?: CardHighlight;
+  /** Primeiros cards da lista: a foto carrega já, sem esperar a viewport. */
+  priority?: boolean;
+}) {
   const [photo] = resolveCafePhotos(cafe);
   const selos = selosDo(cafe);
   const atributos = atributosDo(cafe);
@@ -52,6 +61,8 @@ export function CafeCard({ cafe, highlight }: { cafe: Cafe; highlight?: CardHigh
     >
       <CafePhotoFrame
         photo={photo}
+        alt={`Foto de ${cafe.nome}`}
+        carregamento={priority ? "priority" : "lazy"}
         className={CARD_FOTO}
       >
         {selos.length > 0 && (

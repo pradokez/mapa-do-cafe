@@ -8,6 +8,13 @@ import { LISTA_GRADE, LISTA_SECTION, LISTA_TOPO } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
 import { contadorLabel } from "@/lib/format";
 
+/**
+ * Cards com a foto em `priority`: o que cabe de cara no mobile (lista) e nos
+ * dois layouts do desktop (1 coluna até 1219 px, 2 depois). Mais que isso, o
+ * preload disputaria banda com o CSS e o JS da página.
+ */
+const CARDS_PRIORITARIOS = 4;
+
 /** Café em hover e de onde veio: do card (só eleva) ou do pin (eleva com borda). */
 export type Hovered = { id: string; source: "card" | "pin" };
 
@@ -60,7 +67,7 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
         <EmptyState onLimpar={limpar} />
       ) : (
         <ul className={LISTA_GRADE}>
-          {cafes.map((cafe) => (
+          {cafes.map((cafe, i) => (
             <li
               key={cafe.id}
               onMouseEnter={() => onHover?.(cafe.id)}
@@ -68,7 +75,7 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
               onFocus={() => onHover?.(cafe.id)}
               onBlur={() => onHover?.(null)}
             >
-              <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} />
+              <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
             </li>
           ))}
         </ul>

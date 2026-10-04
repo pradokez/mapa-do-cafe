@@ -29,8 +29,13 @@ export async function definirStatus(cafeId: string, ativo: boolean): Promise<Res
   const cafe = await getCafeById(String(cafeId));
   if (!cafe) return { ok: false, erro: ERRO_CAFE };
 
-  const { error } = await createSessionClient().from("cafes").update({ ativo }).eq("id", cafe.id);
-  if (error) return { ok: false, erro: ERRO_GERAL };
+  // Update barrado pela RLS não dá erro: só não muda linha nenhuma. Sem a
+  // contagem, a tela diria "Pronto" com o café no mesmo estado.
+  const { error, count } = await createSessionClient()
+    .from("cafes")
+    .update({ ativo }, { count: "exact" })
+    .eq("id", cafe.id);
+  if (error || count !== 1) return { ok: false, erro: ERRO_GERAL };
 
   revalidarCafe(cafe.slug);
   // O painel inteiro: a lista (etiqueta de status) e esta página.

@@ -269,6 +269,8 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 
 `NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.ts`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é. Imagens de compartilhamento ficam na #49.
 
+**Ícones (#60):** convenções de arquivo do App Router — `src/app/favicon.ico` (16+32), `icon.svg` e `apple-icon.png` (180, quadrado cheio; o iOS arredonda) —, sem `metadata.icons` nem `<link>` à mão. `manifest.ts` só põe o ícone na tela inicial do Android (`icon-192`/`icon-512` em `public/`, `display: "browser"`): não é PWA, sem service worker. Os arquivos vieram sem a proveniência C2PA (`<metadata>` no SVG, chunk `caBX` nos PNGs, com os pixels intactos).
+
 ## Convenções
 
 - Textos e microcopy em pt-BR, tom casual e acolhedor ("bairro", não "distrito")

@@ -161,8 +161,13 @@ export async function reordenarFoto(cafeId: string, fotoId: string, movimento: M
 
   const supabase = createSessionClient();
   for (const { id, ordem } of ordensParaGravar(fotos, nova)) {
-    const { error } = await supabase.from("cafe_fotos").update({ ordem }).eq("id", id).eq("cafe_id", cafe.id);
-    if (error) {
+    // A RLS não dá erro, só não grava: sem a linha afetada, não houve mudança.
+    const { error, count } = await supabase
+      .from("cafe_fotos")
+      .update({ ordem }, { count: "exact" })
+      .eq("id", id)
+      .eq("cafe_id", cafe.id);
+    if (error || count !== 1) {
       revalidarFotos(cafe.slug);
       return { ok: false, erro: ERRO_ORDEM };
     }
@@ -186,8 +191,13 @@ export async function removerFoto(cafeId: string, fotoId: string): Promise<Resul
   const { cafe, foto } = achado;
 
   const supabase = createSessionClient();
-  const { error } = await supabase.from("cafe_fotos").delete().eq("id", foto.id).eq("cafe_id", cafe.id);
-  if (error) return { ok: false, erro: ERRO_REMOCAO };
+  const { error, count } = await supabase
+    .from("cafe_fotos")
+    .delete({ count: "exact" })
+    .eq("id", foto.id)
+    .eq("cafe_id", cafe.id);
+  // A RLS não dá erro, só não apaga: o arquivo só sai se a linha saiu de fato.
+  if (error || count !== 1) return { ok: false, erro: ERRO_REMOCAO };
 
   await supabase.storage.from(BUCKET_FOTOS).remove([foto.storage_path]);
   revalidarFotos(cafe.slug);

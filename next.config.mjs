@@ -1,4 +1,5 @@
 import { redirectsParaCanonico } from "./src/lib/site-url.mjs";
+import { SLUGS_ANTIGOS } from "./src/lib/slugs-antigos.mjs";
 
 /**
  * Headers do admin (#43): fora de busca, fora de cache e fora de iframe
@@ -36,8 +37,8 @@ const nextConfig = {
     return [
       // #50: a URL da Vercel não serve uma cópia do site, mesmo com o SSO desligado.
       ...redirectsParaCanonico(),
-      // #38: o Borsoi do RioMar ganhou slug próprio; links antigos continuam valendo.
-      { source: "/cafes/borsoi-cafe", destination: "/cafes/borsoi-cafe-riomar", permanent: true },
+      // Slug que mudou (#38): links antigos continuam valendo.
+      ...SLUGS_ANTIGOS.map(({ de, para }) => ({ source: `/cafes/${de}`, destination: `/cafes/${para}`, permanent: true })),
     ];
   },
 };

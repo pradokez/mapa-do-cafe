@@ -10,9 +10,12 @@ import {
   normalizarInstagram,
   normalizarTelefone,
   parDeCoordenadas,
+  slugify,
   turnosDoHorario,
   validarDadosCafe,
   validarHorarioDia,
+  validarNovoCafe,
+  validarSlug,
   type DadosCafe,
 } from "./cafe-dados";
 
@@ -236,6 +239,59 @@ describe("parDeCoordenadas (colado no campo de latitude)", () => {
   });
 });
 
+describe("slugify (slug do café e bairro_slug)", () => {
+  it("tira acento e cedilha e passa para minúsculas", () => {
+    expect(slugify("Café São Brás")).toBe("cafe-sao-bras");
+    expect(slugify("Praça do Açúcar")).toBe("praca-do-acucar");
+    expect(slugify("GRAÇAS")).toBe("gracas");
+  });
+
+  it("espaços repetidos e caracteres especiais viram um hífen só, nunca nas pontas", () => {
+    expect(slugify("  Casa   Forte  ")).toBe("casa-forte");
+    expect(slugify("Borsoi Café — RioMar!")).toBe("borsoi-cafe-riomar");
+    expect(slugify("Tokyo's & Co. (Boa Viagem)")).toBe("tokyo-s-co-boa-viagem");
+    expect(slugify("--já-tem--hífen--")).toBe("ja-tem-hifen");
+    expect(slugify("Café ☕ 24h")).toBe("cafe-24h");
+  });
+
+  it("sem letra nem número, sai vazio", () => {
+    expect(slugify(" ☕ — ! ")).toBe("");
+  });
+});
+
+describe("validarSlug (o endereço /cafes/<slug> de um café novo)", () => {
+  it("aceita kebab-case de letras minúsculas e números", () => {
+    expect(validarSlug("borsoi-cafe-riomar")).toEqual({ ok: true, valor: "borsoi-cafe-riomar" });
+    expect(validarSlug("  cafe-24h ")).toEqual({ ok: true, valor: "cafe-24h" });
+  });
+
+  it("é obrigatório", () => {
+    expect(validarSlug("  ")).toEqual({ ok: false, erro: "Informe o endereço do café no site." });
+    expect(validarSlug(undefined)).toMatchObject({ ok: false });
+  });
+
+  it("recusa maiúscula, acento, espaço e hífen duplo ou nas pontas", () => {
+    for (const slug of ["Cafe", "café", "cafe forte", "cafe--forte", "-cafe", "cafe-", "cafe_forte"]) {
+      expect(validarSlug(slug), slug).toEqual({
+        ok: false,
+        erro: "Use só letras minúsculas, números e hífens, ex.: cafe-do-bairro.",
+      });
+    }
+  });
+
+  it("tem limite de 80 caracteres", () => {
+    expect(validarSlug("a".repeat(80)).ok).toBe(true);
+    expect(validarSlug("a".repeat(81))).toEqual({ ok: false, erro: "Use até 80 caracteres." });
+  });
+
+  it("recusa slug antigo que hoje redireciona para outro café", () => {
+    expect(validarSlug("borsoi-cafe")).toEqual({
+      ok: false,
+      erro: "Esse endereço já leva a outro café. Escolha outro.",
+    });
+  });
+});
+
 describe("validarDadosCafe", () => {
   it("os 53 cafés do seed passam sem mudar nada: as regras não recusam dado real", () => {
     for (const cafe of seed) {
@@ -354,5 +410,31 @@ describe("validarDadosCafe", () => {
     for (const entrada of [null, "texto", 42, []]) {
       expect(validarDadosCafe(entrada).ok, String(entrada)).toBe(false);
     }
+  });
+});
+
+describe("validarNovoCafe (cadastro: os dados mais o slug)", () => {
+  const base = () => ({ ...dadosDe(seed.find((c) => c.slug === "borsoi-cafe-riomar")!), slug: "cafe-novo" });
+
+  it("devolve os dados validados com o slug", () => {
+    const dados = validarDadosCafe(base());
+    expect(dados.ok).toBe(true);
+    expect(validarNovoCafe(base())).toEqual({ ok: true, valores: { ...(dados.ok && dados.valores), slug: "cafe-novo" } });
+  });
+
+  it("soma o erro do slug aos dos outros campos", () => {
+    expect(validarNovoCafe({ ...base(), slug: "Café Novo", nome: "" })).toEqual({
+      ok: false,
+      erros: {
+        nome: "Informe o nome do café.",
+        slug: "Use só letras minúsculas, números e hífens, ex.: cafe-do-bairro.",
+      },
+    });
+  });
+
+  it("ignora id, ativo e fotos do payload: o café nasce com os do servidor", () => {
+    const resultado = validarNovoCafe({ ...base(), id: "x", ativo: true, fotos: ["a"] });
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) for (const chave of ["id", "ativo", "fotos"]) expect(resultado.valores).not.toHaveProperty(chave);
   });
 });

@@ -70,7 +70,7 @@ const ROTULO_BOOLEANO = Object.fromEntries([...SELOS, ...ATRIBUTOS].map(({ key, 
   Booleano,
   string
 >;
-const SELOS_KEYS: Booleano[] = ["selo_ascape", "selo_eu_amo_cafe"];
+const SELOS_KEYS: Booleano[] = SELOS.map(({ key }) => key);
 const COMODIDADES_KEYS = BOOLEANOS.filter((key) => !SELOS_KEYS.includes(key));
 
 const AR_CONDICIONADO = [

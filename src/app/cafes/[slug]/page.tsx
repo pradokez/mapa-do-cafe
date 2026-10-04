@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 
 import { atributosDo, selosDo } from "@/components/cafe-atributos";
 import { CafeCarousel } from "@/components/cafe-carousel";
@@ -23,17 +22,17 @@ import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
 import { resumoHorario } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
-import { getCafeBySlug } from "@/lib/cafe-repository";
 import {
   descricaoCafe,
   imagemCompartilhamento,
   jsonLdCafe,
   OPEN_GRAPH_BASE,
-  SITE_NOME,
   tituloCafe,
 } from "@/lib/cafe-seo";
 import { faixaPrecoNome } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url.mjs";
+
+import { getCafe } from "./get-cafe";
 
 // Dinâmico: "hoje" no horário precisa ser o dia da visita. Com ISR, a página
 // gerada às 23h50 seria servida depois da meia-noite com o dia anterior.
@@ -41,12 +40,9 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: { slug: string } };
 
-// Uma query por request, compartilhada entre a página e o metadata.
-const getCafe = cache(getCafeBySlug);
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cafe = await getCafe(params.slug);
-  if (!cafe) return { title: `Café não encontrado · ${SITE_NOME}`, robots: { index: false } };
+  if (!cafe) notFound();
   const title = tituloCafe(cafe);
   const description = descricaoCafe(cafe);
   const imagem = imagemCompartilhamento(cafe);
@@ -64,7 +60,7 @@ const HERO_SLOTS = 4;
 
 export default async function CafePage({ params }: Props) {
   const cafe = await getCafe(params.slug);
-  if (!cafe) notFound();
+  if (!cafe) notFound(); // o layout já barrou; aqui só estreita o tipo
 
   const horario = resumoHorario(cafe.horario_funcionamento, new Date());
   const selos = selosDo(cafe);

@@ -215,7 +215,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
           )}
         </div>
 
-        <fieldset aria-describedby={descricao("origem")} aria-invalid={invalido("origem")}>
+        <fieldset aria-describedby={descricao("origem")}>
           <legend className={labelClass}>Origem</legend>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <Opcao valor="propria">Própria</Opcao>

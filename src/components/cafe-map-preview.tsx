@@ -29,7 +29,8 @@ export function CafeMapPreview({ cafe, onClose, linkRef, style }: Props) {
       className="absolute z-20 rounded-[14px] bg-white shadow-[0_18px_40px_-12px_rgba(0,0,0,.55)]"
     >
       <Link ref={linkRef} href={caminhoDoCafe(cafe)} className="group flex gap-3 rounded-[14px] p-2 pr-3">
-        <CafePhotoFrame photo={photo} className="size-[72px] flex-none rounded-[9px]" />
+        {/* alt vazio: a foto está dentro do link, que já tem o nome do café. */}
+        <CafePhotoFrame photo={photo} alt="" className="size-[72px] flex-none rounded-[9px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-[3px] pr-5 pt-0.5">
           <span className="font-display text-base leading-[1.2] text-espresso">{cafe.nome}</span>
           <span className="text-[12.5px] text-ink-3">

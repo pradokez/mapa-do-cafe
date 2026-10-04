@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import seed from "../supabase/seed/cafes.json";
+import type { Cafe } from "@/lib/cafe";
+
 import { APP_URL } from "./env";
 
 /**
@@ -13,6 +16,7 @@ import { APP_URL } from "./env";
 const suite = APP_URL ? describe : describe.skip;
 if (!APP_URL) console.warn("[security] Status das rotas pulado: defina SECURITY_APP_URL");
 
+const seed: Cafe[] = JSON.parse(readFileSync(new URL("../supabase/seed/cafes.json", import.meta.url), "utf8"));
 const ativo = seed.find((c) => c.ativo)!.slug;
 const inativo = seed.find((c) => !c.ativo)!.slug;
 

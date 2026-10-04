@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ArrowLeftIcon } from "@/components/icons";
 import { SiteHeader } from "@/components/site-header";
+import { SITE_NOME } from "@/lib/cafe-seo";
+
+export const metadata: Metadata = { title: `Café não encontrado · ${SITE_NOME}` };
 
 // Slug inexistente, café inativo ou qualquer URL errada.
 export default function NotFound() {

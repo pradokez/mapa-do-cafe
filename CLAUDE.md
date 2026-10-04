@@ -298,7 +298,7 @@ A permissão é pedida **ao montar** a home ou o detalhe, uma vez por carregamen
 
 ## SEO (#44)
 
-`NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.mjs`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente leva `noindex`. Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é.
+`NEXT_PUBLIC_SITE_URL` alimenta `metadataBase`, canonical, sitemap e JSON-LD (`siteUrl()`, `src/lib/site-url.mjs`); sem ela, o domínio de produção da Vercel, e fora dela `localhost`. Nenhum domínio escrito no código. Canonical da home é `/`, sem params de filtro. `sitemap.xml` lista a home e os cafés ativos via `listCafesAtivos` (mesmo cache) e não tem `lastModified`; `robots.txt` bloqueia `/admin`. Café inexistente ou inativo é **404** de verdade, com `noindex` e título "Café não encontrado · Mapa do Café" (`metadata` do `not-found.tsx`, que vale para todo 404). Título do detalhe `{nome} · Mapa do Café`; a descrição não usa preposição antes do bairro ("nas Graças", "no Pina"), porque o banco não sabe qual é.
 
 **Compartilhamento (#49):** Open Graph + Twitter Card `summary_large_image`. A imagem do café vem de `imagemCompartilhamento` (`cafe-seo`):
 - **Com foto:** a capa (`fotos[0]`) como está — WebP, na proporção dela. O `next/og` do Next 14 não lê WebP, então não há composição com o logo; o LinkedIn pode não mostrar WebP (risco aceito, sem `sharp`).
@@ -315,6 +315,7 @@ Home e detalhe têm `loading.tsx`, que importa principalmente quando o Supabase 
 - **Mesmas medidas, num lugar só:** as classes de formato que o skeleton repete (card, grade, barra, busca, carrossel, aside…) moram em `src/components/medidas.ts` e são usadas pelos dois lados. Mudou o card, muda o skeleton. O módulo é neutro de propósito: constante exportada de arquivo `"use client"` chega ao Server Component como referência de cliente, não como string.
 - **Cores:** `hover-soft` sobre branco, `line` sobre o `cream`, `map-bg` no mapa. Os blocos pulsam só com `motion-safe:animate-pulse`.
 - **Acessibilidade:** os blocos são `aria-hidden`; um `role="status"` em `sr-only` diz "Carregando cafés…" / "Carregando café…".
+- **O 404 do detalhe mora no `layout.tsx`** (#72): o `loading.tsx` põe a página num Suspense, e o shell sai com 200 antes de a página chamar `notFound()` — virava soft-404. `src/app/cafes/[slug]/layout.tsx` checa a existência fora desse Suspense; `getCafe` (`get-cafe.ts`, `cache` do React) faz layout, metadata e página dividirem uma query. Rota nova com `loading.tsx` e `notFound()` precisa do mesmo.
 - **Limitação do Next 14 no detalhe:** o `generateMetadata` busca o café e segura o streaming. No acesso direto a `/cafes/[slug]`, o skeleton não aparece; ele só aparece na navegação dentro do site, depois que o prefetch do link termina. Resolver isso exige Next 15.2+ (metadata em streaming) ou tirar a query do metadata, o que perderia título e canonical por café.
 
 ## Convenções
@@ -357,7 +358,7 @@ Rodada de testes de exploit contra o próprio site, para provar que as garantias
 
 **Onde moram os testes:**
 - `pnpm test` (offline, a cada commit): guardas estáticas em `src/lib/fronteiras.test.ts` (toda Server Action de escrita começa com `requireAdmin()`; só o `cafe-repository` lê tabela; nenhuma chave no bundle), `src/lib/admin/require-admin.test.ts`, payloads maliciosos em `src/lib/cafe-dados.test.ts` e open redirect em `src/lib/admin-auth.test.ts`.
-- `pnpm test:security` (contra um Supabase real): `security/` — RLS, Storage e o exploit HTTP das Server Actions. Fora do CI; pula sozinho sem `.env.security`.
+- `pnpm test:security` (contra um Supabase real): `security/` — RLS, Storage, o exploit HTTP das Server Actions e o status 404 do detalhe (`rotas.test.ts`, só leitura). Fora do CI; pula sozinho sem `.env.security`.
 
 **Como rodar os que escrevem:** num **projeto Supabase descartável** (as mesmas migrations + seed, criado para a rodada e **apagado ao fim** — nunca produção), com um `.env.security` na raiz (gitignored): `SECURITY_SUPABASE_URL`, `SECURITY_PUBLISHABLE_KEY`, `SECURITY_SECRET_KEY` (o **service_role JWT legado** — a `sb_secret_…` nova dá "Invalid API key" no `supabase-js`), `SECURITY_APP_URL`. A trava em `security/env.ts` recusa escrever se a URL for a de produção. Login por email vem **desligado** num projeto novo: habilite no descartável (Management API `config/auth` → `external_email_enabled: true`, mantendo `disable_signup: true`) para o teste de usuário autenticado sem papel. O exploit das actions precisa de `pnpm build` (os action IDs) e de um `next start` apontado para o descartável. Os só de leitura e de negação podem rodar em produção.
 

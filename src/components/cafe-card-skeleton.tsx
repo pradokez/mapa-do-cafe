@@ -24,7 +24,7 @@ export function CafeCardSkeleton() {
         </span>
         <div className={CARD_COMODIDADES}>
           <span className="flex items-center gap-2.5 lg:gap-1.5">
-            {/* Mobile: até 5 ícones de 14 px; desktop: as 6 fichas de 28 px. */}
+            {/* Mobile: 4 ícones de 14 px; desktop: as 6 fichas de 28 px. */}
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <Bloco key={i} className={`size-3.5 rounded-full lg:block lg:size-7 ${i < 4 ? "" : "hidden"}`} />
             ))}

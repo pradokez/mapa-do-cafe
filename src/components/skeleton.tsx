@@ -24,13 +24,16 @@ export function Bloco({ tom = "claro", className = "" }: { tom?: keyof typeof TO
 }
 
 /**
- * Barra de uma linha de texto: ocupa a altura da linha (`leading`) do texto
- * que vai substituir, com a barra mais baixa no meio, como uma linha escrita.
+ * Barra de uma linha de texto: um espaço invisível dá à linha a altura exata
+ * do texto que vai substituir (fonte e `leading` herdados), e a barra, mais
+ * baixa, fica no meio, como uma linha escrita. `className` leva a largura
+ * (no invólucro: em linha flexível, ele ocupa espaço e encolhe).
  */
 export function Linha({ tom = "claro", className = "" }: { tom?: keyof typeof TONS; className?: string }) {
   return (
-    <span aria-hidden="true" className="flex h-[1lh] items-center">
-      <Bloco tom={tom} className={`h-[0.8em] rounded-full ${className}`} />
+    <span aria-hidden="true" className={`relative block ${className}`}>
+      {"\u00a0"}
+      <Bloco tom={tom} className="absolute inset-x-0 top-1/2 h-[0.8em] -translate-y-1/2 rounded-full" />
     </span>
   );
 }

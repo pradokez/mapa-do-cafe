@@ -25,7 +25,7 @@ import {
 import { DIAS_DA_SEMANA } from "@/lib/cafe-hours";
 import { faixaPrecoNome } from "@/lib/format";
 
-import { Erro, inputClass, labelClass } from "./form";
+import { Erro, botaoCtaClass, inputClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
 
 type Booleano = (typeof BOOLEANOS)[number];
@@ -474,7 +474,7 @@ export function DadosCafeForm({ cafe, salvar, buscarCoordenadas, ativo }: Props)
         <button
           type="submit"
           disabled={salvando}
-          className="h-[46px] rounded-full bg-terracotta px-6 text-[14.5px] font-semibold text-on-terracotta transition-colors hover:bg-terracotta-hover disabled:opacity-60"
+          className={botaoCtaClass}
         >
           {salvando ? "Salvando…" : "Salvar alterações"}
         </button>

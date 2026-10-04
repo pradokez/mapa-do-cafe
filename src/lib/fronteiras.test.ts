@@ -11,7 +11,7 @@ function arquivosDoApp(dir = SRC): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
     const caminho = join(dir, entrada.name);
     if (entrada.isDirectory()) return arquivosDoApp(caminho);
-    if (!/\.(ts|tsx)$/.test(entrada.name) || /\.test\.tsx?$/.test(entrada.name)) return [];
+    if (!/\.(ts|tsx|js|mjs)$/.test(entrada.name) || /\.test\.tsx?$/.test(entrada.name)) return [];
     return [relative(SRC, caminho)];
   });
 }

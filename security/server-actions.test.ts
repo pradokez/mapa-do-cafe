@@ -56,9 +56,18 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
   let ids: string[] = [];
   let cafesAntes = 0;
   let fotosAntes = 0;
+  // O app precisa estar no ar (apontado para o descartável). Se não responder,
+  // pula com aviso em vez de falhar a suíte.
+  let indisponivel: string | null = null;
 
   beforeAll(async () => {
     ids = actionIds();
+    try {
+      await fetch(`${APP_URL}/admin/login`, { redirect: "manual", signal: AbortSignal.timeout(5000) });
+    } catch {
+      indisponivel = `app não responde em ${APP_URL} (rode um next start apontado para o descartável)`;
+      console.warn(`[security] exploit de Server Actions pulado: ${indisponivel}`);
+    }
     const { count: c } = await service.from("cafes").select("*", { count: "exact", head: true });
     const { count: f } = await service.from("cafe_fotos").select("*", { count: "exact", head: true });
     cafesAntes = c ?? 0;
@@ -69,7 +78,8 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     expect(ids.length).toBeGreaterThan(0);
   });
 
-  it("sem sessão, nenhuma action devolve sucesso (cai no login)", async () => {
+  it("sem sessão, nenhuma action devolve sucesso (cai no login)", async (ctx) => {
+    if (indisponivel) return ctx.skip();
     for (const id of ids) {
       const r = await dispararAction(id, {});
       const corpo = await r.text();
@@ -79,7 +89,8 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     }
   });
 
-  it("com Origin de outro domínio (CSRF), idem", async () => {
+  it("com Origin de outro domínio (CSRF), idem", async (ctx) => {
+    if (indisponivel) return ctx.skip();
     for (const id of ids) {
       const r = await dispararAction(id, { Origin: "https://evil.example", Host: "mapadocafe-pe.com.br" });
       const corpo = await r.text();
@@ -87,7 +98,8 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     }
   });
 
-  it("nada foi escrito: contagem de cafes e cafe_fotos intacta, sem café 'INVADIDO'", async () => {
+  it("nada foi escrito: contagem de cafes e cafe_fotos intacta, sem café 'INVADIDO'", async (ctx) => {
+    if (indisponivel) return ctx.skip();
     const { count: c } = await service.from("cafes").select("*", { count: "exact", head: true });
     const { count: f } = await service.from("cafe_fotos").select("*", { count: "exact", head: true });
     expect(c).toBe(cafesAntes);

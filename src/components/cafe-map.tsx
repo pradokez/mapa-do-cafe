@@ -11,10 +11,21 @@ import { CafeMapPreview } from "@/components/cafe-map-preview";
 import type { Cafe } from "@/lib/cafe";
 import { placePreview } from "@/lib/map-preview-placement";
 
-type Props = {
-  cafes: Cafe[];
-  /** `full`: mapa navegável da home. `mini`: localizador estático do detalhe. */
-  variant?: "full" | "mini";
+/** O que um pin precisa. O mini mapa do admin (#53) mostra um café que ainda não existe. */
+type Pin = Pick<Cafe, "id" | "nome" | "lat" | "lng">;
+
+type Props = (
+  | {
+      /** Mapa navegável da home: o preview do pin precisa do café inteiro. */
+      variant?: "full";
+      cafes: Cafe[];
+    }
+  | {
+      /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
+      variant: "mini";
+      cafes: Pin[];
+    }
+) & {
   hoveredId?: string | null;
   selectedId?: string | null;
   onHover?: (id: string | null) => void;
@@ -183,7 +194,7 @@ export function CafeMap({
     };
   }, [variant]);
 
-  // Um pin por café, sincronizado por id.
+  // Um pin por café, sincronizado por id. Pin que já existe vai para a posição nova, se mudou.
   useEffect(() => {
     const mapboxgl = mapboxRef.current;
     if (!map || !mapboxgl) return;
@@ -196,11 +207,25 @@ export function CafeMap({
       current.delete(id);
     });
     for (const cafe of cafes) {
-      if (current.has(cafe.id)) continue;
+      const existente = current.get(cafe.id);
+      if (existente) {
+        const { lng, lat } = existente.getLngLat();
+        if (lng !== cafe.lng || lat !== cafe.lat) existente.setLngLat([cafe.lng, cafe.lat]);
+        continue;
+      }
       const el = createPinElement(cafe, variant, handlers);
       current.set(cafe.id, new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([cafe.lng, cafe.lat]).addTo(map));
     }
   }, [map, cafes, variant]);
+
+  // O mini mapa segue o café: no formulário do admin, lat/lng mudam enquanto são digitados.
+  // O `full` nunca recentraliza — filtrar não deve fazer o mapa pular.
+  const centro = variant === "mini" && cafes[0] ? `${cafes[0].lng},${cafes[0].lat}` : null;
+  useEffect(() => {
+    if (!map || !centro) return;
+    const [lng, lat] = centro.split(",").map(Number);
+    map.jumpTo({ center: [lng, lat] });
+  }, [map, centro]);
 
   // Estado ativo (hover ou seleção) só troca um atributo: o CSS faz o resto.
   useEffect(() => {
@@ -211,8 +236,9 @@ export function CafeMap({
   }, [map, cafes, hoveredId, selectedId]);
 
   // Preview só no mapa navegável da home: o mini mapa usa `selectedId` só para pintar o pin.
+  // Fora do `mini`, `cafes` é `Cafe[]` (o tipo das props garante; a desestruturação perde o vínculo).
   const previewCafe =
-    variant === "full" && onSelect ? cafes.find((c) => c.id === selectedId) : undefined;
+    variant !== "mini" && onSelect ? (cafes as Cafe[]).find((c) => c.id === selectedId) : undefined;
   const [anchor, setAnchor] = useState<PreviewAnchor | null>(null);
 
   // O preview acompanha o pin em pan e zoom; a regra de virar é recalculada a cada quadro.
@@ -321,7 +347,7 @@ export function CafeMap({
 }
 
 function createPinElement(
-  cafe: Cafe,
+  cafe: Pin,
   variant: "full" | "mini",
   handlers: { current: Pick<Props, "onHover" | "onSelect"> },
 ): HTMLElement {

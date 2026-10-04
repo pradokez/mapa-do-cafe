@@ -15,7 +15,11 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-type Props = Omit<React.ComponentProps<typeof CafeMap>, "variant" | "className" | "previewPlacement"> & {
+// As props do mapa navegável (`full`), não as do mini.
+type Props = Omit<
+  Extract<React.ComponentProps<typeof CafeMap>, { variant?: "full" }>,
+  "variant" | "className" | "previewPlacement"
+> & {
   /** Visão "mapa" do mobile ligada. */
   visivelNoMobile: boolean;
 };

@@ -6,6 +6,7 @@
 
 import type { Cafe, Cidade, DiaSemana, FaixaPreco } from "./cafe";
 import { DIAS_DA_SEMANA, FECHADO, isRegistro } from "./cafe-hours";
+import { SLUGS_ANTIGOS } from "./slugs-antigos.mjs";
 
 const TURNO = /^(\d{2}:\d{2}) – (\d{2}:\d{2})$/;
 const HORA = /^(\d{2}):(\d{2})$/;
@@ -223,6 +224,24 @@ export function slugify(texto: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const MAX_SLUG = 80;
+
+/**
+ * Slug de um café novo — o endereço `/cafes/<slug>`. Depois de criado, não muda
+ * (quebraria links compartilhados). Repetido, só o banco sabe (`unique`).
+ */
+export function validarSlug(valor: unknown): Normalizado<string> {
+  const slug = textoAparado(valor);
+  if (!slug) return { ok: false, erro: "Informe o endereço do café no site." };
+  if (slug.length > MAX_SLUG) return { ok: false, erro: `Use até ${MAX_SLUG} caracteres.` };
+  if (!SLUG.test(slug)) return { ok: false, erro: "Use só letras minúsculas, números e hífens, ex.: cafe-do-bairro." };
+  if (SLUGS_ANTIGOS.some(({ de }) => de === slug)) {
+    return { ok: false, erro: "Esse endereço já leva a outro café. Escolha outro." };
+  }
+  return { ok: true, valor: slug };
+}
+
 export const CIDADES = ["Recife", "Olinda", "Jaboatão dos Guararapes"] as const satisfies readonly Cidade[];
 export const FAIXAS = ["$", "$$", "$$$"] as const satisfies readonly FaixaPreco[];
 
@@ -251,7 +270,10 @@ export const BOOLEANOS = [
 ] as const satisfies ReadonlyArray<keyof DadosCafe>;
 
 /** Campo com mensagem de erro própria. O horário erra por dia: `horario.segunda`. */
-export type CampoDados = Exclude<keyof DadosCafe, "bairro_slug" | "horario_funcionamento"> | `horario.${DiaSemana}`;
+export type CampoDados =
+  | Exclude<keyof DadosCafe, "bairro_slug" | "horario_funcionamento">
+  | `horario.${DiaSemana}`
+  | "slug";
 
 export type ErrosDados = Partial<Record<CampoDados, string>>;
 
@@ -337,4 +359,17 @@ export function validarDadosCafe(entrada: unknown): ResultadoDados {
       telefone: telefone.valor,
     },
   };
+}
+
+/** O que o cadastro (#53) grava: os dados editáveis e o slug, que só se escolhe aqui. */
+export type NovoCafe = DadosCafe & { slug: string };
+
+export type ResultadoNovoCafe = { ok: true; valores: NovoCafe } | { ok: false; erros: ErrosDados };
+
+/** `validarDadosCafe` mais o slug, com os erros somados. `id`, `fotos` e `ativo` nunca passam. */
+export function validarNovoCafe(entrada: unknown): ResultadoNovoCafe {
+  const dados = validarDadosCafe(entrada);
+  const slug = validarSlug(isRegistro(entrada) ? entrada.slug : undefined);
+  if (dados.ok && slug.ok) return { ok: true, valores: { ...dados.valores, slug: slug.valor } };
+  return { ok: false, erros: { ...(dados.ok ? {} : dados.erros), ...(slug.ok ? {} : { slug: slug.erro }) } };
 }

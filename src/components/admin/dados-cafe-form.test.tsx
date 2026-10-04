@@ -5,9 +5,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { cafe } from "@/lib/cafe.fixture";
 
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 import { DadosCafeForm } from "./dados-cafe-form";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  push.mockClear();
+});
 
 const borsoi = cafe("borsoi", {
   nome: "Borsoi Café",
@@ -137,5 +143,80 @@ describe("DadosCafeForm", () => {
     await userEvent.paste("-8.0631, -34.8711");
 
     expect([valor("Latitude"), valor("Longitude")]).toEqual(["-8.0631", "-34.8711"]);
+  });
+});
+
+describe("DadosCafeForm — café novo", () => {
+  function renderizarNovo(cadastrar = vi.fn()) {
+    render(<DadosCafeForm cadastrar={cadastrar} buscarCoordenadas={vi.fn()} />);
+    return cadastrar;
+  }
+
+  const cadastrarBotao = () => screen.getByRole("button", { name: "Cadastrar café" });
+
+  /** O mínimo para passar na validação: todo dia fechado. */
+  async function preencher() {
+    await userEvent.type(screen.getByLabelText("Nome"), "Café da Praça");
+    await userEvent.type(screen.getByLabelText("Bairro"), "Poço da Panela");
+    await userEvent.type(screen.getByLabelText("Endereço"), "R. da Praça, 10");
+    await userEvent.type(screen.getByLabelText("Latitude"), "-8,03");
+    await userEvent.type(screen.getByLabelText("Longitude"), "-34,92");
+    await userEvent.click(screen.getByLabelText(/Moderado/));
+    await userEvent.click(within(screen.getByRole("group", { name: "Segunda" })).getByLabelText("Fechado"));
+    await userEvent.click(screen.getByRole("button", { name: "Repetir nos dias seguintes" }));
+  }
+
+  it("o slug segue o nome até ser editado; apagado, volta a seguir", async () => {
+    renderizarNovo();
+    await userEvent.type(screen.getByLabelText("Nome"), "Café São Brás");
+    expect(valor("Endereço no site")).toBe("cafe-sao-bras");
+
+    await userEvent.clear(screen.getByLabelText("Endereço no site"));
+    await userEvent.type(screen.getByLabelText("Endereço no site"), "sao-bras");
+    await userEvent.type(screen.getByLabelText("Nome"), " Torrefação");
+    expect(valor("Endereço no site")).toBe("sao-bras");
+
+    await userEvent.clear(screen.getByLabelText("Endereço no site"));
+    await userEvent.type(screen.getByLabelText("Nome"), "!");
+    expect(valor("Endereço no site")).toBe("cafe-sao-bras-torrefacao");
+  });
+
+  it("o slug digitado vira kebab-case ao sair do campo", async () => {
+    renderizarNovo();
+    await userEvent.type(screen.getByLabelText("Endereço no site"), "Café  do Açude");
+    await userEvent.tab();
+    expect(valor("Endereço no site")).toBe("cafe-do-acude");
+  });
+
+  it("formulário em branco não chama o servidor: cada campo obrigatório é marcado", async () => {
+    const cadastrar = renderizarNovo();
+    await userEvent.click(cadastrarBotao());
+
+    expect(cadastrar).not.toHaveBeenCalled();
+    for (const rotulo of ["Nome", "Endereço no site", "Bairro", "Endereço", "Latitude"]) {
+      expect(screen.getByLabelText(rotulo).getAttribute("aria-invalid"), rotulo).toBe("true");
+    }
+    expect(screen.getByText("Escolha a faixa de preço.")).toBeTruthy();
+  });
+
+  it("slug repetido, recusado pelo servidor, aparece no campo do slug", async () => {
+    const erro = "Já existe um café em /cafes/cafe-da-praca. Escolha outro endereço.";
+    renderizarNovo(vi.fn().mockResolvedValue({ ok: false, erro: null, erros: { slug: erro } }));
+    await preencher();
+    await userEvent.click(cadastrarBotao());
+
+    const slug = screen.getByLabelText("Endereço no site");
+    expect(slug.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(`erro-${slug.id}`)?.textContent).toBe(erro);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("cadastrado, leva à página do café para subir as fotos", async () => {
+    const cadastrar = renderizarNovo(vi.fn().mockResolvedValue({ ok: true, id: "c0ffee" }));
+    await preencher();
+    await userEvent.click(cadastrarBotao());
+
+    expect(cadastrar.mock.calls[0][0]).toMatchObject({ slug: "cafe-da-praca", bairro: "Poço da Panela", faixa_preco: "$$" });
+    expect(push).toHaveBeenCalledWith("/admin/cafes/c0ffee?novo=1");
   });
 });

@@ -66,3 +66,9 @@ describe("fronteiras do Supabase", () => {
     expect(semGuarda).toEqual([]);
   });
 });
+
+describe("fronteira do Mapbox", () => {
+  it("só o <CafeMap /> importa mapbox-gl (regra 1): trocar de lib mexe num arquivo só", () => {
+    expect(comCodigo(/["']mapbox-gl(\/[^"']*)?["']/)).toEqual(["components/cafe-map.tsx"]);
+  });
+});

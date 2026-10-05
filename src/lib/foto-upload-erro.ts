@@ -5,6 +5,7 @@
  * junto com as falhas do próprio navegador.
  */
 
+import { MODO_LEITURA } from "./admin-escrita";
 import { ERRO_SEM_WEBP, ERRO_WEBP_GRANDE } from "./foto-upload";
 
 export type Etapa = "converter" | "preparar" | "enviar" | "registrar";
@@ -32,6 +33,8 @@ const MENSAGENS: Record<string, string> = {
   sessao:
     "Sua sessão expirou e a foto não foi enviada. Entre de novo em outra aba e clique em Enviar foto outra vez — o que você preencheu continua aqui.",
   cafe: "Este café não foi encontrado. Recarregue a página.",
+  // Fora da produção da Vercel, sem ADMIN_ESCRITA_LIBERADA=1 (#75).
+  "modo-leitura": MODO_LEITURA,
   bucket: `O bucket de fotos não existe no Supabase: falta aplicar a migration. ${NAO_ADIANTA}`,
   permissao:
     "O Storage recusou a permissão para gravar a foto. Saia e entre de novo; se continuar, confira as políticas do bucket — tentar de novo não resolve.",

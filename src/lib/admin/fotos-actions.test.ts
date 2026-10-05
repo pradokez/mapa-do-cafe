@@ -42,6 +42,8 @@ let log: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // O Vitest roda fora da produção da Vercel: sem isto, o modo leitura (#75) barraria tudo.
+  vi.stubEnv("ADMIN_ESCRITA_LIBERADA", "1");
   log = vi.spyOn(console, "error").mockImplementation(() => {});
   sessao.sessaoDeAdmin.mockResolvedValue({ email: "admin@x" });
   repo.getCafeById.mockResolvedValue({ id: CAFE, slug: "cafe" });
@@ -51,7 +53,10 @@ beforeEach(() => {
   insert.mockResolvedValue({ error: null });
 });
 
-afterEach(() => log.mockRestore());
+afterEach(() => {
+  log.mockRestore();
+  vi.unstubAllEnvs();
+});
 
 /** Tudo o que foi para o log, como texto — para provar que nenhum segredo vazou. */
 const textoDoLog = () => JSON.stringify(log.mock.calls);
@@ -76,6 +81,35 @@ describe("prepararUpload", () => {
     expect(r).toMatchObject({ ok: false, falha: { etapa: "preparar", codigo: "bucket", status: 400 } });
     expect(textoDoLog()).toContain("preparar");
     expect(textoDoLog()).toContain(CAFE);
+  });
+});
+
+describe("modo leitura (#75)", () => {
+  beforeEach(() => vi.stubEnv("ADMIN_ESCRITA_LIBERADA", ""));
+
+  it("prepararUpload recusa com a falha modo-leitura, sem pedir URL ao Storage", async () => {
+    expect(await prepararUpload(CAFE, AUTORIZACAO, WEBP)).toEqual({
+      ok: false,
+      falha: { etapa: "preparar", codigo: "modo-leitura" },
+    });
+    expect(storage.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("registrarFoto recusa sem gravar a linha nem mexer no arquivo", async () => {
+    expect(await registrarFoto(CAFE, CAMINHO, AUTORIZACAO)).toEqual({
+      ok: false,
+      falha: { etapa: "registrar", codigo: "modo-leitura" },
+    });
+    expect(insert).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it("sessão expirada ainda vence: quem não é admin não fica sabendo do modo leitura", async () => {
+    sessao.sessaoDeAdmin.mockResolvedValue(null);
+    expect(await prepararUpload(CAFE, AUTORIZACAO, WEBP)).toEqual({
+      ok: false,
+      falha: { etapa: "preparar", codigo: "sessao" },
+    });
   });
 });
 

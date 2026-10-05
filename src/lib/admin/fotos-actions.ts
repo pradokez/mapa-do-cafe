@@ -31,6 +31,7 @@ import {
 import { falhaDoPostgres, falhaDoStorage, type Etapa, type Falha } from "@/lib/foto-upload-erro";
 import { createSessionClient } from "@/lib/supabase-server";
 
+import { bloqueioDeEscrita } from "./escrita";
 import { requireAdmin, sessaoDeAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
 
@@ -68,6 +69,9 @@ function falhou(falha: Falha, contexto: { cafeId: unknown; caminho?: unknown }):
  */
 const sessaoExpirada = (etapa: Etapa): FalhaFoto => ({ ok: false, falha: { etapa, codigo: "sessao" } });
 
+/** Modo leitura (#75): fora da produção, nada sobe nem é registrado. */
+const modoLeitura = (etapa: Etapa): FalhaFoto => ({ ok: false, falha: { etapa, codigo: "modo-leitura" } });
+
 /** Passo 1: autorização e arquivo conferidos antes de qualquer byte subir. */
 export async function prepararUpload(
   cafeId: string,
@@ -75,6 +79,7 @@ export async function prepararUpload(
   arquivo: { type: string; size: number },
 ): Promise<ResultadoPreparo> {
   if (!(await sessaoDeAdmin())) return sessaoExpirada("preparar");
+  if (bloqueioDeEscrita()) return modoLeitura("preparar");
 
   const validacao = autorizacao(campos);
   if (!validacao.ok) return { ok: false, falha: null, erros: validacao.erros };
@@ -102,6 +107,7 @@ export async function registrarFoto(
   campos: CamposAutorizacao,
 ): Promise<ResultadoFoto> {
   if (!(await sessaoDeAdmin())) return sessaoExpirada("registrar");
+  if (bloqueioDeEscrita()) return modoLeitura("registrar");
   if (!ehCaminhoDoCafe(cafeId, caminho)) return falhou({ etapa: "registrar", codigo: "desconhecido" }, { cafeId });
 
   const supabase = createSessionClient();
@@ -152,6 +158,7 @@ function revalidarFotos(slug: string) {
 export async function descartarUpload(cafeId: string, caminho: string): Promise<void> {
   // Sem sessão não há o que fazer (a RLS barraria): o formulário já explicou.
   if (!(await sessaoDeAdmin())) return;
+  if (bloqueioDeEscrita()) return;
   if (!ehCaminhoDoCafe(cafeId, caminho)) return;
   if (await fotoRegistrada(caminho)) return;
 
@@ -180,6 +187,8 @@ async function fotoDoCafe(cafeId: string, fotoId: string) {
  */
 export async function reordenarFoto(cafeId: string, fotoId: string, movimento: Movimento): Promise<ResultadoAcaoFoto> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const achado = await fotoDoCafe(cafeId, fotoId);
   if (!achado) return { ok: false, erro: ERRO_FOTO };
@@ -218,6 +227,8 @@ export async function reordenarFoto(cafeId: string, fotoId: string, movimento: M
  */
 export async function removerFoto(cafeId: string, fotoId: string): Promise<ResultadoAcaoFoto> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const achado = await fotoDoCafe(cafeId, fotoId);
   if (!achado) return { ok: false, erro: ERRO_FOTO };

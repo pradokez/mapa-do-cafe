@@ -131,3 +131,16 @@ export async function hashDoIp(ip: string, segredo: string): Promise<string> {
   const assinatura = await crypto.subtle.sign("HMAC", chave, codificar(ip));
   return Array.from(new Uint8Array(assinatura), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+/**
+ * Resultado de um envio, como o formulário o recebe (`useFormState`). Leva o
+ * que foi enviado, para o formulário voltar preenchido no erro e no limite —
+ * inclusive sem JS, quando a página é renderizada de novo pelo servidor.
+ */
+export type EnvioSugestao = {
+  status: "inicial" | "erro" | "limite" | "falha" | "enviado";
+  erros: ErrosSugestao;
+  valores: { tipo: string; mensagem: string };
+};
+
+export const ENVIO_INICIAL: EnvioSugestao = { status: "inicial", erros: {}, valores: { tipo: "", mensagem: "" } };

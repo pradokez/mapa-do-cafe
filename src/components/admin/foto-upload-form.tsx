@@ -4,10 +4,9 @@
 // Storage e pelos estados do envio.
 import { useEffect, useRef, useState } from "react";
 
+import { urlDoLogin } from "@/lib/admin-auth";
 import { descartarUpload, prepararUpload, registrarFoto } from "@/lib/admin/fotos-actions";
 import {
-  ERRO_SEM_WEBP,
-  ERRO_WEBP_GRANDE,
   MAX_AUTORIZADO_POR,
   MAX_OBSERVACAO,
   ROTULO_ORIGEM,
@@ -18,41 +17,46 @@ import {
   validarAutorizacao,
   type CampoAutorizacao,
 } from "@/lib/foto-upload";
+import { falhaDeRede, falhaDoPut, mensagemDaFalha, type Falha } from "@/lib/foto-upload-erro";
 
 import { botaoCtaClass, Erro, inputClass, labelClass } from "./form";
 
 const QUALIDADE_WEBP = 0.82;
-const ERRO_ENVIO = "Não deu para enviar a foto agora. Tente de novo em instantes.";
-const ERRO_LEITURA = "Não deu para abrir esta foto. Tente outra.";
+/** Upload de até 2 MB: passou disso sem terminar, a conexão não está dando conta. */
+const TIMEOUT_ENVIO = 60_000;
+const ERRO_LEITURA = "Não deu para abrir esta foto. O arquivo pode estar corrompido. Tente outra.";
+const ERRO_MEMORIA =
+  "O navegador não conseguiu converter esta foto. Ela pode ser grande demais para a memória dele. Feche outras abas ou use uma foto menor.";
+
+/** O navegador abriu a foto, mas não conseguiu desenhá-la ou gerar o WebP (memória, quase sempre). */
+class SemMemoria extends Error {}
 
 type Convertida = { blob: Blob; previa: string; largura: number; altura: number };
 type ErrosCampos = Partial<Record<CampoAutorizacao | "foto", string>>;
 
 /** Redimensiona (lado maior ~1600 px, respeitando a orientação do EXIF) e converte para WebP. */
 async function converter(arquivo: File): Promise<Convertida> {
+  // Falhar aqui é não decodificar (arquivo corrompido, formato que o navegador não lê).
   const bitmap = await createImageBitmap(arquivo);
-  const { largura, altura } = dimensoesDestino(bitmap.width, bitmap.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = largura;
-  canvas.height = altura;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas indisponível");
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bitmap, 0, 0, largura, altura);
-  bitmap.close();
+  try {
+    const { largura, altura } = dimensoesDestino(bitmap.width, bitmap.height);
+    const canvas = document.createElement("canvas");
+    canvas.width = largura;
+    canvas.height = altura;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new SemMemoria();
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, largura, altura);
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", QUALIDADE_WEBP));
-  if (!blob) throw new Error("conversão falhou");
-  return { blob, previa: URL.createObjectURL(blob), largura, altura };
-}
-
-/** O bucket recusou (contornou o cliente, ou limites divergiram): mesma mensagem do cliente. */
-async function erroDoBucket(resposta: Response): Promise<string> {
-  const corpo = await resposta.json().catch(() => null);
-  const status = String(corpo?.statusCode ?? resposta.status);
-  if (status === "413") return ERRO_WEBP_GRANDE;
-  if (status === "415") return ERRO_SEM_WEBP;
-  return ERRO_ENVIO;
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", QUALIDADE_WEBP));
+    if (!blob) throw new SemMemoria();
+    return { blob, previa: URL.createObjectURL(blob), largura, altura };
+  } catch {
+    // `drawImage` e `toBlob` também lançam quando falta memória para o canvas.
+    throw new SemMemoria();
+  } finally {
+    bitmap.close();
+  }
 }
 
 const tamanho = (bytes: number) =>
@@ -66,7 +70,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
   const [convertendo, setConvertendo] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<ErrosCampos>({});
-  const [erroGeral, setErroGeral] = useState<string | null>(null);
+  const [falha, setFalha] = useState<Falha | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
   // A prévia é um object URL: solto quando troca a foto ou a seção sai da tela.
@@ -79,7 +83,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
     const arquivo = evento.target.files?.[0];
     setFoto(null);
     setSucesso(false);
-    setErroGeral(null);
+    setFalha(null);
     if (!arquivo) return;
 
     const erro = checarArquivo(arquivo);
@@ -101,8 +105,8 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
       }
       setFoto(convertida);
       setErros((e) => ({ ...e, foto: undefined }));
-    } catch {
-      setErros((e) => ({ ...e, foto: ERRO_LEITURA }));
+    } catch (erro) {
+      setErros((e) => ({ ...e, foto: erro instanceof SemMemoria ? ERRO_MEMORIA : ERRO_LEITURA }));
       evento.target.value = "";
     } finally {
       setConvertendo(false);
@@ -112,7 +116,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setSucesso(false);
-    setErroGeral(null);
+    setFalha(null);
 
     const dados = new FormData(evento.currentTarget);
     const campos = {
@@ -126,47 +130,63 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
     if (!foto) novosErros.foto = erros.foto ?? "Escolha uma foto.";
     setErros(novosErros);
     if (!foto || !validacao.ok) return;
+    if (!navigator.onLine) {
+      setFalha({ etapa: "preparar", codigo: "offline" });
+      return;
+    }
 
+    // Em toda falha, a foto convertida e os campos ficam: é só corrigir e reenviar.
     setEnviando(true);
     try {
-      const preparo = await prepararUpload(cafeId, validacao.valores, { type: foto.blob.type, size: foto.blob.size });
+      let preparo;
+      try {
+        preparo = await prepararUpload(cafeId, validacao.valores, { type: foto.blob.type, size: foto.blob.size });
+      } catch (erro) {
+        setFalha(falhaDeRede("preparar", erro));
+        return;
+      }
       if (!preparo.ok) {
         setErros(preparo.erros ?? {});
-        setErroGeral(preparo.erro);
+        setFalha(preparo.falha);
         return;
       }
 
-      const resposta = await fetch(preparo.url, {
-        method: "PUT",
-        // Caminho novo a cada foto: o arquivo nunca muda, pode ficar em cache por 1 ano.
-        headers: { "content-type": foto.blob.type, "cache-control": "max-age=31536000" },
-        body: foto.blob,
-      });
+      let resposta;
+      try {
+        resposta = await fetch(preparo.url, {
+          method: "PUT",
+          // Caminho novo a cada foto: o arquivo nunca muda, pode ficar em cache por 1 ano.
+          headers: { "content-type": foto.blob.type, "cache-control": "max-age=31536000" },
+          body: foto.blob,
+          signal: AbortSignal.timeout(TIMEOUT_ENVIO),
+        });
+      } catch (erro) {
+        setFalha(falhaDeRede("enviar", erro));
+        return;
+      }
       if (!resposta.ok) {
-        setErroGeral(await erroDoBucket(resposta));
+        setFalha(falhaDoPut(resposta.status, await resposta.json().catch(() => null)));
         return;
       }
 
       let registro;
       try {
         registro = await registrarFoto(cafeId, preparo.caminho, validacao.valores);
-      } catch {
+      } catch (erro) {
         // O registro não respondeu: o arquivo não pode ficar no bucket sem autorização.
         await descartarUpload(cafeId, preparo.caminho).catch(() => {});
-        setErroGeral(ERRO_ENVIO);
+        setFalha({ ...falhaDeRede("registrar", erro), codigo: "sem-resposta" });
         return;
       }
       if (!registro.ok) {
         setErros(registro.erros ?? {});
-        setErroGeral(registro.erro);
+        setFalha(registro.falha);
         return;
       }
 
       form.current?.reset();
       setFoto(null);
       setSucesso(true);
-    } catch {
-      setErroGeral(ERRO_ENVIO);
     } finally {
       setEnviando(false);
     }
@@ -278,7 +298,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
         </div>
       </fieldset>
 
-      <Erro erro={erroGeral} />
+      <ErroDoEnvio falha={falha} cafeId={cafeId} />
       {sucesso && (
         <p role="status" className="text-[14px] font-medium text-open">
           Foto enviada. Já está no site.
@@ -302,5 +322,52 @@ function Opcao({ valor, children }: { valor: string; children: React.ReactNode }
       <input type="radio" name="origem" value={valor} required className="size-[18px] accent-terracotta" />
       {children}
     </label>
+  );
+}
+
+/**
+ * Falha do envio (#74): a frase (o que houve e o que fazer) e, recolhidos, os
+ * detalhes técnicos para investigar. Sempre no DOM, como o `Erro`, para o
+ * leitor de tela conhecer a região; o foco vem para cá quando a falha aparece
+ * — o botão estava desabilitado durante o envio e o foco teria se perdido.
+ */
+function ErroDoEnvio({ falha, cafeId }: { falha: Falha | null; cafeId: string }) {
+  const regiao = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (falha) regiao.current?.focus();
+  }, [falha]);
+
+  const traduzida = falha && mensagemDaFalha(falha);
+  return (
+    <div ref={regiao} role="alert" tabIndex={-1} className="flex flex-col gap-2 empty:hidden focus:outline-none">
+      {traduzida && (
+        <>
+          <p className="text-[14px] font-medium text-terracotta">
+            {traduzida.mensagem}
+            {falha.codigo === "sessao" && (
+              <>
+                {" "}
+                <a
+                  href={urlDoLogin(`/admin/cafes/${cafeId}`)}
+                  target="_blank"
+                  rel="noopener"
+                  className="font-semibold text-espresso underline underline-offset-2"
+                >
+                  Entrar de novo (abre em outra aba)
+                </a>
+              </>
+            )}
+          </p>
+          <details className="text-[12.5px] text-ink-3">
+            <summary className="w-fit cursor-pointer font-semibold text-ink-2">Detalhes técnicos</summary>
+            <ul className="mt-1.5 select-all break-words rounded-lg bg-hover-soft px-3 py-2 font-mono">
+              {traduzida.detalhes.map((linha) => (
+                <li key={linha}>{linha}</li>
+              ))}
+            </ul>
+          </details>
+        </>
+      )}
+    </div>
   );
 }

@@ -83,11 +83,23 @@ describe("FotoUploadForm", () => {
 
     await userEvent.upload(
       screen.getByLabelText("Foto"),
-      new File(["x"], "foto.heic", { type: "image/heic" }),
+      new File(["x"], "foto.gif", { type: "image/gif" }),
       { applyAccept: false },
     );
 
     expect(screen.getByText("Use uma foto JPEG, PNG ou WebP.").id).toBe("erro-foto");
+    expect(actions.prepararUpload).not.toHaveBeenCalled();
+  });
+
+  it("foto HEIC do iPhone: diz que é HEIC e como exportar em JPEG — mesmo com o tipo vazio", async () => {
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await userEvent.upload(screen.getByLabelText("Foto"), new File(["x"], "IMG_0042.HEIC", { type: "" }), {
+      applyAccept: false,
+    });
+
+    const erro = document.getElementById("erro-foto")!;
+    expect(erro.textContent).toMatch(/HEIC.*JPEG/);
     expect(actions.prepararUpload).not.toHaveBeenCalled();
   });
 });
@@ -138,9 +150,8 @@ describe("FotoUploadForm — envio", () => {
     await preencherEEnviar();
 
     await waitFor(() => expect(actions.descartarUpload).toHaveBeenCalledWith(CAFE, CAMINHO));
-    expect(
-      await screen.findByText("Não deu para enviar a foto agora. Tente de novo em instantes."),
-    ).toBeTruthy();
+    expect(await screen.findByText(/A foto pode ou não ter entrado: recarregue a página/)).toBeTruthy();
+    expect(detalhes()).toContain("Etapa: registrar");
   });
 
   it("bucket recusa o arquivo (tamanho): mensagem clara e nada é registrado", async () => {
@@ -154,5 +165,104 @@ describe("FotoUploadForm — envio", () => {
       await screen.findByText("A foto convertida passou de 2 MB. Tente uma foto com menos detalhes."),
     ).toBeTruthy();
     expect(actions.registrarFoto).not.toHaveBeenCalled();
+  });
+});
+
+/** O texto de "Detalhes técnicos" (recolhido, mas no DOM). */
+function detalhes(): string {
+  const resumo = screen.getByText("Detalhes técnicos");
+  return resumo.closest("details")!.textContent ?? "";
+}
+
+describe("FotoUploadForm — erro por etapa e causa (#74)", () => {
+  it("sessão expirada: explica, oferece entrar de novo e mantém a foto e os campos", async () => {
+    navegador();
+    actions.prepararUpload.mockResolvedValue({ ok: false, falha: { etapa: "preparar", codigo: "sessao" } });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    const alerta = await screen.findByText(/Sua sessão expirou e a foto não foi enviada/);
+    expect(alerta.closest("[role=alert]")).toBeTruthy();
+    const entrar = screen.getByRole("link", { name: /Entrar de novo/ });
+    expect(entrar.getAttribute("href")).toBe(`/admin/login?next=${encodeURIComponent(`/admin/cafes/${CAFE}`)}`);
+    expect(entrar.getAttribute("target")).toBe("_blank");
+    // Nada se perdeu: a prévia e o que foi digitado continuam para reenviar.
+    expect(screen.getByAltText("Prévia da foto que vai ser enviada")).toBeTruthy();
+    expect(screen.getByLabelText("Quem autorizou")).toHaveProperty("value", "Ana, dona do café");
+    expect(screen.getByRole("radio", { name: "Cedida pelo café" })).toHaveProperty("checked", true);
+  });
+
+  it("URL assinada expirada no PUT: o envio demorou demais, sem registrar", async () => {
+    navegador({
+      put: Response.json(
+        { statusCode: "400", error: "InvalidJWT", message: '"exp" claim timestamp check failed' },
+        { status: 400 },
+      ),
+    });
+    actions.prepararUpload.mockResolvedValue({ ok: true, caminho: CAMINHO, url: URL_ASSINADA });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    expect(await screen.findByText(/O envio demorou demais e a autorização para subir a foto expirou/)).toBeTruthy();
+    expect(detalhes()).toContain("Etapa: enviar");
+    expect(detalhes()).toContain("HTTP: 400");
+    expect(actions.registrarFoto).not.toHaveBeenCalled();
+  });
+
+  it("tabela inexistente no registro: aponta a migration, com o código do Postgres nos detalhes", async () => {
+    navegador();
+    actions.prepararUpload.mockResolvedValue({ ok: true, caminho: CAMINHO, url: URL_ASSINADA });
+    actions.registrarFoto.mockResolvedValue({
+      ok: false,
+      falha: { etapa: "registrar", codigo: "42P01", original: 'relation "public.cafe_fotos" does not exist' },
+    });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    expect(await screen.findByText(/A tabela de fotos não existe no banco/)).toBeTruthy();
+    expect(detalhes()).toContain("Código: 42P01");
+    expect(detalhes()).toContain('relation "public.cafe_fotos" does not exist');
+  });
+
+  it("os detalhes nunca mostram a URL assinada nem o token", async () => {
+    navegador();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError(`Failed to fetch ${URL_ASSINADA}`);
+      }),
+    );
+    actions.prepararUpload.mockResolvedValue({ ok: true, caminho: CAMINHO, url: URL_ASSINADA });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    expect(await screen.findByText(/A conexão caiu durante o envio/)).toBeTruthy();
+    expect(detalhes()).not.toMatch(/token|supabase\.co/);
+  });
+
+  it("sem internet ao clicar: avisa sem chamar o servidor", async () => {
+    navegador();
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    expect(await screen.findByText(/Você está sem internet/)).toBeTruthy();
+    expect(actions.prepararUpload).not.toHaveBeenCalled();
+  });
+
+  it("o foco vai para o erro (o botão ficou desabilitado durante o envio)", async () => {
+    navegador();
+    actions.prepararUpload.mockResolvedValue({ ok: false, falha: { etapa: "preparar", codigo: "bucket" } });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await preencherEEnviar();
+
+    const alerta = (await screen.findByText(/O bucket de fotos não existe/)).closest("[role=alert]")!;
+    await waitFor(() => expect(alerta.contains(document.activeElement)).toBe(true));
   });
 });

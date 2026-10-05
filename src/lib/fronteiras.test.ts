@@ -110,40 +110,42 @@ describe("toda Server Action do admin começa com requireAdmin", () => {
   }
 });
 
+// Server Action fora do formato `export async function` escaparia das guardas
+// (o `corpos` não a enxerga): nos arquivos `"use server"` do admin, só esse.
+it("Server Actions do admin são `export async function` (as guardas abaixo leem só esse formato)", () => {
+  const foraDoFormato = arquivos
+    .filter(({ caminho, codigo }) => caminho.startsWith("lib/admin/") && /^"use server";$/m.test(codigo))
+    .filter(({ codigo }) => /^export (const|let|var|default|function)\b/m.test(codigo))
+    .map(({ caminho }) => caminho);
+  expect(foraDoFormato).toEqual([]);
+});
+
 // Cinto de segurança (#75): fora da produção da Vercel, o dev aponta para o
-// banco de produção. Toda action que grava (tabela ou Storage) checa o modo
-// leitura logo depois do `requireAdmin()`, antes de qualquer efeito.
-describe("toda Server Action que grava respeita o modo leitura", () => {
-  const ESCRITA = /\.from\(|\.storage\b|\.insert\(|\.update\(|\.delete\(|\.remove\(/;
-  const QUE_GRAVAM = ACOES_DO_ADMIN.filter(({ corpo }) => ESCRITA.test(corpo));
+// banco de produção. Toda action do admin (menos as da auth) checa o modo
+// leitura logo depois do `requireAdmin()`, antes de qualquer efeito — exceto
+// as declaradas só de leitura. Opt-out explícito, não opt-in: uma action nova
+// que gravasse por um helper escaparia de uma busca por `.insert`/`.update`.
+describe("toda Server Action do admin respeita o modo leitura", () => {
+  const SO_LEITURA = ["coordenadasDoLink"];
+  const ESCRITA = /\.from\(|\.storage\b|\.insert\(|\.update\(|\.delete\(|\.remove\(|revalidat/;
+  const DO_DIRETORIO = ACOES_DO_ADMIN.filter((a) => a.arquivo !== "lib/admin/auth-actions.ts");
 
-  it("a varredura acha as actions que gravam (e não as que só leem ou autenticam)", () => {
-    const nomes = QUE_GRAVAM.map(({ nome }) => nome);
-    expect(nomes).toEqual(
-      expect.arrayContaining([
-        "salvarDadosCafe",
-        "cadastrarCafe",
-        "definirStatus",
-        "prepararUpload",
-        "registrarFoto",
-        "descartarUpload",
-        "reordenarFoto",
-        "removerFoto",
-      ]),
-    );
-    expect(nomes).not.toContain("coordenadasDoLink");
-    expect(nomes).not.toContain("entrar");
-    expect(nomes).not.toContain("sair");
-  });
+  for (const nome of SO_LEITURA) {
+    it(`${nome}() existe e não grava nada (senão sai da lista de só leitura)`, () => {
+      const acao = DO_DIRETORIO.find((a) => a.nome === nome);
+      expect(acao, "action não encontrada").toBeDefined();
+      expect(acao?.corpo).not.toMatch(ESCRITA);
+    });
+  }
 
-  for (const { arquivo, nome, corpo } of QUE_GRAVAM) {
+  for (const { arquivo, nome, corpo } of DO_DIRETORIO.filter((a) => !SO_LEITURA.includes(a.nome))) {
     it(`${arquivo} › ${nome}() checa o modo leitura depois do requireAdmin e antes de qualquer efeito`, () => {
       const admin = corpo.indexOf("await requireAdmin()");
       const bloqueio = corpo.indexOf("bloqueioDeEscrita()");
       const efeito = corpo.search(EFEITO);
       expect(bloqueio, "não chama bloqueioDeEscrita()").toBeGreaterThanOrEqual(0);
       expect(bloqueio, "bloqueioDeEscrita() vem antes do requireAdmin()").toBeGreaterThan(admin);
-      expect(bloqueio, "bloqueioDeEscrita() vem depois de um efeito").toBeLessThan(efeito);
+      if (efeito >= 0) expect(bloqueio, "bloqueioDeEscrita() vem depois de um efeito").toBeLessThan(efeito);
     });
   }
 });

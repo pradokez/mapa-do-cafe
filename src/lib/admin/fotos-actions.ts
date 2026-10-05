@@ -30,6 +30,7 @@ import {
 } from "@/lib/foto-upload";
 import { createSessionClient } from "@/lib/supabase-server";
 
+import { bloqueioDeEscrita } from "./escrita";
 import { requireAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
 
@@ -55,6 +56,8 @@ export async function prepararUpload(
   arquivo: { type: string; size: number },
 ): Promise<ResultadoPreparo> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const validacao = autorizacao(campos);
   if (!validacao.ok) return { ok: false, erro: null, erros: validacao.erros };
@@ -79,6 +82,8 @@ export async function registrarFoto(
   campos: CamposAutorizacao,
 ): Promise<ResultadoFoto> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
   if (!ehCaminhoDoCafe(cafeId, caminho)) return { ok: false, erro: ERRO_GERAL };
 
   const supabase = createSessionClient();
@@ -119,6 +124,7 @@ function revalidarFotos(slug: string) {
  */
 export async function descartarUpload(cafeId: string, caminho: string): Promise<void> {
   await requireAdmin();
+  if (bloqueioDeEscrita()) return;
   if (!ehCaminhoDoCafe(cafeId, caminho)) return;
   if (await fotoRegistrada(caminho)) return;
 
@@ -147,6 +153,8 @@ async function fotoDoCafe(cafeId: string, fotoId: string) {
  */
 export async function reordenarFoto(cafeId: string, fotoId: string, movimento: Movimento): Promise<ResultadoAcaoFoto> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const achado = await fotoDoCafe(cafeId, fotoId);
   if (!achado) return { ok: false, erro: ERRO_FOTO };
@@ -185,6 +193,8 @@ export async function reordenarFoto(cafeId: string, fotoId: string, movimento: M
  */
 export async function removerFoto(cafeId: string, fotoId: string): Promise<ResultadoAcaoFoto> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const achado = await fotoDoCafe(cafeId, fotoId);
   if (!achado) return { ok: false, erro: ERRO_FOTO };

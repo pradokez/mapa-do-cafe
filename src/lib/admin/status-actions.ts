@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { getCafeById } from "@/lib/cafe-repository";
 import { createSessionClient } from "@/lib/supabase-server";
 
+import { bloqueioDeEscrita } from "./escrita";
 import { requireAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
 
@@ -24,6 +25,8 @@ const ERRO_CAFE = "Este café não foi encontrado.";
  */
 export async function definirStatus(cafeId: string, ativo: boolean): Promise<ResultadoStatus> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
   if (typeof ativo !== "boolean") return { ok: false, erro: ERRO_GERAL };
 
   const cafe = await getCafeById(String(cafeId));

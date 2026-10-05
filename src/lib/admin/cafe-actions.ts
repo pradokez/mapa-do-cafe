@@ -20,6 +20,7 @@ import {
 import { getCafeById } from "@/lib/cafe-repository";
 import { createSessionClient } from "@/lib/supabase-server";
 
+import { bloqueioDeEscrita } from "./escrita";
 import { requireAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
 
@@ -31,6 +32,8 @@ const ERRO_CAFE = "Este café não foi encontrado.";
 /** Grava os dados editáveis (nunca `id`, `slug`, `fotos` nem `ativo`) e devolve o café como ficou. */
 export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<ResultadoSalvar> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
   if (!isUuid(cafeId)) return { ok: false, erro: ERRO_CAFE };
 
   const validacao = validarDadosCafe(campos);
@@ -64,6 +67,8 @@ const SLUG_REPETIDO = "23505";
  */
 export async function cadastrarCafe(campos: unknown): Promise<ResultadoCadastro> {
   await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
 
   const validacao = validarNovoCafe(campos);
   if (!validacao.ok) return { ok: false, erro: null, erros: validacao.erros };

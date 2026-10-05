@@ -73,36 +73,77 @@ describe("fronteira do Mapbox", () => {
   });
 });
 
+// Server Actions do admin, achadas por varredura (não por lista fixa): action
+// nova em `lib/admin/` entra nas guardas abaixo sem ninguém lembrar.
+const ACOES_DO_ADMIN = arquivos
+  .filter(({ caminho, codigo }) => caminho.startsWith("lib/admin/") && /^"use server";$/m.test(codigo))
+  .flatMap(({ caminho, codigo }) => corpos(codigo).map((acao) => ({ arquivo: caminho, ...acao })));
+
+/** Cada `export async function` do arquivo, com o corpo até a próxima. */
+function corpos(codigo: string): { nome: string; corpo: string }[] {
+  const blocos: { nome: string; corpo: string }[] = [];
+  const inicio = /export async function (\w+)/g;
+  let atual: RegExpExecArray | null;
+  while ((atual = inicio.exec(codigo)) !== null) {
+    const fim = codigo.indexOf("export async function", inicio.lastIndex);
+    blocos.push({ nome: atual[1], corpo: codigo.slice(atual.index, fim === -1 ? undefined : fim) });
+  }
+  return blocos;
+}
+
+// Qualquer leitura, escrita ou efeito.
+const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
+
 // Guarda de segurança (#59): a checagem de admin mora DENTRO de cada Server
 // Action de escrita, não só na página. Uma action que esquecesse o
 // `requireAdmin()` — ou o chamasse depois de já ler/gravar — seria chamável por
-// `fetch` direto, sem sessão (ver docs/security/pentest-2026-10.md).
-describe("toda Server Action de escrita começa com requireAdmin", () => {
-  const ACOES_DE_ESCRITA = ["admin/status-actions.ts", "admin/fotos-actions.ts", "admin/cafe-actions.ts"];
-  // Qualquer leitura, escrita ou efeito: nada pode vir antes do `requireAdmin()`.
-  const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
+// `fetch` direto, sem sessão (ver docs/security/pentest-2026-10.md). As de
+// `auth-actions.ts` (login, código, sair) são a porta de entrada: ficam de fora.
+describe("toda Server Action do admin começa com requireAdmin", () => {
+  for (const { arquivo, nome, corpo } of ACOES_DO_ADMIN.filter((a) => a.arquivo !== "lib/admin/auth-actions.ts")) {
+    it(`${arquivo} › ${nome}() chama requireAdmin antes de qualquer efeito`, () => {
+      const admin = corpo.indexOf("await requireAdmin()");
+      const efeito = corpo.search(EFEITO);
+      expect(admin, "não chama requireAdmin()").toBeGreaterThanOrEqual(0);
+      if (efeito >= 0) expect(admin, "requireAdmin() vem depois de um efeito").toBeLessThan(efeito);
+    });
+  }
+});
 
-  const corpos = (codigo: string): { nome: string; corpo: string }[] => {
-    const blocos: { nome: string; corpo: string }[] = [];
-    const inicio = /export async function (\w+)/g;
-    let atual: RegExpExecArray | null;
-    while ((atual = inicio.exec(codigo)) !== null) {
-      const proximo = inicio.lastIndex;
-      const fim = codigo.indexOf("export async function", proximo);
-      blocos.push({ nome: atual[1], corpo: codigo.slice(atual.index, fim === -1 ? undefined : fim) });
-    }
-    return blocos;
-  };
+// Cinto de segurança (#75): fora da produção da Vercel, o dev aponta para o
+// banco de produção. Toda action que grava (tabela ou Storage) checa o modo
+// leitura logo depois do `requireAdmin()`, antes de qualquer efeito.
+describe("toda Server Action que grava respeita o modo leitura", () => {
+  const ESCRITA = /\.from\(|\.storage\b|\.insert\(|\.update\(|\.delete\(|\.remove\(/;
+  const QUE_GRAVAM = ACOES_DO_ADMIN.filter(({ corpo }) => ESCRITA.test(corpo));
 
-  for (const arquivo of ACOES_DE_ESCRITA) {
-    const codigo = readFileSync(join(SRC, "lib", arquivo), "utf8");
-    for (const { nome, corpo } of corpos(codigo)) {
-      it(`${arquivo} › ${nome}() chama requireAdmin antes de qualquer efeito`, () => {
-        const admin = corpo.indexOf("await requireAdmin()");
-        const efeito = corpo.search(EFEITO);
-        expect(admin, "não chama requireAdmin()").toBeGreaterThanOrEqual(0);
-        if (efeito >= 0) expect(admin, "requireAdmin() vem depois de um efeito").toBeLessThan(efeito);
-      });
-    }
+  it("a varredura acha as actions que gravam (e não as que só leem ou autenticam)", () => {
+    const nomes = QUE_GRAVAM.map(({ nome }) => nome);
+    expect(nomes).toEqual(
+      expect.arrayContaining([
+        "salvarDadosCafe",
+        "cadastrarCafe",
+        "definirStatus",
+        "prepararUpload",
+        "registrarFoto",
+        "descartarUpload",
+        "reordenarFoto",
+        "removerFoto",
+      ]),
+    );
+    expect(nomes).not.toContain("coordenadasDoLink");
+    expect(nomes).not.toContain("entrar");
+    expect(nomes).not.toContain("sair");
+  });
+
+  for (const { arquivo, nome, corpo } of QUE_GRAVAM) {
+    it(`${arquivo} › ${nome}() checa o modo leitura depois do requireAdmin e antes de qualquer efeito`, () => {
+      const admin = corpo.indexOf("await requireAdmin()");
+      const bloqueio = corpo.indexOf("bloqueioDeEscrita()");
+      const efeito = corpo.search(EFEITO);
+      expect(bloqueio, "não chama bloqueioDeEscrita()").toBeGreaterThanOrEqual(0);
+      expect(bloqueio, "bloqueioDeEscrita() vem antes do requireAdmin()").toBeGreaterThan(admin);
+      expect(bloqueio, "bloqueioDeEscrita() vem depois de um efeito").toBeLessThan(efeito);
+    });
   }
 });

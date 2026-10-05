@@ -256,7 +256,7 @@ Vem do design. Não reinventar na implementação.
 - Busca: placeholder "Buscar café ou bairro"
 - Horário: "Aberto hoje" (`open`) / "Fechado hoje" (`terracotta`); quando fechado, complemento "abre amanhã". Horas como no design: `8h – 18h`, `8h30` (`formatarHorario`; o `jsonb` segue `HH:MM`)
 - Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Elevado — desvio consciente: o design dizia "Especial", que num diretório de cafés especiais soava como qualidade, não preço
-- Avaliações: "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." + botão "Avise-me quando abrir"
+- Avaliações: pílula "Em breve" + "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." — **sem CTA**, desvio consciente do design (#80): o "Avise-me quando abrir" prometia um aviso que nunca chegava, e guardar o email exige double opt-in, texto de privacidade (LGPD), descadastro e proteção contra robôs, para uma Fase 3 sem data. Se ela ganhar data, o aviso volta como issue própria com esse pacote
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Selo Eu Amo Café" · "Comodidades" · "Horário de funcionamento"
 - Distância: `1,2 km` (vírgula), depois do local: `Graças · 1,2 km`; no detalhe, "1,2 km de você"
@@ -267,7 +267,6 @@ Vem do design. Não reinventar na implementação.
 - Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
 - Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
 - Nota depois do horário, antes de "Avaliações": "Informações podem mudar. Na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
-- "Avise-me quando abrir" → "Anotado! A gente te avisa quando abrir." (confirmação local, sem persistir)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (2 selos + 6 booleanos; ar-condicionado só quando `true`) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
 - Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título

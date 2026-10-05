@@ -6,6 +6,11 @@ export function contadorLabel(n: number): string {
   return n === 1 ? "1 café encontrado" : `${n} cafés encontrados`;
 }
 
+/** "1 café" / "N cafés": total do painel do admin. */
+export function totalDeCafes(n: number): string {
+  return n === 1 ? "1 café" : `${n} cafés`;
+}
+
 /** Nome da cidade no card: "Jaboatão dos Guararapes" não cabe ao lado do bairro e da distância. */
 const CIDADE_CURTA: Record<Exclude<Cidade, "Recife">, string> = {
   Olinda: "Olinda",

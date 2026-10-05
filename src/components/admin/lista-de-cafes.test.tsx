@@ -31,6 +31,19 @@ describe("ListaDeCafes", () => {
     expect(screen.queryByRole("link", { name: "Limpar busca" })).toBeNull();
   });
 
+  it("busca só com espaços conta como sem busca", () => {
+    render(<ListaDeCafes cafes={CAFES} q="   " />);
+
+    expect(nomesNaTabela()).toHaveLength(3);
+    expect(screen.queryByRole("link", { name: "Limpar busca" })).toBeNull();
+  });
+
+  it("com várias palavras, cada uma precisa casar com o nome ou o bairro", () => {
+    render(<ListaDeCafes cafes={CAFES} q="borsoi pina" />);
+
+    expect(nomesNaTabela()).toEqual(["Borsoi Café"]);
+  });
+
   it("com busca, mostra só os que casam por nome ou bairro, inclusive os fora do ar", () => {
     render(<ListaDeCafes cafes={CAFES} q="GRACAS" />);
 

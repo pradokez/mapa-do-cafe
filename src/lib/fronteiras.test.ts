@@ -77,7 +77,10 @@ describe("fronteira do Mapbox", () => {
 // Action de escrita, não só na página. Uma action que esquecesse o
 // `requireAdmin()` — ou o chamasse depois de já ler/gravar — seria chamável por
 // `fetch` direto, sem sessão (ver docs/security/pentest-2026-10.md).
+// As de foto (#74) usam `sessaoDeAdmin()`, que não redireciona: vale só com o
+// retorno checado na mesma linha, `if (!(await sessaoDeAdmin()))`.
 describe("toda Server Action de escrita começa com requireAdmin", () => {
+  const GUARDA = /await requireAdmin\(\)|if \(!\(await sessaoDeAdmin\(\)\)\)/;
   const ACOES_DE_ESCRITA = ["admin/status-actions.ts", "admin/fotos-actions.ts", "admin/cafe-actions.ts"];
   // Qualquer leitura, escrita ou efeito: nada pode vir antes do `requireAdmin()`.
   const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
@@ -98,7 +101,7 @@ describe("toda Server Action de escrita começa com requireAdmin", () => {
     const codigo = readFileSync(join(SRC, "lib", arquivo), "utf8");
     for (const { nome, corpo } of corpos(codigo)) {
       it(`${arquivo} › ${nome}() chama requireAdmin antes de qualquer efeito`, () => {
-        const admin = corpo.indexOf("await requireAdmin()");
+        const admin = corpo.search(GUARDA);
         const efeito = corpo.search(EFEITO);
         expect(admin, "não chama requireAdmin()").toBeGreaterThanOrEqual(0);
         if (efeito >= 0) expect(admin, "requireAdmin() vem depois de um efeito").toBeLessThan(efeito);

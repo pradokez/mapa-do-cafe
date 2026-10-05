@@ -38,6 +38,12 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const naTelaDeLogin = pathname === "/admin/login";
 
+  // Server Action (POST com `Next-Action`) segue com o cookie renovado, sem
+  // redirect: um 307 para o login faria a action rejeitar no cliente, como se
+  // fosse queda de rede. A action se defende sozinha (`requireAdmin` ou
+  // `sessaoDeAdmin`, e a RLS) — e a de foto explica a sessão expirada (#74).
+  if (request.headers.has("next-action")) return response;
+
   if (pronto && naTelaDeLogin) {
     return redirecionar(request, response, destinoSeguro(request.nextUrl.searchParams.get("next")));
   }

@@ -13,8 +13,18 @@ const MAX_ENTRADA = 15 * MB;
 
 type Arquivo = { type: string; size: number };
 
+export const ERRO_HEIC =
+  "Esta foto está em HEIC, o formato do iPhone, que o navegador não abre. Exporte em JPEG (no Mac: Fotos › Arquivo › Exportar; no iPhone: Ajustes › Câmera › Formatos › Mais Compatível) e escolha de novo.";
+
+/** HEIC/HEIF pelo tipo — ou pela extensão, quando o navegador não reconhece o tipo e o deixa vazio. */
+function ehHeic({ type, name = "" }: Arquivo & { name?: string }): boolean {
+  if (type === "image/heic" || type === "image/heif") return true;
+  return type === "" && /\.hei[cf]$/i.test(name);
+}
+
 /** Foto escolhida, antes de converter: mensagem do problema ou `null`. */
-export function checarArquivo({ type, size }: Arquivo): string | null {
+export function checarArquivo({ type, size, name }: Arquivo & { name?: string }): string | null {
+  if (ehHeic({ type, size, name })) return ERRO_HEIC;
   if (!(TIPOS_ENTRADA as readonly string[]).includes(type)) return "Use uma foto JPEG, PNG ou WebP.";
   if (size <= 0) return "O arquivo está vazio.";
   if (size > MAX_ENTRADA) return "A foto tem mais de 15 MB.";

@@ -5,6 +5,7 @@ import {
   checarArquivo,
   checarWebp,
   dimensoesDestino,
+  ERRO_HEIC,
   ehCaminhoDoCafe,
   hojeEmRecife,
   validarAutorizacao,
@@ -20,9 +21,19 @@ describe("checarArquivo (foto escolhida, antes de converter)", () => {
   });
 
   it("recusa outro tipo com mensagem em pt-BR", () => {
-    for (const type of ["image/heic", "image/gif", "application/pdf", ""]) {
+    for (const type of ["image/gif", "application/pdf", ""]) {
       expect(checarArquivo({ type, size: MB })).toBe("Use uma foto JPEG, PNG ou WebP.");
     }
+  });
+
+  it("foto HEIC do iPhone (pelo tipo, ou pela extensão quando o tipo vem vazio): diz que é HEIC e como exportar", () => {
+    expect(ERRO_HEIC).toMatch(/HEIC/);
+    expect(ERRO_HEIC).toMatch(/JPEG/);
+    expect(checarArquivo({ type: "image/heic", size: MB })).toBe(ERRO_HEIC);
+    expect(checarArquivo({ type: "image/heif", size: MB })).toBe(ERRO_HEIC);
+    expect(checarArquivo({ type: "", size: MB, name: "IMG_0001.HEIC" })).toBe(ERRO_HEIC);
+    expect(checarArquivo({ type: "", size: MB, name: "foto.heif" })).toBe(ERRO_HEIC);
+    expect(checarArquivo({ type: "", size: MB, name: "foto.gif" })).toBe("Use uma foto JPEG, PNG ou WebP.");
   });
 
   it("recusa acima de 15 MB", () => {

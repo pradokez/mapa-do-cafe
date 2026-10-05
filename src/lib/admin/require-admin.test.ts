@@ -78,3 +78,33 @@ describe("requireAdmin", () => {
     expect(await chamar()).toEqual({ ok: false, destino: "/admin/login" });
   });
 });
+
+/**
+ * `sessaoDeAdmin` (#74): a mesma decisão, sem redirect — para a Server Action
+ * de foto explicar a sessão expirada em vez de navegar para o login e apagar o
+ * formulário.
+ */
+describe("sessaoDeAdmin", () => {
+  async function sessao() {
+    const { sessaoDeAdmin } = await import("./require-admin");
+    return sessaoDeAdmin();
+  }
+
+  it("admin aal2 devolve o email", async () => {
+    expect(await sessao()).toEqual({ email: "admin@mapadocafe-pe.com.br" });
+  });
+
+  it("sem usuário, sem papel ou sem segundo fator devolve null, sem redirecionar", async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: { message: "bad jwt" } });
+    expect(await sessao()).toBeNull();
+
+    getUser.mockResolvedValue({ data: { user: { user_metadata: { role: "admin" }, app_metadata: {} } }, error: null });
+    expect(await sessao()).toBeNull();
+
+    getUser.mockResolvedValue({ data: { user: admin }, error: null });
+    getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: "aal1" } });
+    expect(await sessao()).toBeNull();
+
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});

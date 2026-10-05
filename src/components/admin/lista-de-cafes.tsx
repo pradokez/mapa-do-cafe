@@ -18,7 +18,7 @@ export function ListaDeCafes({ cafes, q }: { cafes: Cafe[]; q: string }) {
 
   return (
     <>
-      <form method="get" action="/admin" role="search" className="mb-4 flex gap-2">
+      <form method="get" action="/admin" role="search" className="mb-4 flex items-center gap-2">
         <label htmlFor="busca" className="sr-only">
           Buscar café
         </label>

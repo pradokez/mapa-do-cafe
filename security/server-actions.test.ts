@@ -12,6 +12,8 @@ import { APP_URL, motivoSemEscrita, PODE_ESCREVER } from "./env";
  * por `fetch` — sem cookie e com `Origin` de outro domínio (CSRF) — e conferimos
  * que nenhuma escreve. Requer um app rodando contra o projeto DESCARTÁVEL
  * (`SECURITY_APP_URL`) e um `pnpm build` (o manifesto dos action IDs).
+ * O app sobe com `ADMIN_ESCRITA_LIBERADA=1` (#75): sem ela, o modo leitura
+ * recusaria primeiro e o teste passaria sem provar nada das outras camadas.
  * Ver docs/security/pentest-2026-10.md.
  */
 
@@ -65,7 +67,7 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     try {
       await fetch(`${APP_URL}/admin/login`, { redirect: "manual", signal: AbortSignal.timeout(5000) });
     } catch {
-      indisponivel = `app não responde em ${APP_URL} (rode um next start apontado para o descartável)`;
+      indisponivel = `app não responde em ${APP_URL} (rode ADMIN_ESCRITA_LIBERADA=1 pnpm start apontado para o descartável)`;
       console.warn(`[security] exploit de Server Actions pulado: ${indisponivel}`);
     }
     const { count: c } = await service.from("cafes").select("*", { count: "exact", head: true });

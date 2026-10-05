@@ -350,7 +350,7 @@ function ErroDoEnvio({ falha, cafeId }: { falha: Falha | null; cafeId: string })
                 <a
                   href={urlDoLogin(`/admin/cafes/${cafeId}`)}
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="font-semibold text-espresso underline underline-offset-2"
                 >
                   Entrar de novo (abre em outra aba)

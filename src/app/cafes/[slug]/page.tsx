@@ -16,7 +16,6 @@ import {
   DETALHE_TAG,
   DETALHE_TRILHA,
 } from "@/components/medidas";
-import { NotifyButton } from "@/components/notify-button";
 import { SiteHeader } from "@/components/site-header";
 import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
@@ -162,7 +161,6 @@ export default async function CafePage({ params }: Props) {
                 <p className="max-w-[380px] text-pretty text-[14.5px] leading-[1.55] text-ink-2">
                   Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento.
                 </p>
-                <NotifyButton />
               </div>
             </section>
           </div>

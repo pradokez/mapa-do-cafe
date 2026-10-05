@@ -224,7 +224,7 @@ export function slugify(texto: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const MAX_SLUG = 80;
 
 /**

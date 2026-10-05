@@ -5,6 +5,7 @@ import { ListaDeCafes } from "@/components/admin/lista-de-cafes";
 import { PlusIcon } from "@/components/icons";
 import { listTodosCafes } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
+import { totalDeCafes } from "@/lib/format";
 
 type Props = { searchParams: { q?: string | string[] } };
 
@@ -21,7 +22,7 @@ export default async function AdminHome({ searchParams }: Props) {
         <div>
           <h1 className="font-display text-[30px] leading-[1.1] text-espresso">Cafés</h1>
           <p className="mt-1.5 text-[14px] text-ink-3">
-            {cafes.length === 1 ? "1 café" : `${cafes.length} cafés`} · {noAr} no ar ·{" "}
+            {totalDeCafes(cafes.length)} · {noAr} no ar ·{" "}
             {cafes.length - noAr} fora do ar
           </p>
         </div>

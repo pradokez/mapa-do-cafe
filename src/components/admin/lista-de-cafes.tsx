@@ -4,6 +4,7 @@ import { botaoNeutroClass, inputClass } from "@/components/admin/form";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
 import type { Cafe } from "@/lib/cafe";
 import { FILTROS_VAZIOS, filtrarCafes } from "@/lib/cafe-filter";
+import { totalDeCafes } from "@/lib/format";
 
 const limparClass = "font-semibold text-terracotta hover:underline";
 
@@ -36,7 +37,7 @@ export function ListaDeCafes({ cafes, q }: { cafes: Cafe[]; q: string }) {
 
       {buscando && visiveis.length > 0 && (
         <p className="mb-3 text-[14px] text-ink-3">
-          <span>{`${visiveis.length} de ${cafes.length === 1 ? "1 café" : `${cafes.length} cafés`}`}</span> ·{" "}
+          <span>{`${visiveis.length} de ${totalDeCafes(cafes.length)}`}</span> ·{" "}
           <Link href="/admin" className={limparClass}>
             Limpar busca
           </Link>

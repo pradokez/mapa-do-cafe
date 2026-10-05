@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contadorLabel, faixaPrecoNome, googleMapsUrl, instagramUrl, localLabel } from "./format";
+import { contadorLabel, faixaPrecoNome, googleMapsUrl, instagramUrl, localLabel, totalDeCafes } from "./format";
 
 describe("contadorLabel", () => {
   it.each([
@@ -10,6 +10,16 @@ describe("contadorLabel", () => {
     [27, "27 cafés encontrados"],
   ])("%i → %s", (n, label) => {
     expect(contadorLabel(n)).toBe(label);
+  });
+});
+
+describe("totalDeCafes", () => {
+  it.each([
+    [0, "0 cafés"],
+    [1, "1 café"],
+    [53, "53 cafés"],
+  ])("%i → %s", (n, label) => {
+    expect(totalDeCafes(n)).toBe(label);
   });
 });
 

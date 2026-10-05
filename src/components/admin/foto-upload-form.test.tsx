@@ -140,6 +140,26 @@ describe("FotoUploadForm — envio", () => {
     expect(screen.queryByAltText("Prévia da foto que vai ser enviada")).toBeNull();
   });
 
+  it("canvas sem memória (toBlob devolve null): pede foto menor, sem confundir com arquivo corrompido", async () => {
+    navegador();
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((callback) => callback(null));
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await userEvent.upload(screen.getByLabelText("Foto"), new File(["jpg"], "foto.jpg", { type: "image/jpeg" }));
+
+    expect(await screen.findByText(/grande demais para a memória dele/)).toBeTruthy();
+  });
+
+  it("arquivo que o navegador não decodifica: pode estar corrompido, tente outra", async () => {
+    navegador();
+    vi.stubGlobal("createImageBitmap", vi.fn(async () => Promise.reject(new DOMException("bad", "InvalidStateError"))));
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    await userEvent.upload(screen.getByLabelText("Foto"), new File(["jpg"], "foto.jpg", { type: "image/jpeg" }));
+
+    expect(await screen.findByText(/O arquivo pode estar corrompido/)).toBeTruthy();
+  });
+
   it("registro que não responde depois do upload: o arquivo é descartado (sem órfão)", async () => {
     navegador();
     actions.prepararUpload.mockResolvedValue({ ok: true, caminho: CAMINHO, url: URL_ASSINADA });

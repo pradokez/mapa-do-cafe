@@ -10,10 +10,11 @@
 
 export type EscritaDoAdmin = { liberada: true } | { liberada: false; motivo: string };
 
-const MOTIVO = "Modo leitura: a gravação está desligada fora da produção (ADMIN_ESCRITA_LIBERADA=1 libera).";
+/** O aviso da faixa do painel e o erro das actions bloqueadas. */
+export const MODO_LEITURA = "Modo leitura: a gravação está desligada fora da produção (ADMIN_ESCRITA_LIBERADA=1 libera).";
 
 export function escritaDoAdmin(env: Partial<Record<string, string>> = process.env): EscritaDoAdmin {
   // Valor exato: "true", "0" ou "1 " não liberam — liberar é sempre de propósito.
   if (env.VERCEL_ENV === "production" || env.ADMIN_ESCRITA_LIBERADA === "1") return { liberada: true };
-  return { liberada: false, motivo: MOTIVO };
+  return { liberada: false, motivo: MODO_LEITURA };
 }

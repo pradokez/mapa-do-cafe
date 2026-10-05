@@ -28,26 +28,49 @@ import {
   validarAutorizacao,
   type CampoAutorizacao,
 } from "@/lib/foto-upload";
+import { falhaDoPostgres, falhaDoStorage, type Etapa, type Falha } from "@/lib/foto-upload-erro";
 import { createSessionClient } from "@/lib/supabase-server";
 
 import { bloqueioDeEscrita } from "./escrita";
-import { requireAdmin } from "./require-admin";
+import { requireAdmin, sessaoDeAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
 
 export type CamposAutorizacao = Partial<Record<CampoAutorizacao, unknown>>;
 
+/**
+ * `falha` diz a etapa e a causa (#74); o formulário a traduz em frase com
+ * `mensagemDaFalha`. Erro de campo vem em `erros`, com `falha: null`.
+ */
 export type ResultadoFoto =
   | { ok: true }
-  | { ok: false; erro: string | null; erros?: Partial<Record<CampoAutorizacao, string>> };
+  | { ok: false; falha: Falha | null; erros?: Partial<Record<CampoAutorizacao, string>> };
 
-export type ResultadoPreparo = { ok: true; caminho: string; url: string } | Extract<ResultadoFoto, { ok: false }>;
+type FalhaFoto = Extract<ResultadoFoto, { ok: false }>;
 
-const ERRO_GERAL = "Não deu para enviar a foto agora. Tente de novo em instantes.";
-const ERRO_CAFE = "Este café não foi encontrado.";
+export type ResultadoPreparo = { ok: true; caminho: string; url: string } | FalhaFoto;
 
 function autorizacao(campos: CamposAutorizacao) {
   return validarAutorizacao(campos ?? {}, hojeEmRecife(new Date()));
 }
+
+/**
+ * Registra a falha nos logs da Vercel e a devolve. Só etapa, causa, café e
+ * caminho: a mensagem original já vem saneada (sem URL assinada nem token).
+ */
+function falhou(falha: Falha, contexto: { cafeId: unknown; caminho?: unknown }): FalhaFoto {
+  const { cafeId, caminho } = contexto;
+  console.error(`[fotos] ${falha.etapa} falhou`, { ...falha, cafeId: String(cafeId), caminho });
+  return { ok: false, falha };
+}
+
+/**
+ * A sessão expirou (ou perdeu o segundo fator) com o formulário aberto: a
+ * action explica em vez de redirecionar, para a foto e os campos não sumirem.
+ */
+const sessaoExpirada = (etapa: Etapa): FalhaFoto => ({ ok: false, falha: { etapa, codigo: "sessao" } });
+
+/** Modo leitura (#75): fora da produção, nada sobe nem é registrado. */
+const modoLeitura = (etapa: Etapa): FalhaFoto => ({ ok: false, falha: { etapa, codigo: "modo-leitura" } });
 
 /** Passo 1: autorização e arquivo conferidos antes de qualquer byte subir. */
 export async function prepararUpload(
@@ -55,22 +78,24 @@ export async function prepararUpload(
   campos: CamposAutorizacao,
   arquivo: { type: string; size: number },
 ): Promise<ResultadoPreparo> {
-  await requireAdmin();
-  const bloqueio = bloqueioDeEscrita();
-  if (bloqueio) return { ok: false, erro: bloqueio };
+  if (!(await sessaoDeAdmin())) return sessaoExpirada("preparar");
+  if (bloqueioDeEscrita()) return modoLeitura("preparar");
 
   const validacao = autorizacao(campos);
-  if (!validacao.ok) return { ok: false, erro: null, erros: validacao.erros };
+  if (!validacao.ok) return { ok: false, falha: null, erros: validacao.erros };
 
-  const erroArquivo = checarWebp({ type: String(arquivo?.type), size: Number(arquivo?.size) });
-  if (erroArquivo) return { ok: false, erro: erroArquivo };
+  const tipo = String(arquivo?.type);
+  // O cliente já barra; aqui é quem contornou o formulário. A frase do bucket serve.
+  if (checarWebp({ type: tipo, size: Number(arquivo?.size) })) {
+    return { ok: false, falha: { etapa: "preparar", codigo: tipo === "image/webp" ? "413" : "415" } };
+  }
 
   const cafe = await getCafeById(String(cafeId));
-  if (!cafe) return { ok: false, erro: ERRO_CAFE };
+  if (!cafe) return falhou({ etapa: "preparar", codigo: "cafe" }, { cafeId });
 
   const caminho = caminhoDaFoto(cafe.id, crypto.randomUUID());
   const { data, error } = await createSessionClient().storage.from(BUCKET_FOTOS).createSignedUploadUrl(caminho);
-  if (error || !data) return { ok: false, erro: ERRO_GERAL };
+  if (error || !data) return falhou(falhaDoStorage("preparar", error), { cafeId, caminho });
 
   return { ok: true, caminho, url: data.signedUrl };
 }
@@ -81,32 +106,40 @@ export async function registrarFoto(
   caminho: string,
   campos: CamposAutorizacao,
 ): Promise<ResultadoFoto> {
-  await requireAdmin();
-  const bloqueio = bloqueioDeEscrita();
-  if (bloqueio) return { ok: false, erro: bloqueio };
-  if (!ehCaminhoDoCafe(cafeId, caminho)) return { ok: false, erro: ERRO_GERAL };
+  if (!(await sessaoDeAdmin())) return sessaoExpirada("registrar");
+  if (bloqueioDeEscrita()) return modoLeitura("registrar");
+  if (!ehCaminhoDoCafe(cafeId, caminho)) return falhou({ etapa: "registrar", codigo: "desconhecido" }, { cafeId });
 
   const supabase = createSessionClient();
   const fotos = supabase.storage.from(BUCKET_FOTOS);
-  const falhar = async (resultado: Extract<ResultadoFoto, { ok: false }>) => {
-    await fotos.remove([caminho]);
-    return resultado;
+  /** Apaga o arquivo; se nem isso der, a falha avisa do órfão (com o caminho). */
+  const falhar = async (falha: Falha | null, erros?: FalhaFoto["erros"]): Promise<FalhaFoto> => {
+    const { error } = await fotos.remove([caminho]);
+    const comOrfao = error && falha ? { ...falha, orfao: true, caminho } : falha;
+    if (!comOrfao) return { ok: false, falha: null, erros };
+    return { ...falhou(comOrfao, { cafeId, caminho }), erros };
   };
 
   const validacao = autorizacao(campos);
-  if (!validacao.ok) return falhar({ ok: false, erro: null, erros: validacao.erros });
+  if (!validacao.ok) return falhar(null, validacao.erros);
 
   const cafe = await getCafeById(cafeId);
-  if (!cafe) return falhar({ ok: false, erro: ERRO_CAFE });
+  if (!cafe) return falhar({ etapa: "registrar", codigo: "cafe" });
 
   // O upload pode ter falhado sem o navegador perceber: sem arquivo, sem linha.
-  const { data: existe } = await fotos.exists(caminho);
-  if (!existe) return { ok: false, erro: ERRO_GERAL };
+  // O storage-js lança (em vez de devolver `error`) para o que não é 400/404.
+  let existe: boolean;
+  try {
+    ({ data: existe } = await fotos.exists(caminho));
+  } catch (erro) {
+    return falhou({ ...falhaDoStorage("registrar", erro), codigo: "exists" }, { cafeId, caminho });
+  }
+  if (!existe) return falhou({ etapa: "registrar", codigo: "sem-arquivo" }, { cafeId, caminho });
 
   const { error } = await supabase
     .from("cafe_fotos")
     .insert({ cafe_id: cafe.id, storage_path: caminho, ...validacao.valores });
-  if (error) return falhar({ ok: false, erro: ERRO_GERAL });
+  if (error) return falhar(falhaDoPostgres(error));
 
   revalidarFotos(cafe.slug);
   return { ok: true };
@@ -123,7 +156,8 @@ function revalidarFotos(slug: string) {
  * tenha sido gravada mesmo assim — aí a foto está no ar e fica.
  */
 export async function descartarUpload(cafeId: string, caminho: string): Promise<void> {
-  await requireAdmin();
+  // Sem sessão não há o que fazer (a RLS barraria): o formulário já explicou.
+  if (!(await sessaoDeAdmin())) return;
   if (bloqueioDeEscrita()) return;
   if (!ehCaminhoDoCafe(cafeId, caminho)) return;
   if (await fotoRegistrada(caminho)) return;

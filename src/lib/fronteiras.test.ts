@@ -91,6 +91,10 @@ function corpos(codigo: string): { nome: string; corpo: string }[] {
   return blocos;
 }
 
+// A checagem de admin: `requireAdmin()`, ou `sessaoDeAdmin()` (#74), que não
+// redireciona — esta vale só com o retorno checado na mesma linha.
+const GUARDA = /await requireAdmin\(\)|if \(!\(await sessaoDeAdmin\(\)\)\)/;
+
 // Qualquer leitura, escrita ou efeito.
 const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
 
@@ -99,10 +103,11 @@ const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBy
 // `requireAdmin()` — ou o chamasse depois de já ler/gravar — seria chamável por
 // `fetch` direto, sem sessão (ver docs/security/pentest-2026-10.md). As de
 // `auth-actions.ts` (login, código, sair) são a porta de entrada: ficam de fora.
+// As de foto (#74) usam `sessaoDeAdmin()` (ver `GUARDA`).
 describe("toda Server Action do admin começa com requireAdmin", () => {
   for (const { arquivo, nome, corpo } of ACOES_DO_ADMIN.filter((a) => a.arquivo !== "lib/admin/auth-actions.ts")) {
     it(`${arquivo} › ${nome}() chama requireAdmin antes de qualquer efeito`, () => {
-      const admin = corpo.indexOf("await requireAdmin()");
+      const admin = corpo.search(GUARDA);
       const efeito = corpo.search(EFEITO);
       expect(admin, "não chama requireAdmin()").toBeGreaterThanOrEqual(0);
       if (efeito >= 0) expect(admin, "requireAdmin() vem depois de um efeito").toBeLessThan(efeito);
@@ -122,7 +127,7 @@ it("Server Actions do admin são `export async function` (as guardas abaixo leem
 
 // Cinto de segurança (#75): fora da produção da Vercel, o dev aponta para o
 // banco de produção. Toda action do admin (menos as da auth) checa o modo
-// leitura logo depois do `requireAdmin()`, antes de qualquer efeito — exceto
+// leitura logo depois da checagem de admin (`GUARDA`), antes de qualquer efeito — exceto
 // as declaradas só de leitura. Opt-out explícito, não opt-in: uma action nova
 // que gravasse por um helper escaparia de uma busca por `.insert`/`.update`.
 describe("toda Server Action do admin respeita o modo leitura", () => {
@@ -139,12 +144,13 @@ describe("toda Server Action do admin respeita o modo leitura", () => {
   }
 
   for (const { arquivo, nome, corpo } of DO_DIRETORIO.filter((a) => !SO_LEITURA.includes(a.nome))) {
-    it(`${arquivo} › ${nome}() checa o modo leitura depois do requireAdmin e antes de qualquer efeito`, () => {
-      const admin = corpo.indexOf("await requireAdmin()");
+    it(`${arquivo} › ${nome}() checa o modo leitura depois da checagem de admin e antes de qualquer efeito`, () => {
+      const admin = corpo.search(GUARDA);
       const bloqueio = corpo.indexOf("bloqueioDeEscrita()");
       const efeito = corpo.search(EFEITO);
       expect(bloqueio, "não chama bloqueioDeEscrita()").toBeGreaterThanOrEqual(0);
-      expect(bloqueio, "bloqueioDeEscrita() vem antes do requireAdmin()").toBeGreaterThan(admin);
+      expect(admin, "não checa a sessão de admin").toBeGreaterThanOrEqual(0);
+      expect(bloqueio, "bloqueioDeEscrita() vem antes da checagem de admin").toBeGreaterThan(admin);
       if (efeito >= 0) expect(bloqueio, "bloqueioDeEscrita() vem depois de um efeito").toBeLessThan(efeito);
     });
   }

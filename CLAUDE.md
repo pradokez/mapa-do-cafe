@@ -71,7 +71,7 @@ Painel só da administradora, para manter o diretório sem deploy. Não existe a
 | Rota | O quê |
 |---|---|
 | `/admin/login` | Única acessível sem sessão. Uma tela, etapas decididas no servidor: senha → código de 6 dígitos (ou, sem autenticador ainda, cadastro com QR) |
-| `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá) |
+| `/admin` | Todos os cafés, ativos e inativos (etiqueta "Fora do ar"), com nome, bairro, cidade, status, nº de fotos e "Ver no site" (só ativos — o inativo dá 404 lá). Busca por nome ou bairro (#79): `<form method="get">` → `?q=`, filtrada no servidor com `filtrarCafes` do `cafe-filter` (a mesma regra do site, inativos incluídos) — ao enviar, não a cada letra, para a lista seguir sem JavaScript. Os contadores do topo seguem sobre a lista inteira |
 | `/admin/cafes/novo` | Cadastro (#53): o mesmo formulário de Dados, em branco, com o slug. Salvar leva a `/admin/cafes/[id]?novo=1` (aviso de próximo passo) |
 | `/admin/cafes/[id]` | Cabeçalho do café e as seções Fotos (lista com autorização, ordem e remoção, #51; envio, #46), Status (tirar do ar / colocar no ar, com confirmação nos dois sentidos, #47) e Dados (formulário de edição recolhido num `<details>`, #48). Id inexistente ou malformado → 404 do admin |
 

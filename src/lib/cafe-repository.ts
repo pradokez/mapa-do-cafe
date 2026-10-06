@@ -8,6 +8,7 @@ import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
 import type { Autorizacao } from "./foto-upload";
+import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
 
@@ -141,4 +142,45 @@ export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
     supabaseEnv().url,
   );
   return data.map((foto, i) => ({ ...foto, url: urls[i] }));
+}
+
+/** Teto da lista de sugestões: sem paginação, um robô com muitos IPs não infla a página. */
+export const LIMITE_DE_SUGESTOES = 200;
+
+/**
+ * Admin: sugestões com os status pedidos, mais recentes primeiro (#84). Só o
+ * admin lê a tabela — a RLS decide; sem sessão de admin, volta vazio.
+ */
+export async function listSugestoes(status: readonly StatusSugestao[]): Promise<Sugestao[]> {
+  const { data, error } = await createSessionClient()
+    .from("sugestoes")
+    .select("id, tipo, mensagem, origem, status, criado_em")
+    .in("status", [...status])
+    .order("criado_em", { ascending: false })
+    .order("id")
+    .limit(LIMITE_DE_SUGESTOES)
+    .overrideTypes<Sugestao[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar as sugestões: ${error.message}`);
+  }
+  return data;
+}
+
+/** Admin: quantas sugestões há em cada status — o cartão do `/admin` e os chips da lista. */
+export async function contarSugestoes(): Promise<ContagemDeSugestoes> {
+  const client = createSessionClient();
+  const contagens = await Promise.all(
+    STATUS_SUGESTAO.map(async (status) => {
+      const { count, error } = await client
+        .from("sugestoes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", status);
+      if (error) {
+        throw new Error(`Falha ao contar as sugestões (${status}): ${error.message}`);
+      }
+      return [status, count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(contagens) as ContagemDeSugestoes;
 }

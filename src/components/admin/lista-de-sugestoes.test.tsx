@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Sugestao } from "@/lib/sugestao";
 
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/lib/admin/sugestoes-actions", () => ({ mudarStatusSugestao: vi.fn() }));
 // `useFormState`/`useFormStatus` vêm do React canary do Next; o `react-dom` do Vitest não os tem.
 vi.mock("react-dom", async (original) => ({
@@ -12,7 +14,7 @@ vi.mock("react-dom", async (original) => ({
   useFormStatus: () => ({ pending: false }),
 }));
 
-import { FiltroDeStatus } from "./filtro-de-status";
+import { FiltroDeStatus, TrocaDeFiltro } from "./filtro-de-status";
 import { ListaDeSugestoes } from "./lista-de-sugestoes";
 
 const AGORA = "2026-10-04T18:00:00Z";
@@ -29,7 +31,10 @@ function sugestao(campos: Partial<Sugestao>): Sugestao {
   };
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  push.mockClear();
+});
 
 describe("ListaDeSugestoes", () => {
   it("mensagem com HTML aparece como texto, sem virar elemento", () => {
@@ -117,9 +122,10 @@ describe("ListaDeSugestoes", () => {
 
 describe("FiltroDeStatus", () => {
   const contagem = { nova: 3, lida: 1, arquivada: 12 };
+  const comTroca = (ui: React.ReactElement) => render(<TrocaDeFiltro>{ui}</TrocaDeFiltro>);
 
   it("cada chip envia o filtro que resulta de clicá-lo, com aria-pressed", () => {
-    render(<FiltroDeStatus ativos={["nova", "lida"]} contagem={contagem} />);
+    comTroca(<FiltroDeStatus ativos={["nova", "lida"]} contagem={contagem} />);
 
     const chip = (nome: RegExp) => screen.getByRole("button", { name: nome });
     expect(chip(/Novas/).getAttribute("aria-pressed")).toBe("true");
@@ -130,10 +136,40 @@ describe("FiltroDeStatus", () => {
   });
 
   it("o último chip ligado não desliga", () => {
-    render(<FiltroDeStatus ativos={["arquivada"]} contagem={contagem} />);
+    comTroca(<FiltroDeStatus ativos={["arquivada"]} contagem={contagem} />);
 
     const chip = screen.getByRole("button", { name: /Arquivadas/ });
     expect(chip.getAttribute("aria-disabled")).toBe("true");
     expect(chip.getAttribute("value")).toBe("arquivada");
+  });
+
+  it("sem JS, segue um form GET para a própria página", () => {
+    const { container } = comTroca(<FiltroDeStatus ativos={["nova", "lida"]} contagem={contagem} />);
+
+    const form = container.querySelector("form")!;
+    expect(form.getAttribute("method")).toBe("get");
+    expect(form.getAttribute("action")).toBe("/admin/sugestoes");
+  });
+
+  it("com JS, clicar num chip navega para o filtro resultante sem recarregar nem rolar", () => {
+    comTroca(<FiltroDeStatus ativos={["nova", "lida"]} contagem={contagem} />);
+
+    // O listener do document roda depois do React: vê se o envio do documento foi barrado.
+    let recarregaria: boolean | undefined;
+    const aoEnviar = (e: Event) => (recarregaria = !e.defaultPrevented);
+    document.addEventListener("submit", aoEnviar);
+    fireEvent.click(screen.getByRole("button", { name: /Arquivadas/ }));
+    document.removeEventListener("submit", aoEnviar);
+
+    expect(push).toHaveBeenCalledWith("/admin/sugestoes?status=nova,lida,arquivada", { scroll: false });
+    expect(recarregaria).toBe(false);
+  });
+
+  it("com JS, o chip travado não navega", () => {
+    comTroca(<FiltroDeStatus ativos={["arquivada"]} contagem={contagem} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Arquivadas/ }));
+
+    expect(push).not.toHaveBeenCalled();
   });
 });

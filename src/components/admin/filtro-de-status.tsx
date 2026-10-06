@@ -3,7 +3,14 @@
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useState, useTransition, type FormEvent, type ReactNode } from "react";
 
-import { alternarStatus, milhar, STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao } from "@/lib/sugestao";
+import {
+  alternarStatus,
+  milhar,
+  STATUS_SUGESTAO,
+  statusDoFiltro,
+  type ContagemDeSugestoes,
+  type StatusSugestao,
+} from "@/lib/sugestao";
 
 const ROTULO_DO_CHIP: Record<StatusSugestao, string> = { nova: "Novas", lida: "Lidas", arquivada: "Arquivadas" };
 
@@ -64,12 +71,14 @@ export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[];
   const { pedido, filtrar } = useTroca();
   const mostrados = pedido ?? ativos;
 
+  // O chip já leva no `value` o filtro que aplica — o mesmo que o GET enviaria.
+  // O travado leva o filtro atual: não há para onde navegar.
   const aoEnviar = (e: FormEvent<HTMLFormElement>) => {
     const chip = (e.nativeEvent as SubmitEvent).submitter;
-    const status = STATUS_SUGESTAO.find((s) => s === chip?.dataset.status);
-    if (!status) return;
+    if (!(chip instanceof HTMLButtonElement)) return;
     e.preventDefault();
-    if (chip?.getAttribute("aria-disabled") !== "true") filtrar(alternarStatus(mostrados, status));
+    const destino = statusDoFiltro(chip.value);
+    if (destino.join(",") !== mostrados.join(",")) filtrar(destino);
   };
 
   return (
@@ -89,7 +98,6 @@ export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[];
             type="submit"
             name="status"
             value={alternarStatus(mostrados, status).join(",")}
-            data-status={status}
             aria-pressed={ligado}
             aria-disabled={travado || undefined}
             className={`inline-flex h-9 items-center gap-[7px] rounded-full border px-3.5 text-[13px] font-medium transition-colors aria-disabled:cursor-default ${

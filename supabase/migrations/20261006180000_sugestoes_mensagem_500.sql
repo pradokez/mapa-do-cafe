@@ -3,8 +3,9 @@
 --
 -- A `enviar_sugestao` não repete o número: quem revalida é este check. O
 -- original era inline (`sugestoes_mensagem_check`, nome dado pelo Postgres);
--- sem `if exists`, para falhar alto se o nome não bater. Sem `not valid`: em
--- produção não há mensagem acima de 500.
+-- sem `if exists`, para falhar alto se o nome não bater. Sem `not valid`: a
+-- única sugestão em produção era de teste — se passar de 500, o `add` falha
+-- e ela pode ser apagada antes (mensagem real nunca se corta).
 
 alter table public.sugestoes drop constraint sugestoes_mensagem_check;
 

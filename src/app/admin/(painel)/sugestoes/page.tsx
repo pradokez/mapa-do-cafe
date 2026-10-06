@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { FiltroDeStatus } from "@/components/admin/filtro-de-status";
+import { FiltroDeStatus, ListaEmEspera, TrocaDeFiltro } from "@/components/admin/filtro-de-status";
 import { ListaDeSugestoes } from "@/components/admin/lista-de-sugestoes";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { contarSugestoes, listSugestoes } from "@/lib/cafe-repository";
@@ -19,7 +19,7 @@ export default async function Sugestoes({ searchParams }: Props) {
   const total = ativos.reduce((soma, status) => soma + contagem[status], 0);
 
   return (
-    <>
+    <TrocaDeFiltro>
       <VoltarAoPainel />
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
@@ -30,7 +30,9 @@ export default async function Sugestoes({ searchParams }: Props) {
         <FiltroDeStatus ativos={ativos} contagem={contagem} />
       </div>
 
-      <ListaDeSugestoes sugestoes={sugestoes} agora={new Date().toISOString()} total={total} />
-    </>
+      <ListaEmEspera>
+        <ListaDeSugestoes sugestoes={sugestoes} agora={new Date().toISOString()} total={total} />
+      </ListaEmEspera>
+    </TrocaDeFiltro>
   );
 }

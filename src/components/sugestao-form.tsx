@@ -11,6 +11,7 @@ import {
   BugIcon,
   CheckIcon,
   ClockIcon,
+  InfoIcon,
   LightbulbIcon,
   LockIcon,
   MapIcon,
@@ -206,25 +207,15 @@ export function SugestaoForm({ origem, nomeDaOrigem }: Props) {
         </div>
 
         {envio.status === "limite" && (
-          <p
-            role="alert"
-            className="flex gap-2.5 rounded-xl border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13px] leading-[1.45] text-aviso-fg lg:gap-3 lg:px-4 lg:py-3.5 lg:text-[13.5px] lg:leading-[1.5]"
-          >
-            <ClockIcon size={16} strokeWidth={2} className="mt-0.5 flex-none" />
-            <span>
-              <strong className="font-semibold">Opa, muitas mensagens seguidas.</strong> Espere um pouco e tente de
-              novo. Seu texto continua aqui.
-            </span>
-          </p>
+          <CaixaDeAviso Icone={ClockIcon} titulo="Opa, muitas mensagens seguidas.">
+            Espere um pouco e tente de novo. Seu texto continua aqui.
+          </CaixaDeAviso>
         )}
+        {/* Não está no design: banco fora do ar ou envio recusado por configuração. */}
         {envio.status === "falha" && (
-          <p
-            role="alert"
-            className="rounded-xl border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13px] leading-[1.45] text-aviso-fg lg:px-4 lg:py-3.5 lg:text-[13.5px] lg:leading-[1.5]"
-          >
-            <strong className="font-semibold">Não deu para enviar agora.</strong> Tente de novo em alguns minutos. Seu
-            texto continua aqui.
-          </p>
+          <CaixaDeAviso Icone={InfoIcon} titulo="Não deu para enviar agora.">
+            Tente de novo em alguns minutos. Seu texto continua aqui.
+          </CaixaDeAviso>
         )}
 
         <div className="flex lg:justify-end">
@@ -232,6 +223,29 @@ export function SugestaoForm({ origem, nomeDaOrigem }: Props) {
         </div>
       </form>
     </>
+  );
+}
+
+/** Caixa de limite (e de falha): anuncia ao aparecer, sem tirar o foco do formulário. */
+function CaixaDeAviso({
+  Icone,
+  titulo,
+  children,
+}: {
+  Icone: typeof ClockIcon;
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <p
+      role="alert"
+      className="flex gap-2.5 rounded-xl border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13px] leading-[1.45] text-aviso-fg lg:gap-3 lg:px-4 lg:py-3.5 lg:text-[13.5px] lg:leading-[1.5]"
+    >
+      <Icone size={16} strokeWidth={2} className="mt-0.5 flex-none" />
+      <span>
+        <strong className="font-semibold">{titulo}</strong> {children}
+      </span>
+    </p>
   );
 }
 

@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { CafeCard, type CardHighlight } from "@/components/cafe-card";
 import { EmptyCupIllustration } from "@/components/empty-cup-illustration";
 import { LISTA_GRADE, LISTA_SECTION, LISTA_TOPO } from "@/components/medidas";
+import { RodapeSugestoes } from "@/components/rodape-sugestoes";
 import type { Cafe } from "@/lib/cafe";
 import { contadorLabel } from "@/lib/format";
 
@@ -64,21 +65,27 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
         )}
       </div>
       {cafes.length === 0 ? (
-        <EmptyState onLimpar={limpar} />
+        <>
+          <EmptyState onLimpar={limpar} />
+          <RodapeSugestoes frase="Sentiu falta de algo?" de="/" />
+        </>
       ) : (
-        <ul className={LISTA_GRADE}>
-          {cafes.map((cafe, i) => (
-            <li
-              key={cafe.id}
-              onMouseEnter={() => onHover?.(cafe.id)}
-              onMouseLeave={() => onHover?.(null)}
-              onFocus={() => onHover?.(cafe.id)}
-              onBlur={() => onHover?.(null)}
-            >
-              <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className={LISTA_GRADE}>
+            {cafes.map((cafe, i) => (
+              <li
+                key={cafe.id}
+                onMouseEnter={() => onHover?.(cafe.id)}
+                onMouseLeave={() => onHover?.(null)}
+                onFocus={() => onHover?.(cafe.id)}
+                onBlur={() => onHover?.(null)}
+              >
+                <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
+              </li>
+            ))}
+          </ul>
+          <RodapeSugestoes frase="Tem uma ideia ou viu algo quebrado?" de="/" />
+        </>
       )}
     </section>
   );

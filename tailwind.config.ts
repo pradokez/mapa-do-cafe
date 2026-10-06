@@ -21,6 +21,10 @@ const config: Config = {
         "hover-soft": "#F5EEE5",
         seal: { bg: "#F6E8DF", fg: "#8F3F1F" },
         open: "#3F6B3A",
+        // Erro de formulário (#83): 5,97:1 sobre branco. Os erros do admin seguem em terracota.
+        erro: "#B23A1E",
+        // Caixa de aviso (limite de envios das sugestões): texto 8,1:1 sobre o fundo.
+        aviso: { bg: "#FBEFE8", line: "#EBC9B8", fg: "#7A3216" },
         "map-bg": "#1E1B19",
         "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
         "map-pin": "#F1E6D8",

@@ -2,21 +2,14 @@
  * Única porta de leitura do Supabase (regra inviolável 2 do CLAUDE.md).
  * Nenhum outro arquivo importa o client do Supabase para ler.
  */
-import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 
 import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
 import type { Autorizacao } from "./foto-upload";
-import { createSessionClient } from "./supabase-server";
+import { createAnonClient, createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
-
-/** Leitura pública: sem sessão, só o que a RLS mostra a `anon` (cafés ativos). */
-function publicClient() {
-  const { url, key } = supabaseEnv();
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 const SELECT_CAFE = CAFE_COLUMNS.join(", ");
 
@@ -43,7 +36,7 @@ export const listCafesAtivos = unstable_cache(
 );
 
 async function fetchCafesAtivos(): Promise<Cafe[]> {
-  const { data, error } = await publicClient()
+  const { data, error } = await createAnonClient()
     .from("cafes")
     .select(SELECT_CAFE)
     .eq("ativo", true)
@@ -57,7 +50,7 @@ async function fetchCafesAtivos(): Promise<Cafe[]> {
 
 /** Café ativo pelo slug, ou `null` se não existe ou está inativo (→ 404). */
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
-  const { data, error } = await publicClient()
+  const { data, error } = await createAnonClient()
     .from("cafes")
     .select(SELECT_CAFE)
     .eq("slug", slug)

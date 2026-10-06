@@ -67,6 +67,29 @@ describe("fronteiras do Supabase", () => {
   });
 });
 
+// Sugestões (#83): a primeira escrita pública. Exceção nomeada e estreita —
+// um arquivo, uma função do banco, nenhuma tabela.
+describe("fronteira da escrita pública (sugestões)", () => {
+  const ACAO_PUBLICA = "lib/sugestoes-actions.ts";
+
+  it("só a action de sugestões chama função do banco, e só a `enviar_sugestao`", () => {
+    expect(comCodigo(/\.rpc\(/)).toEqual([ACAO_PUBLICA]);
+    const { codigo } = arquivos.find(({ caminho }) => caminho === ACAO_PUBLICA)!;
+    const chamadas = codigo.match(/\.rpc\(\s*["'`][^"'`]*["'`]/g);
+    expect(chamadas).toEqual(['.rpc("enviar_sugestao"']);
+  });
+
+  it("o client anônimo (sem sessão) é só do repositório e da action de sugestões", () => {
+    const usam = comCodigo(/createAnonClient\(/).filter((caminho) => caminho !== "lib/supabase-server.ts");
+    expect(usam.sort()).toEqual(["lib/cafe-repository.ts", ACAO_PUBLICA]);
+  });
+
+  it("o segredo do hash de IP nunca vai para o navegador e está documentado no .env.example", () => {
+    expect(comCodigo(/NEXT_PUBLIC_SUGESTOES/)).toEqual([]);
+    expect(readFileSync(join(SRC, "..", ".env.example"), "utf8")).toMatch(/^SUGESTOES_IP_SECRET=$/m);
+  });
+});
+
 describe("fronteira do Mapbox", () => {
   it("só o <CafeMap /> importa mapbox-gl (regra 1): trocar de lib mexe num arquivo só", () => {
     expect(comCodigo(/["']mapbox-gl(\/[^"']*)?["']/)).toEqual(["components/cafe-map.tsx"]);

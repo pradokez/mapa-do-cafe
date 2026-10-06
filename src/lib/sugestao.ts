@@ -69,7 +69,8 @@ export function tamanhoDaMensagem(normalizada: string): number {
   return Array.from(normalizada).length;
 }
 
-const milhar = (n: number) => n.toLocaleString("pt-BR");
+/** Número com separador de milhar ("1.200"). */
+export const milhar = (n: number) => n.toLocaleString("pt-BR");
 
 /** Contador abaixo do campo: "1.998 restantes" ou, acima do limite, "12 a mais". */
 export function contadorDaMensagem(texto: string): { rotulo: string; restantes: number } {

@@ -1,4 +1,4 @@
-import { alternarStatus, STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao } from "@/lib/sugestao";
+import { alternarStatus, milhar, STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao } from "@/lib/sugestao";
 
 const ROTULO_DO_CHIP: Record<StatusSugestao, string> = { nova: "Novas", lida: "Lidas", arquivada: "Arquivadas" };
 
@@ -32,7 +32,7 @@ export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[];
                 ligado ? "bg-cream/20 text-cream" : "bg-hover-soft text-ink-2"
               }`}
             >
-              {contagem[status].toLocaleString("pt-BR")}
+              {milhar(contagem[status])}
             </span>
           </button>
         );

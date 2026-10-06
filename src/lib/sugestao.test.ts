@@ -119,6 +119,7 @@ describe("origemSegura", () => {
       "/cafes/cafe--duplo",
       "/admin",
       "/sugestoes",
+      ["/"],
       "",
       " /",
       `/cafes/${"a".repeat(81)}`,

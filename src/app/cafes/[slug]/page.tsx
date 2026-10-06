@@ -16,6 +16,7 @@ import {
   DETALHE_TAG,
   DETALHE_TRILHA,
 } from "@/components/medidas";
+import { RodapeSugestoes } from "@/components/rodape-sugestoes";
 import { SiteHeader } from "@/components/site-header";
 import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
@@ -165,6 +166,8 @@ export default async function CafePage({ params }: Props) {
             </section>
           </div>
         </div>
+
+        <RodapeSugestoes frase="Viu algo estranho nesta página?" de={caminhoDoCafe(cafe)} />
       </main>
     </div>
   );

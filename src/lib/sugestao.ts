@@ -32,7 +32,7 @@ export function ehTipoSugestao(valor: unknown): valor is TipoSugestao {
 }
 
 export const MIN_MENSAGEM = 10;
-export const MAX_MENSAGEM = 2000;
+export const MAX_MENSAGEM = 500;
 
 export type DadosSugestao = { tipo: TipoSugestao; mensagem: string; origem: string | null };
 
@@ -72,7 +72,7 @@ export function tamanhoDaMensagem(normalizada: string): number {
 /** Número com separador de milhar ("1.200"). */
 export const milhar = (n: number) => n.toLocaleString("pt-BR");
 
-/** Contador abaixo do campo: "1.998 restantes" ou, acima do limite, "12 a mais". */
+/** Contador abaixo do campo: "498 restantes" ou, acima do limite, "12 a mais". */
 export function contadorDaMensagem(texto: string): { rotulo: string; restantes: number } {
   const restantes = MAX_MENSAGEM - tamanhoDaMensagem(normalizarMensagem(texto));
   if (restantes < 0) return { rotulo: `${milhar(-restantes)} a mais`, restantes };

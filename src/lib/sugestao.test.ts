@@ -30,17 +30,17 @@ describe("validarSugestao", () => {
   it("mensagem vazia, curta ou longa demais é recusada com frase própria", () => {
     expect(erroDaMensagem("")).toBe("Escreva sua mensagem.");
     expect(erroDaMensagem("não abre")).toBe("Escreva pelo menos 10 caracteres.");
-    expect(erroDaMensagem("a".repeat(2001))).toBe("Passou de 2.000 caracteres. Corte um pouco.");
+    expect(erroDaMensagem("a".repeat(501))).toBe("Passou de 500 caracteres. Corte um pouco.");
   });
 
-  it("10 e 2.000 caracteres são os limites aceitos", () => {
+  it("10 e 500 caracteres são os limites aceitos", () => {
     expect(erroDaMensagem("a".repeat(10))).toBeUndefined();
-    expect(erroDaMensagem("a".repeat(2000))).toBeUndefined();
+    expect(erroDaMensagem("a".repeat(500))).toBeUndefined();
   });
 
   it("o tamanho é medido depois de aparar: espaços nas pontas não contam", () => {
     expect(erroDaMensagem("   não abre   ")).toBe("Escreva pelo menos 10 caracteres.");
-    expect(erroDaMensagem(`  ${"a".repeat(2000)}\n\n`)).toBeUndefined();
+    expect(erroDaMensagem(`  ${"a".repeat(500)}\n\n`)).toBeUndefined();
   });
 
   it("texto só de espaços ou de caracteres invisíveis conta como vazio", () => {
@@ -50,8 +50,8 @@ describe("validarSugestao", () => {
 
   it("emoji conta como um caractere (como o char_length do banco), não pelos bytes", () => {
     expect(erroDaMensagem("☕".repeat(10))).toBeUndefined();
-    expect(erroDaMensagem("😀".repeat(2000))).toBeUndefined();
-    expect(erroDaMensagem("😀".repeat(2001))).toBe("Passou de 2.000 caracteres. Corte um pouco.");
+    expect(erroDaMensagem("😀".repeat(500))).toBeUndefined();
+    expect(erroDaMensagem("😀".repeat(501))).toBe("Passou de 500 caracteres. Corte um pouco.");
   });
 });
 
@@ -175,14 +175,14 @@ describe("hashDoIp", () => {
 
 describe("contadorDaMensagem", () => {
   it("diz quantos restam, com milhar em ponto, e conta o texto já normalizado", () => {
-    expect(contadorDaMensagem("")).toEqual({ rotulo: "2.000 restantes", restantes: 2000 });
-    expect(contadorDaMensagem("  oi\u200B  ")).toEqual({ rotulo: "1.998 restantes", restantes: 1998 });
-    expect(contadorDaMensagem("a".repeat(1999)).rotulo).toBe("1 restante");
+    expect(contadorDaMensagem("")).toEqual({ rotulo: "500 restantes", restantes: 500 });
+    expect(contadorDaMensagem("  oi\u200B  ")).toEqual({ rotulo: "498 restantes", restantes: 498 });
+    expect(contadorDaMensagem("a".repeat(499)).rotulo).toBe("1 restante");
   });
 
   it("acima do limite, diz quantos passaram", () => {
-    expect(contadorDaMensagem("a".repeat(2012))).toEqual({ rotulo: "12 a mais", restantes: -12 });
-    expect(contadorDaMensagem("a".repeat(3500)).rotulo).toBe("1.500 a mais");
+    expect(contadorDaMensagem("a".repeat(512))).toEqual({ rotulo: "12 a mais", restantes: -12 });
+    expect(contadorDaMensagem("a".repeat(2000)).rotulo).toBe("1.500 a mais");
   });
 });
 

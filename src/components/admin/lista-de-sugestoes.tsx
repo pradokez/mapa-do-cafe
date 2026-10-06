@@ -7,6 +7,8 @@ import { mudarStatusSugestao } from "@/lib/admin/sugestoes-actions";
 import {
   acoesDoStatus,
   formatarDataDaSugestao,
+  milhar,
+  origemSegura,
   ROTULO_STATUS,
   SOBRE_O_TIPO,
   type AcaoDeStatus,
@@ -99,7 +101,7 @@ export function ListaDeSugestoes({ sugestoes, agora, total }: Props) {
 
       {total > sugestoes.length && (
         <p className="mt-3 text-[13px] text-ink-3">
-          Mostrando as {sugestoes.length.toLocaleString("pt-BR")} mais recentes de {total.toLocaleString("pt-BR")}.
+          Mostrando as {milhar(sugestoes.length)} mais recentes de {milhar(total)}.
         </p>
       )}
 
@@ -122,6 +124,8 @@ function Item({
   const [estado, acaoDoForm] = useFormState(mudarStatusSugestao, null);
   const nova = sugestao.status === "nova";
   const erro = estado && !estado.ok ? estado.erro : null;
+  // O banco já só aceita `/` e `/cafes/{slug}`; conferir de novo na saída garante que nada vira `javascript:`.
+  const origem = origemSegura(sugestao.origem);
 
   return (
     <li
@@ -142,14 +146,14 @@ function Item({
           </span>
           <time dateTime={sugestao.criado_em}>{formatarDataDaSugestao(sugestao.criado_em, agora)}</time>
           <span aria-hidden="true">·</span>
-          {sugestao.origem ? (
+          {origem ? (
             <a
-              href={sugestao.origem}
+              href={origem}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-[12px] text-ink-2 underline underline-offset-2 hover:text-espresso"
             >
-              {sugestao.origem}
+              {origem}
               <span className="sr-only"> (abre em nova aba)</span>
             </a>
           ) : (

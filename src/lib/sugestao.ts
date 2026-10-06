@@ -79,11 +79,14 @@ export function contadorDaMensagem(texto: string): { rotulo: string; restantes: 
   return { rotulo: `${milhar(restantes)} ${restantes === 1 ? "restante" : "restantes"}`, restantes };
 }
 
+/** Erro de texto longo demais — o formulário o mostra já ao passar do limite, sem esperar o envio. */
+export const ERRO_MENSAGEM_LONGA = `Passou de ${milhar(MAX_MENSAGEM)} caracteres. Corte um pouco.`;
+
 function erroDaMensagem(normalizada: string): string | undefined {
   const tamanho = tamanhoDaMensagem(normalizada);
   if (tamanho === 0) return "Escreva sua mensagem.";
   if (tamanho < MIN_MENSAGEM) return `Escreva pelo menos ${MIN_MENSAGEM} caracteres.`;
-  if (tamanho > MAX_MENSAGEM) return `Passou de ${milhar(MAX_MENSAGEM)} caracteres. Corte um pouco.`;
+  if (tamanho > MAX_MENSAGEM) return ERRO_MENSAGEM_LONGA;
 }
 
 const PREFIXO_CAFE = "/cafes/";

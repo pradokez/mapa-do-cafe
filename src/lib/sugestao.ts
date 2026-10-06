@@ -1,7 +1,8 @@
 /**
  * Sugestões do público (#83): tipos, limites, normalização do texto e
  * validação — comuns ao formulário e à Server Action. Puro: não importa React
- * nem Supabase.
+ * nem Supabase. O limite de 5 envios por IP na hora não mora aqui: quem conta
+ * é a função `enviar_sugestao`, no banco.
  */
 
 import { MAX_SLUG, SLUG } from "./cafe-dados";
@@ -32,8 +33,6 @@ export function ehTipoSugestao(valor: unknown): valor is TipoSugestao {
 
 export const MIN_MENSAGEM = 10;
 export const MAX_MENSAGEM = 2000;
-/** Envios por IP numa hora (quem conta é a função `enviar_sugestao`, no banco). */
-export const LIMITE_POR_HORA = 5;
 
 export type DadosSugestao = { tipo: TipoSugestao; mensagem: string; origem: string | null };
 

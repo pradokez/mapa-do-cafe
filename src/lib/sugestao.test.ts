@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { contadorDaMensagem, hashDoIp, origemSegura, validarSugestao } from "./sugestao";
+import {
+  acoesDoStatus,
+  alternarStatus,
+  contadorDaMensagem,
+  formatarDataDaSugestao,
+  hashDoIp,
+  origemSegura,
+  rotuloDeNovas,
+  statusDoFiltro,
+  validarSugestao,
+} from "./sugestao";
 
 const valida = { tipo: "problema", mensagem: "O botão de Como chegar não abre nada.", origem: "/", site: "" };
 
@@ -173,5 +183,86 @@ describe("contadorDaMensagem", () => {
   it("acima do limite, diz quantos passaram", () => {
     expect(contadorDaMensagem("a".repeat(2012))).toEqual({ rotulo: "12 a mais", restantes: -12 });
     expect(contadorDaMensagem("a".repeat(3500)).rotulo).toBe("1.500 a mais");
+  });
+});
+
+describe("statusDoFiltro", () => {
+  it("sem param, mostra novas e lidas (arquivadas só sob demanda)", () => {
+    expect(statusDoFiltro(undefined)).toEqual(["nova", "lida"]);
+  });
+
+  it("lê os status separados por vírgula, na ordem nova → lida → arquivada", () => {
+    expect(statusDoFiltro("arquivada")).toEqual(["arquivada"]);
+    expect(statusDoFiltro("arquivada,nova")).toEqual(["nova", "arquivada"]);
+  });
+
+  it("status desconhecido é ignorado; nada válido cai no padrão", () => {
+    expect(statusDoFiltro("lida,apagada")).toEqual(["lida"]);
+    expect(statusDoFiltro("")).toEqual(["nova", "lida"]);
+    expect(statusDoFiltro("<script>")).toEqual(["nova", "lida"]);
+  });
+
+  it("param repetido vale o primeiro", () => {
+    expect(statusDoFiltro(["arquivada", "nova"])).toEqual(["arquivada"]);
+  });
+});
+
+describe("alternarStatus", () => {
+  it("liga o status desligado e desliga o ligado, na ordem dos chips", () => {
+    expect(alternarStatus(["nova", "lida"], "arquivada")).toEqual(["nova", "lida", "arquivada"]);
+    expect(alternarStatus(["nova", "lida"], "nova")).toEqual(["lida"]);
+    expect(alternarStatus(["arquivada"], "nova")).toEqual(["nova", "arquivada"]);
+  });
+
+  it("o último status ligado não desliga: o filtro nunca fica vazio", () => {
+    expect(alternarStatus(["lida"], "lida")).toEqual(["lida"]);
+  });
+});
+
+describe("acoesDoStatus", () => {
+  it("nova: marcar como lida ou arquivar", () => {
+    expect(acoesDoStatus("nova")).toEqual([
+      { rotulo: "Marcar como lida", para: "lida" },
+      { rotulo: "Arquivar", para: "arquivada" },
+    ]);
+  });
+
+  it("lida: voltar para nova ou arquivar", () => {
+    expect(acoesDoStatus("lida")).toEqual([
+      { rotulo: "Voltar para nova", para: "nova" },
+      { rotulo: "Arquivar", para: "arquivada" },
+    ]);
+  });
+
+  it("arquivada: desarquivar leva a lida", () => {
+    expect(acoesDoStatus("arquivada")).toEqual([{ rotulo: "Desarquivar", para: "lida" }]);
+  });
+});
+
+describe("formatarDataDaSugestao", () => {
+  // 23:30 de 4 de outubro em Recife — já é dia 5 em UTC (o Vitest roda em UTC).
+  const agora = new Date("2026-10-05T02:30:00Z");
+
+  it("hoje e ontem pelo dia de Recife, não pelo do servidor", () => {
+    expect(formatarDataDaSugestao("2026-10-04T17:32:00Z", agora)).toBe("Hoje, 14:32");
+    expect(formatarDataDaSugestao("2026-10-05T01:00:00Z", agora)).toBe("Hoje, 22:00");
+    expect(formatarDataDaSugestao("2026-10-04T02:07:00Z", agora)).toBe("Ontem, 23:07");
+  });
+
+  it("antes de ontem: dia e mês abreviado", () => {
+    expect(formatarDataDaSugestao("2026-10-03T02:59:00Z", agora)).toBe("2 out, 23:59");
+    expect(formatarDataDaSugestao("2026-09-30T06:12:00Z", agora)).toBe("30 set, 03:12");
+  });
+
+  it("de outro ano, com o ano", () => {
+    expect(formatarDataDaSugestao("2025-10-03T11:15:00Z", agora)).toBe("3 out 2025, 08:15");
+  });
+});
+
+describe("rotuloDeNovas", () => {
+  it("singular e plural", () => {
+    expect(rotuloDeNovas(1)).toBe("1 sugestão nova");
+    expect(rotuloDeNovas(3)).toBe("3 sugestões novas");
+    expect(rotuloDeNovas(1200)).toBe("1.200 sugestões novas");
   });
 });

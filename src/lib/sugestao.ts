@@ -146,3 +146,112 @@ export type EnvioSugestao = {
 };
 
 export const ENVIO_INICIAL: EnvioSugestao = { status: "inicial", erros: {}, valores: { tipo: "", mensagem: "" } };
+
+/** Triagem no admin (#84): a mensagem não muda, só o status. */
+export const STATUS_SUGESTAO = ["nova", "lida", "arquivada"] as const;
+export type StatusSugestao = (typeof STATUS_SUGESTAO)[number];
+
+export function ehStatusSugestao(valor: unknown): valor is StatusSugestao {
+  return STATUS_SUGESTAO.includes(valor as StatusSugestao);
+}
+
+/** Arquivadas ficam escondidas até alguém pedir. */
+export const FILTRO_PADRAO: StatusSugestao[] = ["nova", "lida"];
+
+/**
+ * O filtro de `/admin/sugestoes` a partir do `?status=` (`nova,lida`): status
+ * desconhecido é ignorado, e sem nenhum válido vale o padrão. Sempre na ordem
+ * dos chips, para a URL de um mesmo filtro ser uma só.
+ */
+export function statusDoFiltro(param: string | string[] | undefined): StatusSugestao[] {
+  const pedidos = ([param].flat()[0] ?? "").split(",");
+  const status = STATUS_SUGESTAO.filter((s) => pedidos.includes(s));
+  return status.length > 0 ? status : FILTRO_PADRAO;
+}
+
+/**
+ * O filtro que um chip aplica ao ser clicado: liga ou desliga aquele status.
+ * O último ligado não desliga — um filtro vazio cairia no padrão, e o clique
+ * pareceria fazer o contrário.
+ */
+export function alternarStatus(atuais: readonly StatusSugestao[], status: StatusSugestao): StatusSugestao[] {
+  const ligado = atuais.includes(status);
+  if (ligado && atuais.length === 1) return [...atuais];
+  return STATUS_SUGESTAO.filter((s) => (s === status ? !ligado : atuais.includes(s)));
+}
+
+export type AcaoDeStatus = { rotulo: string; para: StatusSugestao };
+
+const ARQUIVAR: AcaoDeStatus = { rotulo: "Arquivar", para: "arquivada" };
+
+/** Botões de cada sugestão, conforme o status (design 3b). Desarquivar volta a "lida", não a "nova". */
+export function acoesDoStatus(status: StatusSugestao): AcaoDeStatus[] {
+  if (status === "nova") return [{ rotulo: "Marcar como lida", para: "lida" }, ARQUIVAR];
+  if (status === "lida") return [{ rotulo: "Voltar para nova", para: "nova" }, ARQUIVAR];
+  return [{ rotulo: "Desarquivar", para: "lida" }];
+}
+
+// Partes numéricas da data em Recife (a Vercel roda em UTC). O mês sai da
+// lista abaixo, não do `Intl` em pt-BR, que escreve "out." com ponto.
+const partesEmRecife = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Recife",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+const UM_DIA = 24 * 60 * 60 * 1000;
+
+function emRecife(data: Date) {
+  const partes = Object.fromEntries(partesEmRecife.formatToParts(data).map((p) => [p.type, p.value]));
+  return {
+    dia: `${partes.year}-${partes.month}-${partes.day}`,
+    ano: partes.year,
+    rotulo: `${partes.day} ${MESES[Number(partes.month) - 1]}`,
+    hora: `${partes.hour}:${partes.minute}`,
+  };
+}
+
+/**
+ * Quando a sugestão chegou, no fuso de Recife: "Hoje, 14:32", "Ontem, 21:07",
+ * "3 out, 08:15" — e com o ano se não for o corrente ("3 out 2025, 08:15").
+ */
+export function formatarDataDaSugestao(iso: string, agora: Date): string {
+  const data = emRecife(new Date(iso));
+  const hoje = emRecife(agora);
+  // Recife não tem horário de verão: o dia anterior está sempre 24 h atrás.
+  if (data.dia === hoje.dia) return `Hoje, ${data.hora}`;
+  if (data.dia === emRecife(new Date(agora.getTime() - UM_DIA)).dia) return `Ontem, ${data.hora}`;
+  const ano = data.ano === hoje.ano ? "" : ` ${data.ano}`;
+  return `${data.rotulo}${ano}, ${data.hora}`;
+}
+
+/** "1 sugestão nova" / "N sugestões novas" — o cartão do topo do `/admin`. */
+export function rotuloDeNovas(n: number): string {
+  return n === 1 ? "1 sugestão nova" : `${milhar(n)} sugestões novas`;
+}
+
+export const ROTULO_STATUS: Record<StatusSugestao, string> = { nova: "Nova", lida: "Lida", arquivada: "Arquivada" };
+
+/** Uma linha de `sugestoes`, como o admin a lê (`listSugestoes`). */
+export type Sugestao = {
+  id: string;
+  tipo: TipoSugestao;
+  mensagem: string;
+  origem: string | null;
+  status: StatusSugestao;
+  criado_em: string;
+};
+
+export type ContagemDeSugestoes = Record<StatusSugestao, number>;
+
+/**
+ * Resultado de `mudarStatusSugestao` (`useFormState`). Aqui, e não na action:
+ * arquivo `"use server"` só exporta funções.
+ */
+export type MudancaDeStatus = { ok: true; id: string; status: StatusSugestao } | { ok: false; erro: string } | null;

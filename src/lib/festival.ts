@@ -237,6 +237,29 @@ export function edicaoDaPagina<E extends Edicao>(
   return { edicao, estado: estadoDaEdicao(edicao, agora), noAr };
 }
 
+/**
+ * Edições com vitrine na home (#106): as já começadas, como o bloco do combo
+ * do detalhe — antes do início os combos ainda não estão à venda — e com
+ * página, para onde vai o "Ver todos". Na ordem de `edicoesNoAr`: com duas, a
+ * que termina primeiro em cima.
+ */
+export function edicoesEmVitrine<E extends Edicao>(edicoes: readonly E[], agora: Date): E[] {
+  return edicoesNoAr(edicoes, agora).filter(
+    (e) => estadoDaEdicao(e, agora) === "ativa" && edicaoTemPagina(e),
+  );
+}
+
+/** Linha da vitrine: "12 cafés participando · até 15 nov · R$ 34,90". */
+export function resumoDaVitrine(edicao: Pick<Edicao, "fim" | "preco">, participantes: number): string {
+  return [
+    participantes === 1 ? "1 café participando" : `${participantes} cafés participando`,
+    ateODia(edicao),
+    edicao.preco !== null && formatarPreco(edicao.preco),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 /** Um combo da página: a participação e o café dela. */
 export interface Combo {
   participacao: Participacao;

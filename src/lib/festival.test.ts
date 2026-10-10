@@ -13,6 +13,7 @@ import {
   disponibilidadeDoCombo,
   edicaoDaPagina,
   edicaoTemPagina,
+  edicoesEmVitrine,
   edicoesNoAr,
   estadoDaEdicao,
   fonteDaArte,
@@ -23,6 +24,7 @@ import {
   rotuloDeParticipantes,
   periodoDaEdicao,
   prazoDoCombo,
+  resumoDaVitrine,
   rotuloDeStatus,
   tituloDoCombo,
   urlDaEdicao,
@@ -517,5 +519,60 @@ describe("edicaoTemPagina", () => {
   it("sem participante ou não publicada: não tem", () => {
     expect(edicaoTemPagina(EU_AMO_CAFE)).toBe(false);
     expect(edicaoTemPagina({ ...EU_AMO_CAFE, publicada: false, participacoes: [participante] })).toBe(false);
+  });
+});
+
+describe("edicoesEmVitrine", () => {
+  const participacao = (cafe_id: string): Participacao => ({
+    id: `p-${cafe_id}`,
+    cafe_id,
+    numero: null,
+    nome_combo: null,
+    alt: null,
+    instagram_url: null,
+    arte: null,
+  });
+  const comKaffe = { ...EU_AMO_CAFE, participacoes: [participacao("kaffe")] };
+  const vitrine = (edicoes: Edicao[], dia: string) =>
+    edicoesEmVitrine(edicoes, meioDia(dia)).map((e) => e.festival.slug);
+
+  it.each(["2026-10-18", "2026-11-15"])("aparece durante a edição (%s)", (dia) => {
+    expect(vitrine([comKaffe], dia)).toEqual(["eu-amo-cafe"]);
+  });
+
+  it("antes do início não aparece, mesmo publicada (os combos ainda não estão à venda)", () => {
+    expect(vitrine([comKaffe], "2026-10-17")).toEqual([]);
+  });
+
+  it("depois do último dia não aparece", () => {
+    expect(vitrine([comKaffe], "2026-11-16")).toEqual([]);
+  });
+
+  it("o dia é o de Recife: 17 out às 22h ainda não tem vitrine", () => {
+    expect(edicoesEmVitrine([comKaffe], new Date("2026-10-18T01:00:00Z"))).toEqual([]);
+  });
+
+  it("não publicada ou sem participante não aparece (o \"Ver todos\" daria 404)", () => {
+    expect(vitrine([{ ...comKaffe, publicada: false }], "2026-10-20")).toEqual([]);
+    expect(vitrine([EU_AMO_CAFE], "2026-10-20")).toEqual([]);
+  });
+
+  it("com duas edições ativas, a que termina primeiro em cima", () => {
+    const recife = { ...RECIFE_COFFEE, participacoes: [participacao("versado")] };
+    expect(vitrine([recife, comKaffe], "2026-11-05")).toEqual(["eu-amo-cafe", "recife-coffee"]);
+  });
+});
+
+describe("resumoDaVitrine", () => {
+  it("participantes, último dia e preço", () => {
+    expect(resumoDaVitrine(EU_AMO_CAFE, 12)).toBe("12 cafés participando · até 15 nov · R$ 34,90");
+  });
+
+  it("no singular com um café", () => {
+    expect(resumoDaVitrine(EU_AMO_CAFE, 1)).toBe("1 café participando · até 15 nov · R$ 34,90");
+  });
+
+  it("sem preço, o resumo para no prazo", () => {
+    expect(resumoDaVitrine({ ...EU_AMO_CAFE, preco: null }, 3)).toBe("3 cafés participando · até 15 nov");
   });
 });

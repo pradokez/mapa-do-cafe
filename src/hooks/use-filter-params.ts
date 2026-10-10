@@ -12,6 +12,7 @@ import {
   type CafeFilters,
   type FiltroBooleano,
 } from "@/lib/cafe-filter";
+import type { FestivaisNoAr } from "@/lib/festival";
 
 /**
  * Estado de filtro da home, com a URL como única fonte — sem estado espelhado
@@ -23,12 +24,12 @@ import {
  * mudança vira uma entrada no histórico (voltar/avançar desfaz/refaz). A busca
  * é a exceção: usa `replaceState`, para "voltar" não desfazer letra por letra.
  */
-export function useFilterParams(bairrosValidos: readonly string[]) {
+export function useFilterParams(bairrosValidos: readonly string[], festivais: FestivaisNoAr) {
   const searchParams = useSearchParams();
-  // Slug desconhecido sai do estado — e da URL no próximo clique.
+  // Slug desconhecido e festival fora do ar saem do estado — e da URL no próximo clique.
   const filters = useMemo(
-    () => parseFilters(searchParams, bairrosValidos),
-    [searchParams, bairrosValidos],
+    () => parseFilters(searchParams, { bairros: bairrosValidos, festivais }),
+    [searchParams, bairrosValidos, festivais],
   );
 
   const navigate = (next: CafeFilters) => escrever(searchParams, next, "push");

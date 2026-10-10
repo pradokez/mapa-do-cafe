@@ -14,8 +14,11 @@ import {
   temFiltroAtivo,
   type CafeFilters,
 } from "./cafe-filter";
+import type { FestivaisNoAr } from "./festival";
 
 const ids = (cafes: Cafe[]) => cafes.map((c) => c.id);
+
+const OS_DOIS_NO_AR: FestivaisNoAr = { "eu-amo-cafe": [], "recife-coffee": [] };
 
 describe("filtrarCafes", () => {
   it("Aceita pets deixa só os cafés que aceitam pets", () => {
@@ -25,10 +28,8 @@ describe("filtrarCafes", () => {
   });
 
   it.each([
-    ["ascape", "selo_ascape"],
     ["estacionamento", "tem_estacionamento"],
     ["coffeeOffice", "permite_coffee_office"],
-    ["euAmoCafe", "selo_eu_amo_cafe"],
     ["pcd", "acessivel_pcd"],
     ["vegetariano", "opcoes_vegetarianas"],
     ["arCondicionado", "tem_ar_condicionado"],
@@ -97,9 +98,46 @@ describe("filtrarCafes", () => {
   });
 
   it("filtro que todos atendem não exclui ninguém", () => {
-    const cafes = [cafe("a", { selo_ascape: true }), cafe("b", { selo_ascape: true })];
+    const cafes = [cafe("a", { aceita_pets: true }), cafe("b", { aceita_pets: true })];
 
-    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, ascape: true }))).toEqual(["a", "b"]);
+    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, pets: true }))).toEqual(["a", "b"]);
+  });
+});
+
+describe("filtrarCafes — festivais", () => {
+  const cafes = [cafe("a", { aceita_pets: true }), cafe("b"), cafe("c", { aceita_pets: true })];
+  const NO_AR: FestivaisNoAr = { "eu-amo-cafe": ["a", "b"], "recife-coffee": ["c"] };
+
+  it.each([
+    ["euAmoCafe", ["a", "b"]],
+    ["recifeCoffee", ["c"]],
+  ] as const)("filtro %s deixa só os participantes da edição no ar", (filtro, esperado) => {
+    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, [filtro]: true }, NO_AR))).toEqual(esperado);
+  });
+
+  it("em interseção com os outros filtros", () => {
+    const filters = { ...FILTROS_VAZIOS, euAmoCafe: true, pets: true };
+
+    expect(ids(filtrarCafes(cafes, filters, NO_AR))).toEqual(["a"]);
+  });
+
+  it("os dois festivais ligados: quem participa dos dois", () => {
+    const filters = { ...FILTROS_VAZIOS, euAmoCafe: true, recifeCoffee: true };
+
+    expect(ids(filtrarCafes(cafes, filters, { ...NO_AR, "recife-coffee": ["b", "c"] }))).toEqual(["b"]);
+  });
+
+  it("festival fora do ar não filtra ninguém", () => {
+    const filters = { ...FILTROS_VAZIOS, recifeCoffee: true };
+
+    expect(ids(filtrarCafes(cafes, filters, { "eu-amo-cafe": ["a"] }))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarCafes(cafes, filters))).toEqual(["a", "b", "c"]);
+  });
+
+  it("festival no ar ainda sem participantes: lista vazia", () => {
+    const filters = { ...FILTROS_VAZIOS, euAmoCafe: true };
+
+    expect(filtrarCafes(cafes, filters, { "eu-amo-cafe": [] })).toEqual([]);
   });
 });
 
@@ -184,13 +222,13 @@ describe("filtrarCafes — busca", () => {
 describe("parseFilters", () => {
   it("lê cada param `=true` como filtro ligado", () => {
     const params = new URLSearchParams(
-      "ascape=true&eu_amo_cafe=true&pets=true&estacionamento=true&coffee_office=true" +
+      "recife_coffee=true&eu_amo_cafe=true&pets=true&estacionamento=true&coffee_office=true" +
         "&pcd=true&vegetariano=true&ar_condicionado=true",
     );
 
-    expect(parseFilters(params)).toEqual({
+    expect(parseFilters(params, { festivais: OS_DOIS_NO_AR })).toEqual({
       ...FILTROS_VAZIOS,
-      ascape: true,
+      recifeCoffee: true,
       euAmoCafe: true,
       pets: true,
       estacionamento: true,
@@ -204,11 +242,28 @@ describe("parseFilters", () => {
   it.each([
     ["ausente", ""],
     ["desconhecido", "foo=bar&wifi=true"],
-    ["vazio", "pets=&ascape"],
-    ["malformado", "pets=1&ascape=TRUE&estacionamento=sim&coffee_office=false"],
+    ["vazio", "pets=&eu_amo_cafe"],
+    ["malformado", "pets=1&eu_amo_cafe=TRUE&estacionamento=sim&coffee_office=false"],
     ["com codificação estranha", "pets=%E0%A4%A&coffee_office=tru%65%"],
   ])("param %s é ignorado em silêncio: filtro desligado", (_, query) => {
-    expect(parseFilters(new URLSearchParams(query))).toEqual(FILTROS_VAZIOS);
+    expect(parseFilters(new URLSearchParams(query), { festivais: OS_DOIS_NO_AR })).toEqual(FILTROS_VAZIOS);
+  });
+
+  it("filtro de festival só com a edição no ar: fora dela, o param é ignorado", () => {
+    const params = new URLSearchParams("eu_amo_cafe=true&recife_coffee=true&pets=true");
+
+    expect(parseFilters(params, { festivais: { "eu-amo-cafe": ["a"] } })).toEqual({
+      ...FILTROS_VAZIOS,
+      euAmoCafe: true,
+      pets: true,
+    });
+    expect(parseFilters(params)).toEqual({ ...FILTROS_VAZIOS, pets: true });
+  });
+
+  it("o param antigo `ascape` é ignorado em silêncio", () => {
+    expect(parseFilters(new URLSearchParams("ascape=true"), { festivais: OS_DOIS_NO_AR })).toEqual(
+      FILTROS_VAZIOS,
+    );
   });
 
   it("lê `preco` em ordem canônica, sem repetição e sem valor inválido", () => {
@@ -226,10 +281,12 @@ describe("parseFilters", () => {
   it("com a lista de bairros válidos, slug desconhecido é ignorado em silêncio", () => {
     const validos = ["espinheiro", "gracas"];
 
-    expect(parseFilters(new URLSearchParams("bairro=gracas,nao-existe"), validos).bairros).toEqual([
+    expect(parseFilters(new URLSearchParams("bairro=gracas,nao-existe"), { bairros: validos }).bairros).toEqual([
       "gracas",
     ]);
-    expect(parseFilters(new URLSearchParams("bairro=nao-existe"), validos)).toEqual(FILTROS_VAZIOS);
+    expect(parseFilters(new URLSearchParams("bairro=nao-existe"), { bairros: validos })).toEqual(
+      FILTROS_VAZIOS,
+    );
   });
 
   it("lê `q` como termo de busca, sem espaços nas bordas", () => {
@@ -273,12 +330,19 @@ describe("serializeFilters", () => {
   });
 
   it("sobre params existentes, preserva os alheios e reescreve só os de filtro", () => {
-    const atual = new URLSearchParams("utm_source=instagram&pets=1&ascape=true");
+    const atual = new URLSearchParams("utm_source=instagram&pets=1&estacionamento=true");
 
     const params = serializeFilters({ ...FILTROS_VAZIOS, pets: true }, atual);
 
     expect(params).toBe("utm_source=instagram&pets=true");
-    expect(atual.toString()).toBe("utm_source=instagram&pets=1&ascape=true");
+    expect(atual.toString()).toBe("utm_source=instagram&pets=1&estacionamento=true");
+  });
+
+  it("festival fora do ar e o antigo `ascape` não voltam na serialização", () => {
+    const atual = new URLSearchParams("eu_amo_cafe=true&ascape=true&utm_source=instagram");
+    const filters = parseFilters(atual);
+
+    expect(serializeFilters({ ...filters, pets: true }, atual)).toBe("utm_source=instagram&pets=true");
   });
 
   it("lista esvaziada some da URL atual (\"Todos os bairros\" limpa o param)", () => {
@@ -287,9 +351,9 @@ describe("serializeFilters", () => {
     expect(serializeFilters(FILTROS_VAZIOS, atual)).toBe("utm_source=instagram");
   });
 
-  // As 16 combinações dos 4 booleanos.
+  // Todas as combinações dos booleanos, com os dois festivais no ar.
   const booleanos = [
-    "ascape",
+    "recifeCoffee",
     "euAmoCafe",
     "pets",
     "estacionamento",
@@ -309,16 +373,20 @@ describe("serializeFilters", () => {
     { bairros: ["gracas"] },
     { bairros: ["boa-viagem", "espinheiro", "gracas"], precos: ["$$"], pets: true },
     { q: "café" },
-    { q: "fiore & cia, 100%", ascape: true, precos: ["$"] },
+    { q: "fiore & cia, 100%", euAmoCafe: true, precos: ["$"] },
   ])("ida e volta com bairro, preço e busca é estável: %o", (parcial) => {
     const filters = { ...FILTROS_VAZIOS, ...parcial };
 
-    expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
+    expect(parseFilters(new URLSearchParams(serializeFilters(filters)), { festivais: OS_DOIS_NO_AR })).toEqual(
+      filters,
+    );
   });
 
   it("ida e volta estado → params → estado é estável em toda combinação dos booleanos", () => {
     for (const filters of combinacoes) {
-      expect(parseFilters(new URLSearchParams(serializeFilters(filters)))).toEqual(filters);
+      expect(parseFilters(new URLSearchParams(serializeFilters(filters)), { festivais: OS_DOIS_NO_AR })).toEqual(
+        filters,
+      );
     }
   });
 });

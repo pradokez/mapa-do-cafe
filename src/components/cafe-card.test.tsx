@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { cafe } from "@/lib/cafe.fixture";
+import type { FestivaisNoAr } from "@/lib/festival";
 
 import { CafeCard } from "./cafe-card";
 
@@ -36,15 +37,27 @@ describe("CafeCard — nome", () => {
 });
 
 describe("CafeCard — selos", () => {
-  it("mostra o selo Eu Amo Café junto do Recife Coffee", () => {
-    render(<CafeCard cafe={cafe("1", { selo_ascape: true, selo_eu_amo_cafe: true })} />);
+  const OS_DOIS: FestivaisNoAr = { "recife-coffee": ["1"], "eu-amo-cafe": ["1"] };
+
+  it("mostra o selo de cada festival no ar de que o café participa", () => {
+    render(<CafeCard cafe={cafe("1")} festivais={OS_DOIS} />);
 
     expect(screen.getAllByText("Recife Coffee").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Eu Amo Café").length).toBeGreaterThan(0);
   });
 
+  it("sem selo de festival fora do ar, nem de festival de que o café não participa", () => {
+    render(<CafeCard cafe={cafe("1")} festivais={{ "eu-amo-cafe": ["2"] }} />);
+    expect(screen.queryByText("Eu Amo Café")).toBeNull();
+    expect(screen.queryByText("Recife Coffee")).toBeNull();
+
+    cleanup();
+    render(<CafeCard cafe={cafe("1")} />);
+    expect(screen.queryByText("Eu Amo Café")).toBeNull();
+  });
+
   it("selos ficam na foto, fora da linha de comodidades", () => {
-    render(<CafeCard cafe={cafe("1", { selo_ascape: true, selo_eu_amo_cafe: true, aceita_pets: true })} />);
+    render(<CafeCard cafe={cafe("1", { aceita_pets: true })} festivais={OS_DOIS} />);
 
     const lista = comodidades();
     expect(within(lista).queryByText("Recife Coffee")).toBeNull();

@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 
 import { CafeDirectory } from "@/components/cafe-directory";
-import { listCafesAtivos } from "@/lib/cafe-repository";
+import { listCafesAtivos, listFestivais } from "@/lib/cafe-repository";
+import { participantesNoAr } from "@/lib/festival";
 
 // Dinâmica: o HTML já sai filtrado pelos params da URL (`?pets=true`), sem
-// piscar a lista completa até a hidratação. Os cafés vêm do cache de 1 h do
-// `cafe-repository`, então isso não custa uma query por visita.
+// piscar a lista completa até a hidratação. Cafés e festivais vêm do cache de
+// 1 h do `cafe-repository`, então isso não custa uma query por visita; o que
+// está no ar hoje se decide aqui, fora do cache.
 export const dynamic = "force-dynamic";
 
 // Sem os params: cada combinação de filtro é a mesma página para o buscador.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
-  const cafes = await listCafesAtivos();
+  const [cafes, edicoes] = await Promise.all([listCafesAtivos(), listFestivais()]);
+  const festivais = participantesNoAr(edicoes, new Date());
 
   return (
     <div className="flex h-dvh flex-col">
-      <CafeDirectory cafes={cafes} />
+      <CafeDirectory cafes={cafes} festivais={festivais} />
     </div>
   );
 }

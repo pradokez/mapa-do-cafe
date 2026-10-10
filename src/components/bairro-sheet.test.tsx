@@ -26,7 +26,7 @@ const BAIRROS = [
 
 function renderSheet(filters: CafeFilters = FILTROS_VAZIOS) {
   const onAplicar = vi.fn();
-  render(<BairroSheet cafes={CAFES} bairros={BAIRROS} filters={filters} onAplicar={onAplicar} />);
+  render(<BairroSheet cafes={CAFES} festivais={{}} bairros={BAIRROS} filters={filters} onAplicar={onAplicar} />);
   return onAplicar;
 }
 
@@ -124,7 +124,7 @@ describe("BairroSheet", () => {
 
   it("busca que chega com o sheet aberto (debounce) não é desfeita ao aplicar", async () => {
     const onAplicar = vi.fn();
-    const props = { cafes: CAFES, bairros: BAIRROS, onAplicar };
+    const props = { cafes: CAFES, festivais: {}, bairros: BAIRROS, onAplicar };
     const { rerender } = render(<BairroSheet {...props} filters={FILTROS_VAZIOS} />);
     await userEvent.click(screen.getByRole("button", { name: "Bairro" }));
     await userEvent.click(screen.getByRole("checkbox", { name: "Graças" }));

@@ -15,26 +15,27 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import type { Cafe } from "@/lib/cafe";
 import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
+import type { FestivaisNoAr } from "@/lib/festival";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
- * recorte dos filtros e da busca (na URL), a ordem por distância (com
+ * recorte dos filtros e da busca (na URL, com os festivais no ar), a ordem por distância (com
  * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
  * sempre abre na lista. Tudo no cliente, sem round-trip.
  */
-export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
+export function CafeDirectory({ cafes, festivais }: { cafes: Cafe[]; festivais: FestivaisNoAr }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
   const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, aplicar, limpar } =
-    useFilterParams(slugs);
+    useFilterParams(slugs, festivais);
   // Com posição, do mais perto ao mais longe; sem ela (e no HTML do servidor),
   // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
   // lista muda de identidade.
   const { coords } = useGeolocation();
   const filtrados = useMemo(
-    () => ordenarPorDistancia(filtrarCafes(cafes, filters), coords),
-    [cafes, filters, coords],
+    () => ordenarPorDistancia(filtrarCafes(cafes, filters, festivais), coords),
+    [cafes, filters, festivais, coords],
   );
 
   const [hovered, setHovered] = useState<Hovered | null>(null);
@@ -58,12 +59,13 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
 
   return (
     <>
-      <SiteHeader actions={<FiltrosSheet cafes={cafes} filters={filters} onAplicar={aplicar} />}>
+      <SiteHeader actions={<FiltrosSheet cafes={cafes} festivais={festivais} filters={filters} onAplicar={aplicar} />}>
         <SearchField value={filters.q} onSearch={buscar} />
       </SiteHeader>
       <main className="flex min-h-0 flex-1 flex-col">
         <FilterBar
           cafes={cafes}
+          festivais={festivais}
           filters={filters}
           bairros={bairros}
           onToggle={toggle}
@@ -81,6 +83,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
             <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
             <CafeList
               cafes={filtrados}
+              festivais={festivais}
               hovered={hoveredVisivel}
               selectedId={selectedId}
               onHover={hoverFrom("card")}

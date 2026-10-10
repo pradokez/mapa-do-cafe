@@ -260,8 +260,6 @@ export type DadosCafe = Omit<Cafe, "id" | "slug" | "fotos" | "ativo">;
 
 /** Booleanos com checkbox; `tem_ar_condicionado` (três estados) fica à parte. */
 export const BOOLEANOS = [
-  "selo_ascape",
-  "selo_eu_amo_cafe",
   "aceita_pets",
   "tem_estacionamento",
   "permite_coffee_office",

@@ -10,20 +10,25 @@ import {
 } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import type { FiltroBooleano } from "@/lib/cafe-filter";
+import type { FestivaisNoAr, FestivalSlug } from "@/lib/festival";
 
 type Booleano = {
-  key: keyof Cafe;
+  key: string;
   filtro: FiltroBooleano;
   label: string;
   curto: string;
   Icon: unknown;
 };
 
-/** Selos, na ordem de exibição: pílula no card desktop, selinho de ícone no mobile, badge e tag no detalhe. */
+/**
+ * Selos dos festivais, na ordem de exibição: pílula no card desktop, selinho
+ * de ícone no mobile, badge e tag no detalhe, chip na barra e no sheet. Só
+ * existem com a edição no ar (`FestivaisNoAr`), e só nos participantes.
+ */
 export const SELOS = [
-  { key: "selo_ascape", filtro: "ascape", label: "Recife Coffee", curto: "Recife Coffee", Icon: CoffeeIcon },
-  { key: "selo_eu_amo_cafe", filtro: "euAmoCafe", label: "Eu Amo Café", curto: "Eu Amo Café", Icon: HeartIcon },
-] as const satisfies ReadonlyArray<Booleano>;
+  { key: "recife-coffee", filtro: "recifeCoffee", label: "Recife Coffee", curto: "Recife Coffee", Icon: CoffeeIcon },
+  { key: "eu-amo-cafe", filtro: "euAmoCafe", label: "Eu Amo Café", curto: "Eu Amo Café", Icon: HeartIcon },
+] as const satisfies ReadonlyArray<Booleano & { key: FestivalSlug }>;
 
 /**
  * Atributos booleanos exibidos no card, nas tags do detalhe e como filtros
@@ -38,22 +43,29 @@ export const ATRIBUTOS = [
   { key: "acessivel_pcd", filtro: "pcd", label: "Acessível para PcD", curto: "Acessível", Icon: AccessibilityIcon },
   { key: "opcoes_vegetarianas", filtro: "vegetariano", label: "Opções vegetarianas", curto: "Vegetariano", Icon: LeafIcon },
   { key: "tem_ar_condicionado", filtro: "arCondicionado", label: "Ar-condicionado", curto: "Ar-condicionado", Icon: SnowflakeIcon },
-] as const satisfies ReadonlyArray<Booleano>;
+] as const satisfies ReadonlyArray<Booleano & { key: keyof Cafe }>;
 
-export function selosDo(cafe: Cafe) {
-  return SELOS.filter(({ key }) => cafe[key]);
+/** Selos dos festivais no ar, com ou sem participantes: os chips de filtro. */
+export function selosNoAr(festivais: FestivaisNoAr) {
+  return SELOS.filter(({ key }) => festivais[key] !== undefined);
+}
+
+/** Selos dos festivais no ar de que o café participa. */
+export function selosDo(cafe: Cafe, festivais: FestivaisNoAr) {
+  return SELOS.filter(({ key }) => festivais[key]?.includes(cafe.id));
 }
 
 export function atributosDo(cafe: Cafe) {
   return ATRIBUTOS.filter(({ key }) => cafe[key]);
 }
 
-/** Filtros booleanos na ordem do design: os selos e os atributos, com os mesmos rótulos do card. */
-const FILTROS_DE_ATRIBUTO = [...SELOS, ...ATRIBUTOS];
+/** Atributo com chip na barra (desktop e mobile), depois dos festivais no ar. */
+const NA_BARRA: readonly FiltroBooleano[] = ["estacionamento"];
 
-/** Chips da barra (desktop e mobile); os outros ficam em "Mais filtros" (desktop) e no sheet (mobile). */
-const NA_BARRA: readonly FiltroBooleano[] = ["ascape", "euAmoCafe", "estacionamento"];
+/** Chips da barra, na ordem do design: os festivais no ar e o estacionamento. */
+export function filtrosDaBarra(festivais: FestivaisNoAr) {
+  return [...selosNoAr(festivais), ...ATRIBUTOS.filter(({ filtro }) => NA_BARRA.includes(filtro))];
+}
 
-export const FILTROS_DA_BARRA = FILTROS_DE_ATRIBUTO.filter(({ filtro }) => NA_BARRA.includes(filtro));
-
-export const MAIS_FILTROS = FILTROS_DE_ATRIBUTO.filter(({ filtro }) => !NA_BARRA.includes(filtro));
+/** Os outros atributos: "Mais filtros" no desktop (no mobile, o sheet tem todos). */
+export const MAIS_FILTROS = ATRIBUTOS.filter(({ filtro }) => !NA_BARRA.includes(filtro));

@@ -9,6 +9,7 @@ import { MaisComodidades } from "@/components/mais-comodidades";
 import { CARD_COMODIDADES, CARD_CORPO, CARD_FOTO, CARD_MOLDURA, CARD_NOME } from "@/components/medidas";
 import { caminhoDoCafe, type Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
+import type { FestivaisNoAr } from "@/lib/festival";
 import { faixaPrecoNome, localLabel } from "@/lib/format";
 
 // Card elevado. A sombra difusa é terracota, a cor do pin ativo — desvio
@@ -40,16 +41,19 @@ const MAX_MOBILE = 5;
  */
 export function CafeCard({
   cafe,
+  festivais = {},
   highlight,
   priority = false,
 }: {
   cafe: Cafe;
+  /** Participantes dos festivais no ar: os selos do card. */
+  festivais?: FestivaisNoAr;
   highlight?: CardHighlight;
   /** Primeiros cards da lista: a foto carrega já, sem esperar a viewport. */
   priority?: boolean;
 }) {
   const [photo] = resolveCafePhotos(cafe);
-  const selos = selosDo(cafe);
+  const selos = selosDo(cafe, festivais);
   const atributos = atributosDo(cafe);
 
   const corte = atributos.length > MAX_MOBILE ? MAX_MOBILE - 1 : atributos.length;

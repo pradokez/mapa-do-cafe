@@ -25,9 +25,6 @@ export interface Cafe {
   cidade: Cidade;
   lat: number;
   lng: number;
-  selo_ascape: boolean;
-  /** Participante do festival Eu Amo Café (6ª edição, 2026). */
-  selo_eu_amo_cafe: boolean;
   aceita_pets: boolean;
   tem_estacionamento: boolean;
   permite_coffee_office: boolean;
@@ -58,8 +55,6 @@ export const CAFE_COLUMNS = [
   "cidade",
   "lat",
   "lng",
-  "selo_ascape",
-  "selo_eu_amo_cafe",
   "aceita_pets",
   "tem_estacionamento",
   "permite_coffee_office",

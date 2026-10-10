@@ -108,6 +108,26 @@ function dataValida(iso: string): boolean {
   return !Number.isNaN(data.getTime()) && data.toISOString().startsWith(iso);
 }
 
+/** Quem autorizou e quando: comum à foto e à arte. Grava os erros em `erros`. */
+function quemEQuando(
+  campos: Partial<Record<CampoAutorizacao, unknown>>,
+  hoje: string,
+  erros: Partial<Record<CampoAutorizacao, string>>,
+): Pick<Autorizacao, "autorizado_por" | "autorizado_em"> {
+  const autorizadoPor = textoAparado(campos.autorizado_por);
+  const autorizadoEm = textoAparado(campos.autorizado_em);
+
+  if (!autorizadoPor) erros.autorizado_por = "Diga quem autorizou.";
+  else if (autorizadoPor.length > MAX_AUTORIZADO_POR) erros.autorizado_por = `Use até ${MAX_AUTORIZADO_POR} caracteres.`;
+
+  if (!autorizadoEm) erros.autorizado_em = "Informe a data da autorização.";
+  else if (!dataValida(autorizadoEm)) erros.autorizado_em = "Data inválida.";
+  // `AAAA-MM-DD` compara certo como texto.
+  else if (autorizadoEm > hoje) erros.autorizado_em = "A data não pode ser no futuro.";
+
+  return { autorizado_por: autorizadoPor, autorizado_em: autorizadoEm };
+}
+
 /**
  * Autorização de uso da foto, obrigatória junto com o arquivo: origem, quem
  * autorizou e data (até `hoje`, em Recife). Mesma regra no formulário e na
@@ -118,33 +138,36 @@ export function validarAutorizacao(
   hoje: string,
 ): ResultadoAutorizacao {
   const origem = textoAparado(campos.origem);
-  const autorizadoPor = textoAparado(campos.autorizado_por);
-  const autorizadoEm = textoAparado(campos.autorizado_em);
   const observacao = textoAparado(campos.observacao);
   const erros: Partial<Record<CampoAutorizacao, string>> = {};
 
   if (!ORIGENS.includes(origem)) erros.origem = "Escolha a origem da foto.";
-
-  if (!autorizadoPor) erros.autorizado_por = "Diga quem autorizou.";
-  else if (autorizadoPor.length > MAX_AUTORIZADO_POR) erros.autorizado_por = `Use até ${MAX_AUTORIZADO_POR} caracteres.`;
-
-  if (!autorizadoEm) erros.autorizado_em = "Informe a data da autorização.";
-  else if (!dataValida(autorizadoEm)) erros.autorizado_em = "Data inválida.";
-  // `AAAA-MM-DD` compara certo como texto.
-  else if (autorizadoEm > hoje) erros.autorizado_em = "A data não pode ser no futuro.";
-
+  const autorizacao = quemEQuando(campos, hoje, erros);
   if (observacao.length > MAX_OBSERVACAO) erros.observacao = `Use até ${MAX_OBSERVACAO} caracteres.`;
 
   if (Object.keys(erros).length > 0) return { ok: false, erros };
-  return {
-    ok: true,
-    valores: {
-      origem: origem as Origem,
-      autorizado_por: autorizadoPor,
-      autorizado_em: autorizadoEm,
-      observacao: observacao || null,
-    },
-  };
+  return { ok: true, valores: { origem: origem as Origem, ...autorizacao, observacao: observacao || null } };
+}
+
+/** Autorização da arte de um combo (#105) — espelha as colunas de `festival_participacoes`. */
+export type AutorizacaoDaArte = Pick<Autorizacao, "autorizado_por" | "autorizado_em">;
+export type CampoAutorizacaoDaArte = keyof AutorizacaoDaArte;
+
+export type ResultadoAutorizacaoDaArte =
+  | { ok: true; valores: AutorizacaoDaArte }
+  | { ok: false; erros: Partial<Record<CampoAutorizacaoDaArte, string>> };
+
+/**
+ * Autorização de uso da arte: quem autorizou e quando, com as mesmas regras
+ * das fotos. A arte não tem origem (é sempre do festival) nem observação.
+ */
+export function validarAutorizacaoDaArte(
+  campos: Readonly<Record<string, unknown>>,
+  hoje: string,
+): ResultadoAutorizacaoDaArte {
+  const erros: Partial<Record<CampoAutorizacao, string>> = {};
+  const valores = quemEQuando(campos, hoje, erros);
+  return Object.keys(erros).length > 0 ? { ok: false, erros } : { ok: true, valores };
 }
 
 /** Caminho no bucket `cafe-fotos`: `{cafe_id}/{uuid}.webp`, gerado no servidor. */
@@ -152,13 +175,28 @@ export function caminhoDaFoto(cafeId: string, fotoId: string): string {
   return `${cafeId}/${fotoId}.webp`;
 }
 
+/** `{pasta}/{uuid}.webp`, sem subpasta: o formato de `caminhoDaFoto` e `caminhoDaArte`. */
+function ehCaminhoNaPasta(pasta: string, caminho: unknown): boolean {
+  if (!isUuid(pasta) || typeof caminho !== "string") return false;
+  const [primeira, arquivo, ...resto] = caminho.split("/");
+  if (primeira !== pasta || resto.length > 0 || !arquivo?.endsWith(".webp")) return false;
+  return isUuid(arquivo.slice(0, -".webp".length));
+}
+
 /**
  * O caminho é uma foto deste café, no formato de `caminhoDaFoto`? Guarda das
  * Server Actions: o cliente devolve o caminho que recebeu, e só ele é aceito.
  */
 export function ehCaminhoDoCafe(cafeId: string, caminho: unknown): boolean {
-  if (!isUuid(cafeId) || typeof caminho !== "string") return false;
-  const [pasta, arquivo, ...resto] = caminho.split("/");
-  if (pasta !== cafeId || resto.length > 0 || !arquivo?.endsWith(".webp")) return false;
-  return isUuid(arquivo.slice(0, -".webp".length));
+  return ehCaminhoNaPasta(cafeId, caminho);
+}
+
+/** Caminho no bucket `festival-artes` (#105): `{edicao_id}/{uuid}.webp`, gerado no servidor. */
+export function caminhoDaArte(edicaoId: string, arteId: string): string {
+  return `${edicaoId}/${arteId}.webp`;
+}
+
+/** O caminho é uma arte desta edição? A mesma guarda de `ehCaminhoDoCafe` — e o `check` do banco. */
+export function ehCaminhoDaEdicao(edicaoId: string, caminho: unknown): boolean {
+  return ehCaminhoNaPasta(edicaoId, caminho);
 }

@@ -5,8 +5,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useRef, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/icons";
+import { descartarArte, prepararArte, registrarArte, type ErrosArte } from "@/lib/admin/artes-actions";
 import { adicionarParticipante, removerParticipante, salvarParticipante } from "@/lib/admin/festivais-actions";
 import { compararPorNome, type Cafe } from "@/lib/cafe";
+import type { ArteDoParticipante } from "@/lib/cafe-repository";
 import { ordenarPorNumero, type Participacao } from "@/lib/festival";
 import {
   MAX_ALT,
@@ -15,34 +17,40 @@ import {
   pendencias,
   validarParticipante,
   type CampoParticipante,
-  type ErrosParticipante,
 } from "@/lib/festival-dados";
+import { validarAutorizacaoDaArte, type AutorizacaoDaArte } from "@/lib/foto-upload";
+import { ARTE, falhaDeRede, type Falha } from "@/lib/foto-upload-erro";
 import { localLabel } from "@/lib/format";
 
-import { Erro, botaoCtaClass, botaoNeutroClass, inputClass, labelClass } from "./form";
+import { CampoDaArte } from "./campo-da-arte";
+import { ErroDoEnvio, subirParaOStorage, useImagemConvertida } from "./envio-de-imagem";
+
+import { botaoCtaClass, botaoNeutroClass, Erro, ERRO_REDE, inputClass, invalidoClass, labelClass } from "./form";
 import { ETIQUETA } from "./status-cafe";
 
-const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
 /** Resultados à vista na busca: o suficiente para achar, sem virar a lista inteira. */
 const MAX_RESULTADOS = 8;
 
 const etiquetaPendente = `${ETIQUETA} bg-seal-bg text-seal-fg`;
 const etiquetaNeutra = `${ETIQUETA} bg-hover-soft text-ink-2`;
-const invalidoClass = "aria-[invalid=true]:border-terracotta";
 
 type Props = {
   edicaoId: string;
   participacoes: Participacao[];
   /** Todos os cafés do admin (ativos e não): nomes dos participantes e a busca para adicionar. */
   cafes: Cafe[];
+  /** Quem autorizou cada arte no ar, por participação (#105). */
+  artes: Record<string, ArteDoParticipante>;
+  /** Hoje em Recife (`AAAA-MM-DD`): padrão e limite da data da autorização. */
+  hoje: string;
 };
 
 /**
  * Participantes da edição (#102): adicionar café no ar pela busca do site,
- * número, nome curto, alt e link do post de cada um, e tirar da edição.
- * Mostra quem está sem número e sem arte (a arte sobe em outra fatia).
+ * número, nome curto, alt, link do post e arte (#105) de cada um, e tirar da
+ * edição. Mostra quem está sem número e sem arte.
  */
-export function ParticipantesEdicao({ edicaoId, participacoes, cafes }: Props) {
+export function ParticipantesEdicao({ edicaoId, participacoes, cafes, artes, hoje }: Props) {
   const [q, setQ] = useState("");
   const [anuncio, setAnuncio] = useState("");
   const [erroAdicionar, setErroAdicionar] = useState<string | null>(null);
@@ -149,7 +157,10 @@ export function ParticipantesEdicao({ edicaoId, participacoes, cafes }: Props) {
                 edicaoId={edicaoId}
                 participacao={p}
                 cafe={cafePorId.get(p.cafe_id)}
+                registro={artes[p.id]}
+                hoje={hoje}
                 onSalvo={() => setAnuncio(`${nomeDo(p)}: salvo.`)}
+                onArteRemovida={() => setAnuncio(`${nomeDo(p)}: arte removida.`)}
                 onRemover={() => setRemover(p)}
               />
             ))}
@@ -189,23 +200,34 @@ function ParticipanteItem({
   edicaoId,
   participacao,
   cafe,
+  registro,
+  hoje,
   onSalvo,
   onRemover,
+  onArteRemovida,
 }: {
   edicaoId: string;
   participacao: Participacao;
   cafe: Cafe | undefined;
+  registro: ArteDoParticipante | undefined;
+  hoje: string;
   onSalvo: () => void;
   onRemover: () => void;
+  onArteRemovida: () => void;
 }) {
   const [estado, setEstado] = useState(() => estadoDe(participacao));
-  const [erros, setErros] = useState<ErrosParticipante>({});
+  const [autorizacao, setAutorizacao] = useState<AutorizacaoDaArte>({ autorizado_por: "", autorizado_em: hoje });
+  const { imagem, convertendo, erro: erroArquivo, escolher, limpar } = useImagemConvertida();
+  const [erros, setErros] = useState<ErrosArte>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  const [falha, setFalha] = useState<Falha | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const form = useRef<HTMLFormElement>(null);
-  const temArte = participacao.arte !== null;
+  // Arte no ar ou escolhida agora: com ela, o alt é obrigatório.
+  const temArte = participacao.arte !== null || imagem !== null;
   const prefixo = `participante-${participacao.id}`;
+  const nome = cafe?.nome ?? "Café removido";
 
   function mudar(campo: CampoParticipante, valor: string) {
     setEstado((e) => ({ ...e, [campo]: valor }));
@@ -213,26 +235,84 @@ function ParticipanteItem({
     if (erros[campo]) setErros((atual) => ({ ...atual, [campo]: undefined }));
   }
 
-  function falhar(novos: ErrosParticipante, geral: string | null) {
+  function mudarAutorizacao(campo: keyof AutorizacaoDaArte, valor: string) {
+    setAutorizacao((a) => ({ ...a, [campo]: valor }));
+    if (erros[campo]) setErros((atual) => ({ ...atual, [campo]: undefined }));
+  }
+
+  function falhar(novos: ErrosArte, geral: string | null) {
     setErros(novos);
     setErroGeral(geral);
     // O foco vai ao primeiro campo marcado, depois de o React pintar o erro.
     requestAnimationFrame(() => form.current?.querySelector<HTMLElement>("[aria-invalid=true]")?.focus());
   }
 
+  /** Sobe a arte e grava tudo junto (#105). Em toda falha, a arte convertida e os campos ficam. */
+  async function enviarComArte(arte: NonNullable<typeof imagem>) {
+    const dados = validarParticipante(estado, { temArte: true });
+    const quem = validarAutorizacaoDaArte(autorizacao, hoje);
+    if (!dados.ok || !quem.ok) {
+      return falhar({ ...(dados.ok ? {} : dados.erros), ...(quem.ok ? {} : quem.erros) }, null);
+    }
+    if (!navigator.onLine) return setFalha({ etapa: "preparar", codigo: "offline" });
+
+    let preparo;
+    try {
+      preparo = await prepararArte(edicaoId, participacao.id, quem.valores, { type: arte.blob.type, size: arte.blob.size });
+    } catch (erro) {
+      return setFalha(falhaDeRede("preparar", erro));
+    }
+    if (!preparo.ok) {
+      setFalha(preparo.falha);
+      return preparo.erros ? falhar(preparo.erros, null) : undefined;
+    }
+
+    const falhaDoEnvio = await subirParaOStorage(preparo.url, arte.blob);
+    if (falhaDoEnvio) return setFalha(falhaDoEnvio);
+
+    let registro;
+    try {
+      registro = await registrarArte(edicaoId, participacao.id, preparo.caminho, { ...estado, ...quem.valores });
+    } catch (erro) {
+      // O registro não respondeu: o arquivo não pode ficar no bucket sem autorização.
+      await descartarArte(edicaoId, preparo.caminho).catch(() => {});
+      return setFalha({ ...falhaDeRede("registrar", erro), codigo: "sem-resposta" });
+    }
+    if (!registro.ok) {
+      setFalha(registro.falha);
+      return registro.erros ? falhar(registro.erros, null) : undefined;
+    }
+
+    limpar();
+    setAutorizacao({ autorizado_por: "", autorizado_em: hoje });
+    const campoDoArquivo = form.current?.querySelector<HTMLInputElement>("input[type=file]");
+    if (campoDoArquivo) campoDoArquivo.value = "";
+    return registro.valores;
+  }
+
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setSucesso(false);
     setErroGeral(null);
-    const validacao = validarParticipante(estado, { temArte });
-    if (!validacao.ok) return falhar(validacao.erros, null);
+    setFalha(null);
+    if (!imagem) {
+      const validacao = validarParticipante(estado, { temArte });
+      if (!validacao.ok) return falhar(validacao.erros, null);
+    }
 
     setSalvando(true);
     try {
-      const resultado = await salvarParticipante(edicaoId, participacao.id, estado);
-      if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
+      let valores;
+      if (imagem) {
+        valores = await enviarComArte(imagem);
+        if (!valores) return;
+      } else {
+        const resultado = await salvarParticipante(edicaoId, participacao.id, estado);
+        if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
+        valores = resultado.valores;
+      }
       // O que o banco guardou (link do post limpo).
-      setEstado(estadoDe(resultado.valores));
+      setEstado(estadoDe(valores));
       setErros({});
       setSucesso(true);
       onSalvo();
@@ -258,14 +338,14 @@ function ParticipanteItem({
             {participacao.numero === null ? "—" : `Nº ${participacao.numero}`}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-semibold text-espresso">{cafe?.nome ?? "Café removido"}</span>
+            <span className="block truncate text-[15px] font-semibold text-espresso">{nome}</span>
             {participacao.nome_combo && (
               <span className="block truncate text-[13px] text-ink-3">{participacao.nome_combo}</span>
             )}
           </span>
           <span className="col-start-2 row-start-2 flex flex-wrap gap-1.5 empty:hidden sm:col-start-3 sm:row-start-1">
             {participacao.numero === null && <span className={etiquetaPendente}>Sem número</span>}
-            {!temArte && <span className={etiquetaPendente}>Sem arte</span>}
+            {participacao.arte === null && <span className={etiquetaPendente}>Sem arte</span>}
             {cafe && !cafe.ativo && <span className={etiquetaNeutra}>Fora do ar</span>}
           </span>
           <ChevronDownIcon
@@ -312,6 +392,27 @@ function ParticipanteItem({
               <Erro id={`${prefixo}-nome_combo-erro`} erro={erros.nome_combo} className="mt-1.5" />
             </div>
           </div>
+          <CampoDaArte
+            prefixo={prefixo}
+            edicaoId={edicaoId}
+            participacaoId={participacao.id}
+            nome={nome}
+            url={participacao.arte}
+            registro={registro}
+            hoje={hoje}
+            imagem={imagem}
+            convertendo={convertendo}
+            erroArquivo={erroArquivo}
+            escolher={(evento) => {
+              setSucesso(false);
+              setFalha(null);
+              escolher(evento);
+            }}
+            autorizacao={autorizacao}
+            mudarAutorizacao={mudarAutorizacao}
+            erros={erros}
+            onRemovida={onArteRemovida}
+          />
           <div>
             <label htmlFor={`${prefixo}-alt`} className={labelClass}>
               Texto alternativo da arte{" "}
@@ -345,11 +446,12 @@ function ParticipanteItem({
             <Erro id={`${prefixo}-instagram_url-erro`} erro={erros.instagram_url} className="mt-1.5" />
           </div>
 
+          <ErroDoEnvio falha={falha} voltarPara={`/admin/festivais/${edicaoId}`} objeto={ARTE} />
           <Erro erro={erroGeral} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-4">
-              <button type="submit" disabled={salvando} className={botaoCtaClass}>
-                {salvando ? "Salvando…" : "Salvar"}
+              <button type="submit" disabled={salvando || convertendo} className={botaoCtaClass}>
+                {salvando ? (imagem ? "Enviando a arte…" : "Salvando…") : "Salvar"}
               </button>
               <p className="text-[14px] font-medium text-open empty:hidden">{sucesso ? "Salvo." : null}</p>
             </div>

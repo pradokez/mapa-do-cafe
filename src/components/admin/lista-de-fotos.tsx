@@ -11,7 +11,7 @@ import type { FotoDoCafe } from "@/lib/cafe-repository";
 import { moverFoto, type Movimento } from "@/lib/foto-ordem";
 import { ROTULO_ORIGEM } from "@/lib/foto-upload";
 
-import { Erro } from "./form";
+import { dataBr, Erro } from "./form";
 import { RemoverFotoDialog } from "./remover-foto-dialog";
 
 const ERRO_ACAO = "Não deu para salvar agora. Tente de novo em instantes.";
@@ -20,7 +20,6 @@ const ERRO_ACAO = "Não deu para salvar agora. Tente de novo em instantes.";
 const altDaFoto = (indice: number, total: number, nome: string) => `Foto ${indice + 1} de ${total} — ${nome}`;
 
 /** `AAAA-MM-DD` → `DD/MM/AAAA`, sem `Date` (nada de fuso no meio). */
-const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 
 type Acao = Movimento | "remover" | "temporaria";
 

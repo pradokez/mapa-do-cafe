@@ -26,53 +26,90 @@ export type Falha = {
 
 const NAO_ADIANTA = "Não adianta tentar de novo.";
 
-const MENSAGENS: Record<string, string> = {
-  // Antes de subir (navegador).
-  offline: "Você está sem internet. A foto não foi enviada. Conecte-se e clique em Enviar foto de novo.",
-  // Preparar.
-  sessao:
-    "Sua sessão expirou e a foto não foi enviada. Entre de novo em outra aba e clique em Enviar foto outra vez — o que você preencheu continua aqui.",
-  cafe: "Este café não foi encontrado. Recarregue a página.",
-  // Fora da produção da Vercel, sem ADMIN_ESCRITA_LIBERADA=1 (#75).
-  "modo-leitura": MODO_LEITURA,
-  bucket: `O bucket de fotos não existe no Supabase: falta aplicar a migration. ${NAO_ADIANTA}`,
-  permissao:
-    "O Storage recusou a permissão para gravar a foto. Saia e entre de novo; se continuar, confira as políticas do bucket — tentar de novo não resolve.",
-  indisponivel:
-    "O Supabase não respondeu — ele pode estar acordando da hibernação. Espere um minuto e tente de novo.",
-  // Enviar.
-  "token-expirado":
-    "O envio demorou demais e a autorização para subir a foto expirou. Clique em Enviar foto de novo.",
-  duplicado:
-    "Já existia um arquivo com esse nome no Storage. Clique em Enviar foto de novo — o nome é sorteado a cada envio.",
-  "storage-5xx": "O Storage do Supabase falhou ao receber a foto. Tente de novo em instantes.",
-  rede: "A conexão caiu durante o envio. Confira a internet e tente de novo.",
-  timeout: "O envio passou de 1 minuto sem terminar. Confira a internet e tente de novo.",
-  // O bucket recusou o que o cliente já deveria ter barrado: a mesma frase do cliente.
-  "413": ERRO_WEBP_GRANDE,
-  "415": ERRO_SEM_WEBP,
-  // Registrar.
-  "sem-arquivo": "A foto não chegou ao Storage, embora o envio tenha respondido. Tente de novo.",
-  exists:
-    "Não deu para conferir se a foto chegou ao Storage — o Supabase não respondeu. Tente de novo em instantes.",
-  "42P01": `A tabela de fotos não existe no banco: falta aplicar a migration em produção. ${NAO_ADIANTA}`,
-  "42501": "O banco recusou a gravação: a sessão perdeu o acesso de admin. Entre de novo e envie outra vez.",
-  "23505": "Esta foto já estava registrada. Recarregue a página para conferir.",
-  "23503": "O café não existe mais no banco. Recarregue a página.",
-  "23514": `O banco recusou os dados da autorização (origem, nome ou data) — o formulário e o banco divergem. ${NAO_ADIANTA}`,
-  P0001: `Um gatilho do banco recusou a foto. Algo está errado no banco: ${NAO_ADIANTA.toLowerCase()}`,
-  "sem-resposta":
-    "O registro não respondeu (a conexão pode ter caído). A foto pode ou não ter entrado: recarregue a página e confira a lista antes de enviar de novo.",
+/**
+ * O que está sendo enviado (#105): a foto de um café ou a arte de um combo.
+ * As frases mudam o nome, o botão a clicar e o que o banco guarda.
+ */
+export type ObjetoDoEnvio = {
+  /** Feminino singular: "a foto", "a arte". */
+  nome: string;
+  botao: string;
+  /** Onde o registro mora, para a frase da migration faltando. */
+  tabela: string;
+  /** Campos da autorização que o banco confere. */
+  campos: string;
+  /** O dono do registro sumiu (FK). */
+  sumiu: string;
 };
-// O PostgREST diz "tabela fora do cache do schema" — na prática, a mesma migration faltando.
-MENSAGENS.PGRST205 = MENSAGENS["42P01"];
 
-export const MENSAGEM_GENERICA = "Não deu para enviar a foto agora. Tente de novo em instantes.";
+export const FOTO: ObjetoDoEnvio = {
+  nome: "foto",
+  botao: "Enviar foto",
+  tabela: "A tabela de fotos",
+  campos: "origem, nome ou data",
+  sumiu: "O café não existe mais no banco. Recarregue a página.",
+};
+
+export const ARTE: ObjetoDoEnvio = {
+  nome: "arte",
+  botao: "Salvar",
+  tabela: "A tabela dos festivais",
+  campos: "texto alternativo, quem autorizou ou data",
+  sumiu: "Este café ou a edição não existe mais no banco. Recarregue a página.",
+};
+
+function mensagens({ nome, botao, tabela, campos, sumiu }: ObjetoDoEnvio): Record<string, string> {
+  const porCodigo: Record<string, string> = {
+    // Antes de subir (navegador).
+    offline: `Você está sem internet. A ${nome} não foi enviada. Conecte-se e clique em ${botao} de novo.`,
+    // Preparar.
+    sessao: `Sua sessão expirou e a ${nome} não foi enviada. Entre de novo em outra aba e clique em ${botao} outra vez — o que você preencheu continua aqui.`,
+    cafe: "Este café não foi encontrado. Recarregue a página.",
+    participante: "Este café não está mais nesta edição. Recarregue a página.",
+    // Fora da produção da Vercel, sem ADMIN_ESCRITA_LIBERADA=1 (#75).
+    "modo-leitura": MODO_LEITURA,
+    bucket: `O bucket de ${nome}s não existe no Supabase: falta aplicar a migration. ${NAO_ADIANTA}`,
+    permissao: `O Storage recusou a permissão para gravar a ${nome}. Saia e entre de novo; se continuar, confira as políticas do bucket — tentar de novo não resolve.`,
+    indisponivel:
+      "O Supabase não respondeu — ele pode estar acordando da hibernação. Espere um minuto e tente de novo.",
+    // Enviar.
+    "token-expirado": `O envio demorou demais e a autorização para subir a ${nome} expirou. Clique em ${botao} de novo.`,
+    duplicado: `Já existia um arquivo com esse nome no Storage. Clique em ${botao} de novo — o nome é sorteado a cada envio.`,
+    "storage-5xx": `O Storage do Supabase falhou ao receber a ${nome}. Tente de novo em instantes.`,
+    rede: "A conexão caiu durante o envio. Confira a internet e tente de novo.",
+    timeout: "O envio passou de 1 minuto sem terminar. Confira a internet e tente de novo.",
+    // O bucket recusou o que o cliente já deveria ter barrado: a mesma frase do cliente.
+    "413": ERRO_WEBP_GRANDE,
+    "415": ERRO_SEM_WEBP,
+    // Registrar.
+    "sem-arquivo": `A ${nome} não chegou ao Storage, embora o envio tenha respondido. Tente de novo.`,
+    exists: `Não deu para conferir se a ${nome} chegou ao Storage — o Supabase não respondeu. Tente de novo em instantes.`,
+    "42P01": `${tabela} não existe no banco: falta aplicar a migration em produção. ${NAO_ADIANTA}`,
+    "42501": "O banco recusou a gravação: a sessão perdeu o acesso de admin. Entre de novo e envie outra vez.",
+    "23505": `Esta ${nome} já estava registrada. Recarregue a página para conferir.`,
+    "23503": sumiu,
+    "23514": `O banco recusou os dados da autorização (${campos}) — o formulário e o banco divergem. ${NAO_ADIANTA}`,
+    P0001: `Um gatilho do banco recusou a ${nome}. Algo está errado no banco: ${NAO_ADIANTA.toLowerCase()}`,
+    "sem-resposta": `O registro não respondeu (a conexão pode ter caído). A ${nome} pode ou não ter entrado: recarregue a página e confira a lista antes de enviar de novo.`,
+  };
+  // O PostgREST diz "tabela fora do cache do schema" — na prática, a mesma migration faltando.
+  porCodigo.PGRST205 = porCodigo["42P01"];
+  return porCodigo;
+}
+
+const MENSAGENS = new Map([FOTO, ARTE].map((objeto) => [objeto, mensagens(objeto)]));
+
+const generica = (objeto: ObjetoDoEnvio) => `Não deu para enviar a ${objeto.nome} agora. Tente de novo em instantes.`;
+export const MENSAGEM_GENERICA = generica(FOTO);
 const ORFAO = "O arquivo ficou no Storage sem registro (órfão); o caminho está nos detalhes.";
 
 /** Frase principal (o que houve e o que fazer) e as linhas de "Detalhes técnicos". */
-export function mensagemDaFalha(falha: Falha): { mensagem: string; detalhes: string[] } {
-  const causa = MENSAGENS[falha.codigo] ?? MENSAGEM_GENERICA;
+export function mensagemDaFalha(
+  falha: Falha,
+  objeto: ObjetoDoEnvio = FOTO,
+): { mensagem: string; detalhes: string[] } {
+  const frases = MENSAGENS.get(objeto) ?? mensagens(objeto);
+  const causa = frases[falha.codigo] ?? generica(objeto);
   const mensagem = falha.orfao ? `${causa} ${ORFAO}` : causa;
 
   const detalhes = [`Etapa: ${falha.etapa}`, `Código: ${falha.codigo}`];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { falhaDeRede, falhaDoPostgres, falhaDoPut, falhaDoStorage, mensagemDaFalha, sanear, type Falha } from "./foto-upload-erro";
+import { ARTE, falhaDeRede, falhaDoPostgres, falhaDoPut, falhaDoStorage, mensagemDaFalha, sanear, type Falha } from "./foto-upload-erro";
 
 const GENERICA = "Não deu para enviar a foto agora. Tente de novo em instantes.";
 
@@ -218,5 +218,53 @@ describe("falhaDeRede (fetch ou Server Action que rejeitou)", () => {
       codigo: "rede",
       original: "Failed to fetch [url]",
     });
+  });
+});
+
+describe("mensagemDaFalha — arte do combo (#105)", () => {
+  // As frases do navegador (Safari sem WebP, limite de 2 MB) são as mesmas das fotos, de propósito.
+  const DA_ARTE: Falha[] = [
+    { etapa: "preparar", codigo: "offline" },
+    { etapa: "preparar", codigo: "sessao" },
+    { etapa: "preparar", codigo: "participante" },
+    { etapa: "preparar", codigo: "bucket" },
+    { etapa: "preparar", codigo: "permissao" },
+    { etapa: "enviar", codigo: "token-expirado" },
+    { etapa: "enviar", codigo: "duplicado" },
+    { etapa: "enviar", codigo: "storage-5xx" },
+    { etapa: "registrar", codigo: "sem-arquivo" },
+    { etapa: "registrar", codigo: "exists" },
+    { etapa: "registrar", codigo: "42P01" },
+    { etapa: "registrar", codigo: "23505" },
+    { etapa: "registrar", codigo: "23503" },
+    { etapa: "registrar", codigo: "23514" },
+    { etapa: "registrar", codigo: "P0001" },
+    { etapa: "registrar", codigo: "sem-resposta" },
+    { etapa: "registrar", codigo: "XX999" },
+  ];
+
+  it.each(DA_ARTE)("$etapa › $codigo fala da arte, não de foto nem de café sumido", (falha) => {
+    const { mensagem } = mensagemDaFalha(falha, ARTE);
+    expect(mensagem).not.toMatch(/foto|Enviar foto/i);
+    expect(mensagem).not.toMatch(/O café não existe/);
+  });
+
+  it("sessão expirada: a arte não foi enviada, e o botão é Salvar", () => {
+    const { mensagem } = mensagemDaFalha({ etapa: "preparar", codigo: "sessao" }, ARTE);
+    expect(mensagem).toMatch(/a arte não foi enviada/);
+    expect(mensagem).toMatch(/clique em Salvar/);
+  });
+
+  it("participação que sumiu: recarregar a página", () => {
+    expect(mensagemDaFalha({ etapa: "preparar", codigo: "participante" }, ARTE).mensagem).toBe(
+      "Este café não está mais nesta edição. Recarregue a página.",
+    );
+  });
+
+  it("sem objeto, as frases continuam as das fotos", () => {
+    expect(mensagemDaFalha({ etapa: "enviar", codigo: "XX999" }).mensagem).toBe(GENERICA);
+    expect(mensagemDaFalha({ etapa: "enviar", codigo: "XX999" }, ARTE).mensagem).toBe(
+      "Não deu para enviar a arte agora. Tente de novo em instantes.",
+    );
   });
 });

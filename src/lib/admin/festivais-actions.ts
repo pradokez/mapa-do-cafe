@@ -8,8 +8,8 @@
  * o que precisa ser relido passa pelo `cafe-repository`.
  */
 import { isUuid } from "@/lib/admin-auth";
-import { getCafeById, getEdicaoById, listFestivaisCadastrados } from "@/lib/cafe-repository";
-import { urlDaEdicao, type Edicao } from "@/lib/festival";
+import { getCafeById, getEdicaoById, listArtesDaEdicao, listFestivaisCadastrados } from "@/lib/cafe-repository";
+import { BUCKET_ARTES, urlDaEdicao, type Edicao } from "@/lib/festival";
 import {
   donoDoNumero,
   erroDePublicacao,
@@ -203,8 +203,8 @@ export async function salvarParticipante(
 }
 
 /**
- * Tira o café da edição: some o selo, o filtro e o combo dele. Só a linha —
- * a arte no bucket, quando houver, é assunto da fatia das artes.
+ * Tira o café da edição: some o selo, o filtro e o combo dele. A linha sai
+ * antes da arte no bucket (#105): falha no Storage deixa um órfão inofensivo.
  */
 export async function removerParticipante(edicaoId: string, participacaoId: string): Promise<ResultadoFestival> {
   await requireAdmin();
@@ -216,12 +216,15 @@ export async function removerParticipante(edicaoId: string, participacaoId: stri
   const participacao = edicao.participacoes.find((p) => p.id === participacaoId);
   if (!participacao) return { ok: false, erro: ERRO_PARTICIPANTE };
 
-  const { error, count } = await createSessionClient()
+  const arte = (await listArtesDaEdicao(edicao.id))[participacao.id]?.caminho;
+  const supabase = createSessionClient();
+  const { error, count } = await supabase
     .from("festival_participacoes")
     .delete({ count: "exact" })
     .eq("id", participacao.id);
   if (error || count !== 1) return { ok: false, erro: "Não deu para tirar o café agora. Tente de novo em instantes." };
 
+  if (arte) await supabase.storage.from(BUCKET_ARTES).remove([arte]);
   revalidarFestivais(edicao);
   return { ok: true };
 }

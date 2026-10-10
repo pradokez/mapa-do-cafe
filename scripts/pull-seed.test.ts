@@ -84,6 +84,17 @@ describe("retrato dos cafés da produção (pnpm seed:pull)", () => {
     expect(() => retratoDosCafes({ rows: [] })).toThrow();
   });
 
+  it("recusa linha que não é um café", () => {
+    expect(() => retratoDosCafes([null])).toThrow();
+    expect(() => retratoDosCafes(["81-coffee"])).toThrow();
+  });
+
+  it("dia fora da semana não some: vai para o fim, e o teste do seed acusa", () => {
+    const [cafe] = ler(retratoDosCafes([linha("a", { horario_funcionamento: { feriado: "Fechado", terca: "08:00 – 18:00", segunda: "Fechado" } })]));
+
+    expect(Object.keys(cafe.horario_funcionamento as object)).toEqual(["segunda", "terca", "feriado"]);
+  });
+
   it("recusa café sem alguma coluna, citando o slug", () => {
     const { telefone: _, ...semTelefone } = linha("sem-telefone");
 

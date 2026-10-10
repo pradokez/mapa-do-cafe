@@ -4,7 +4,7 @@ import { CartaoSugestoes } from "@/components/admin/cartao-sugestoes";
 import { botaoCtaClass } from "@/components/admin/form";
 import { ListaDeCafes } from "@/components/admin/lista-de-cafes";
 import { PlusIcon } from "@/components/icons";
-import { contarSugestoes, listTodosCafes } from "@/lib/cafe-repository";
+import { contarFotosTemporarias, contarSugestoes, listTodosCafes } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { totalDeCafes } from "@/lib/format";
 
@@ -13,7 +13,11 @@ type Props = { searchParams: { q?: string | string[] } };
 // O Next renderiza layout e página em paralelo: a página confere o admin por conta própria.
 export default async function AdminHome({ searchParams }: Props) {
   await requireAdmin();
-  const [cafes, sugestoes] = await Promise.all([listTodosCafes(), contarSugestoes()]);
+  const [cafes, sugestoes, temporarias] = await Promise.all([
+    listTodosCafes(),
+    contarSugestoes(),
+    contarFotosTemporarias(),
+  ]);
   const noAr = cafes.filter((cafe) => cafe.ativo).length;
   const q = [searchParams.q].flat()[0] ?? "";
 
@@ -35,7 +39,7 @@ export default async function AdminHome({ searchParams }: Props) {
         </Link>
       </div>
 
-      <ListaDeCafes cafes={cafes} q={q} />
+      <ListaDeCafes cafes={cafes} q={q} temporarias={temporarias} />
     </>
   );
 }

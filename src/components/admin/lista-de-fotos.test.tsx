@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const actions = vi.hoisted(() => ({
   reordenarFoto: vi.fn(),
   removerFoto: vi.fn(),
+  marcarTemporaria: vi.fn(),
 }));
 vi.mock("@/lib/admin/fotos-actions", () => actions);
 
@@ -21,6 +22,7 @@ function foto(n: number, extra: Partial<FotoDoCafe> = {}): FotoDoCafe {
     id,
     storage_path: `${CAFE}/${id}.webp`,
     ordem: n - 1,
+    temporaria: false,
     url: `https://xyz.supabase.co/storage/v1/object/public/cafe-fotos/${CAFE}/${id}.webp`,
     origem: "propria",
     autorizado_por: "Keziah",
@@ -159,5 +161,39 @@ describe("ListaDeFotos", () => {
 
     expect(screen.getByRole("alert").textContent).toBe("Não deu para salvar agora. Tente de novo em instantes.");
     expect(screen.getByRole("button", { name: "Descer foto 1 de 3" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("foto temporária (#92): etiqueta só nela, e o botão diz o que vai acontecer", () => {
+    render(<ListaDeFotos cafeId={CAFE} nome="Café Teste" fotos={[foto(1), foto(2, { temporaria: true })]} />);
+
+    const [primeira, segunda] = screen.getAllByRole("listitem");
+    expect(within(primeira).queryByText("Temporária")).toBeNull();
+    expect(within(segunda).getByText("Temporária")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Marcar foto 1 de 2 como temporária" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Marcar foto 2 de 2 como definitiva" })).toBeTruthy();
+  });
+
+  it("marcar chama a action com o estado-alvo e, com a lista nova, o foco fica no botão e a mudança é anunciada", async () => {
+    actions.marcarTemporaria.mockResolvedValue({ ok: true });
+    const { rerender } = render(<ListaDeFotos cafeId={CAFE} nome="Café Teste" fotos={TRES} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Marcar foto 2 de 3 como temporária" }));
+    expect(actions.marcarTemporaria).toHaveBeenCalledWith(CAFE, TRES[1].id, true);
+
+    rerender(<ListaDeFotos cafeId={CAFE} nome="Café Teste" fotos={[TRES[0], { ...TRES[1], temporaria: true }, TRES[2]]} />);
+
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute("aria-label")).toBe("Marcar foto 2 de 3 como definitiva"),
+    );
+    expect(screen.getByRole("status").textContent).toBe("Foto marcada como temporária.");
+  });
+
+  it("erro ao marcar aparece e nada é anunciado", async () => {
+    actions.marcarTemporaria.mockResolvedValue({ ok: false, erro: "Não deu." });
+    render(<ListaDeFotos cafeId={CAFE} nome="Café Teste" fotos={TRES} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Marcar foto 1 de 3 como temporária" }));
+    expect(await screen.findByText("Não deu.")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("");
   });
 });

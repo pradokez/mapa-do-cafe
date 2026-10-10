@@ -2,13 +2,11 @@
 
 import { useRef, useState } from "react";
 
+import { passoDoArraste } from "@/components/arraste";
 import { CafePhotoFrame, type Carregamento } from "@/components/cafe-photo-frame";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { CARROSSEL } from "@/components/medidas";
 import type { PhotoSource } from "@/lib/cafe-photos";
-
-// Deslocamento horizontal mínimo para um toque contar como swipe.
-const SWIPE_PX = 40;
 
 const ARROW =
   "absolute top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/[.92] text-espresso shadow-[0_4px_12px_rgba(44,26,14,.18)] transition-colors hover:bg-white";
@@ -50,10 +48,8 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
         touchStart.current = null;
         if (!start) return;
         const t = e.changedTouches[0];
-        const dx = t.clientX - start.x;
-        if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(t.clientY - start.y)) {
-          go(dx < 0 ? index + 1 : index - 1);
-        }
+        const passo = passoDoArraste(start, { x: t.clientX, y: t.clientY });
+        if (passo !== 0) go(index + passo);
       }}
       className={CARROSSEL}
     >

@@ -145,7 +145,7 @@ export function CafeMap({
   const focusAtual = useRef(focus);
   focusAtual.current = focus;
   const enquadrou = useRef(false);
-  // Arrastou, deu zoom ou usou o teclado: o mapa fica onde a pessoa deixou.
+  // Arrastou, deu zoom (gesto, teclado ou +/−): o mapa fica onde a pessoa deixou.
   const mexeu = useRef(false);
 
   useEffect(() => {
@@ -189,7 +189,8 @@ export function CafeMap({
       }
 
       instance.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
-      // Só gesto traz `originalEvent`; o `fitBounds` daqui não conta como mexer.
+      // Gesto, teclado e os botões +/− (que repassam o clique) trazem `originalEvent`;
+      // o `fitBounds` daqui não traz, e não conta como mexer.
       instance.on("movestart", (e) => {
         if (e.originalEvent) mexeu.current = true;
       });
@@ -383,10 +384,7 @@ export function CafeMap({
           <button
             type="button"
             aria-label="Aproximar"
-            onClick={() => {
-              mexeu.current = true;
-              map.zoomIn();
-            }}
+            onClick={(e) => map.zoomIn(undefined, { originalEvent: e.nativeEvent })}
             className={`${ZOOM_BUTTON} border-b border-map-control-line`}
           >
             +
@@ -394,10 +392,7 @@ export function CafeMap({
           <button
             type="button"
             aria-label="Afastar"
-            onClick={() => {
-              mexeu.current = true;
-              map.zoomOut();
-            }}
+            onClick={(e) => map.zoomOut(undefined, { originalEvent: e.nativeEvent })}
             className={ZOOM_BUTTON}
           >
             −

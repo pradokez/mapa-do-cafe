@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type
 
 import { CHIP_OFF, CHIP_ON } from "@/components/filter-chip";
 import { CoffeeIcon, CopyIcon, XIcon } from "@/components/icons";
-import { APOIO_BOTAO_DESKTOP, APOIO_BOTAO_MOBILE } from "@/components/medidas";
+import { APOIO_BOTAO_DESKTOP, BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { brCodePix, rotuloDoValor, VALOR_PADRAO, VALORES_DE_APOIO, type ConfigDoPix, type ValorDeApoio } from "@/lib/pix";
 import { qrSvg } from "@/lib/qr-svg";
@@ -40,7 +40,7 @@ export function ApoioPix({ config, variante }: Props) {
   const desktop = variante === "desktop";
 
   if (!hidratado) {
-    return <span aria-hidden="true" className={`block ${desktop ? APOIO_BOTAO_DESKTOP : APOIO_BOTAO_MOBILE}`} />;
+    return <span aria-hidden="true" className={`block ${desktop ? APOIO_BOTAO_DESKTOP : BOTAO_HEADER_MOBILE}`} />;
   }
 
   if (!desktop) {
@@ -50,14 +50,14 @@ export function ApoioPix({ config, variante }: Props) {
           <button
             type="button"
             aria-label={TITULO}
-            className={`${APOIO_BOTAO_MOBILE} flex flex-none items-center justify-center border border-line-strong bg-white transition-colors hover:bg-hover-soft`}
+            className={`${BOTAO_HEADER_MOBILE} flex flex-none items-center justify-center border border-line-strong bg-white transition-colors hover:bg-hover-soft`}
           >
             <CoffeeIcon size={18} strokeWidth={2} className="text-terracotta" />
           </button>
         </SheetTrigger>
         <SheetContent className="items-center text-center">
           <SheetTitle className="!text-[23px]">{TITULO}</SheetTitle>
-          <div className="-mx-[18px] flex min-h-0 w-[calc(100%+36px)] flex-col items-center overflow-y-auto px-[18px]">
+          <div className="-mx-[18px] flex min-h-0 flex-col items-center self-stretch overflow-y-auto px-[18px]">
             <ConteudoDoApoio config={config} variante="mobile" />
           </div>
         </SheetContent>

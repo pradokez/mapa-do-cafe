@@ -6,6 +6,7 @@ import { ATRIBUTOS, selosNoAr, type SELOS } from "@/components/cafe-atributos";
 import { AtributoChip } from "@/components/filter-chip";
 import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
+import { BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
 import { alternar, contarFiltrosAtivos, FAIXAS, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
@@ -41,7 +42,7 @@ export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
         <button
           type="button"
           aria-label={ativos === 0 ? "Filtros" : `Filtros, ${ativos} ${ativos === 1 ? "ativo" : "ativos"}`}
-          className="relative flex size-11 flex-none items-center justify-center rounded-full border border-line-strong bg-white text-espresso transition-colors hover:bg-hover-soft"
+          className={`${BOTAO_HEADER_MOBILE} relative flex flex-none items-center justify-center border border-line-strong bg-white text-espresso transition-colors hover:bg-hover-soft`}
         >
           <SlidersIcon size={18} strokeWidth={2} />
           {ativos > 0 && (

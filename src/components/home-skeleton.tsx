@@ -2,7 +2,7 @@ import { CafeCardSkeleton } from "@/components/cafe-card-skeleton";
 import { SearchIcon } from "@/components/icons";
 import {
   APOIO_BOTAO_DESKTOP,
-  APOIO_BOTAO_MOBILE,
+  BOTAO_HEADER_MOBILE,
   BARRA_FILTROS,
   BUSCA_MOLDURA,
   CHIP_FORMA,
@@ -34,8 +34,8 @@ export function HomeSkeleton({ comApoio = false }: { comApoio?: boolean }) {
       <SiteHeader
         actions={
           <>
-            {comApoio && <Bloco tom="creme" className={APOIO_BOTAO_MOBILE} />}
-            <Bloco tom="creme" className="size-11 rounded-full" />
+            {comApoio && <Bloco tom="creme" className={BOTAO_HEADER_MOBILE} />}
+            <Bloco tom="creme" className={BOTAO_HEADER_MOBILE} />
           </>
         }
         extra={comApoio && <Bloco tom="creme" className={APOIO_BOTAO_DESKTOP} />}

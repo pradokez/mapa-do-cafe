@@ -17,7 +17,7 @@ export default async function Home() {
   const [cafes, edicoes] = await Promise.all([listCafesAtivos(), listFestivais()]);
   const agora = new Date();
   const festivais = participantesNoAr(edicoes, agora);
-  const vitrines = edicoesEmVitrine(edicoes, agora);
+  const vitrines = { edicoes: edicoesEmVitrine(edicoes, agora), agora };
 
   return (
     <div className="flex h-dvh flex-col">

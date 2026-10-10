@@ -238,22 +238,26 @@ export function edicaoDaPagina<E extends Edicao>(
 }
 
 /**
- * Edições com vitrine na home (#106): as já começadas, como o bloco do combo
- * do detalhe — antes do início os combos ainda não estão à venda — e com
- * página, para onde vai o "Ver todos". Na ordem de `edicoesNoAr`: com duas, a
- * que termina primeiro em cima.
+ * Edições com vitrine na home (#106): as no ar — inclusive antes do início,
+ * como chip, selo e bloco do combo — e com página, para onde vai o "Ver
+ * todos". Na ordem de `edicoesNoAr`: com duas, a que termina primeiro em cima.
  */
 export function edicoesEmVitrine<E extends Edicao>(edicoes: readonly E[], agora: Date): E[] {
-  return edicoesNoAr(edicoes, agora).filter(
-    (e) => estadoDaEdicao(e, agora) === "ativa" && edicaoTemPagina(e),
-  );
+  return edicoesNoAr(edicoes, agora).filter(edicaoTemPagina);
 }
 
-/** Linha da vitrine: "12 cafés participando · até 15 nov · R$ 34,90". */
-export function resumoDaVitrine(edicao: Pick<Edicao, "fim" | "preco">, participantes: number): string {
+/**
+ * Linha da vitrine: "12 cafés participando · até 15 nov · R$ 34,90"; antes do
+ * início, "· começa em 8 dias ·" (`prazoDoCombo`).
+ */
+export function resumoDaVitrine(
+  edicao: Pick<Edicao, "inicio" | "fim" | "preco">,
+  participantes: number,
+  agora: Date,
+): string {
   return [
     participantes === 1 ? "1 café participando" : `${participantes} cafés participando`,
-    ateODia(edicao),
+    prazoDoCombo(edicao, agora),
     edicao.preco !== null && formatarPreco(edicao.preco),
   ]
     .filter(Boolean)

@@ -24,7 +24,7 @@ import { combosDaEdicao, type Edicao, type FestivaisNoAr } from "@/lib/festival"
  * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
  * sempre abre na lista. Tudo no cliente, sem round-trip. As vitrines dos
- * festivais ativos (#106) ficam no topo da lista só sem filtro nem busca.
+ * festivais no ar (#106) ficam no topo da lista só sem filtro nem busca.
  */
 export function CafeDirectory({
   cafes,
@@ -33,8 +33,8 @@ export function CafeDirectory({
 }: {
   cafes: Cafe[];
   festivais: FestivaisNoAr;
-  /** Edições com vitrine hoje (`edicoesEmVitrine`), decididas no servidor. */
-  vitrines: Edicao[];
+  /** Edições com vitrine hoje (`edicoesEmVitrine`) e o instante em que o servidor decidiu. */
+  vitrines: { edicoes: Edicao[]; agora: Date };
 }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
@@ -52,7 +52,7 @@ export function CafeDirectory({
   // Os cafés dos combos saem da lista que já veio, sem repetir no payload.
   const combosDasVitrines = useMemo(
     () =>
-      vitrines
+      vitrines.edicoes
         .map((edicao) => ({ edicao, combos: combosDaEdicao(edicao, cafes) }))
         .filter(({ combos }) => combos.length > 0),
     [vitrines, cafes],
@@ -112,7 +112,7 @@ export function CafeDirectory({
               topo={
                 !comFiltro &&
                 combosDasVitrines.map(({ edicao, combos }) => (
-                  <FestivalVitrine key={edicao.id} edicao={edicao} combos={combos} />
+                  <FestivalVitrine key={edicao.id} edicao={edicao} combos={combos} agora={vitrines.agora} />
                 ))
               }
             />

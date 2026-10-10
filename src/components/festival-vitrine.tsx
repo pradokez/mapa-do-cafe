@@ -13,6 +13,8 @@ const ARTES_A_VISTA = 4;
 type Props = {
   edicao: Edicao;
   combos: Combo[];
+  /** O "agora" do servidor: o prazo não depende do relógio de quem visita. */
+  agora: Date;
 };
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * mesma arte ampliada da página do festival; ao fechar, o foco vai à arte do
  * combo à vista.
  */
-export function FestivalVitrine({ edicao, combos }: Props) {
+export function FestivalVitrine({ edicao, combos, agora }: Props) {
   const titulo = useId();
   const { nome } = edicao.festival;
   const [aberto, setAberto] = useState<number | null>(null);
@@ -38,7 +40,7 @@ export function FestivalVitrine({ edicao, combos }: Props) {
           <h2 id={titulo} className="font-display text-[21px] leading-[1.15]">
             Combos do {nome}
           </h2>
-          <p className="text-[13px] text-sobre-espresso-2">{resumoDaVitrine(edicao, combos.length)}</p>
+          <p className="text-[13px] text-sobre-espresso-2">{resumoDaVitrine(edicao, combos.length, agora)}</p>
         </div>
         <Link
           href={urlDaEdicao(edicao)}

@@ -6,6 +6,7 @@
  * roda em UTC). A decisão acontece no render, nunca dentro de um cache.
  */
 
+import { urlPublicaNoBucket } from "./cafe-photos";
 import { hojeEmRecife } from "./foto-upload";
 
 export type FestivalSlug = "recife-coffee" | "eu-amo-cafe";
@@ -128,5 +129,5 @@ export const BUCKET_ARTES = "festival-artes";
 
 /** Caminho no bucket (`{edicao_id}/{uuid}.webp`) → URL pública. O banco não sabe o endereço do projeto. */
 export function urlPublicaDaArte(caminho: string, supabaseUrl: string): string {
-  return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${BUCKET_ARTES}/${caminho}`;
+  return urlPublicaNoBucket(supabaseUrl, BUCKET_ARTES, caminho);
 }

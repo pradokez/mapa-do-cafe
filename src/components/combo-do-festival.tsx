@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ArteDoCombo } from "@/components/arte-do-combo";
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronRightIcon, InstagramIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
@@ -12,9 +13,10 @@ import {
   type Edicao,
   type Participacao,
 } from "@/lib/festival";
+import { isHttpUrl } from "@/lib/url";
 
 type Props = {
-  cafe: Pick<Cafe, "id" | "fotos">;
+  cafe: Pick<Cafe, "id">;
   edicao: Edicao;
   participacao: Participacao;
 };
@@ -33,8 +35,8 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
   const ate = ateODia(edicao);
   const idTitulo = `combo-${edicao.id}`;
   const { arte, alt } = participacao;
-  // Sem arte, o mesmo placeholder do café (o do card): nada para ampliar.
-  const placeholder = resolveCafePhotos({ id: cafe.id, fotos: [] })[0];
+  // O link vem do banco: só http(s) vira href.
+  const instagram = isHttpUrl(participacao.instagram_url) ? participacao.instagram_url : null;
 
   return (
     <section
@@ -55,16 +57,19 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
 
       <figure className="flex flex-col gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
         {arte && alt ? (
-          <ArteDoCombo arte={arte} alt={alt} titulo={`${titulo} · ${festival}`} credito={`Arte: ${festival}`} />
+          <>
+            <ArteDoCombo arte={arte} alt={alt} titulo={`${titulo} · ${festival}`} credito={`Arte: ${festival}`} />
+            <figcaption className="px-0.5 text-xs text-ink-3">Arte: {festival}</figcaption>
+          </>
         ) : (
-          <div
+          // Sem arte, o placeholder do café (o mesmo do card), sem crédito e sem nada para ampliar.
+          <CafePhotoFrame
             aria-hidden="true"
             data-testid="arte-placeholder"
+            photo={resolveCafePhotos({ id: cafe.id, fotos: [] })[0]}
             className="aspect-[4/5] w-full rounded-[14px] lg:rounded-xl"
-            style={{ background: placeholder.kind === "placeholder" ? placeholder.background : undefined }}
           />
         )}
-        <figcaption className="px-0.5 text-xs text-ink-3">Arte: {festival}</figcaption>
       </figure>
 
       <div className="flex flex-col gap-3 lg:col-start-2 lg:row-start-2 lg:pb-2.5 lg:pr-3">
@@ -93,9 +98,9 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
           Disponível enquanto durar o festival, no horário normal da casa.
         </p>
         <div className="mt-1 flex gap-2 lg:mt-auto lg:gap-2.5">
-          {participacao.instagram_url && (
+          {instagram && (
             <a
-              href={participacao.instagram_url}
+              href={instagram}
               target="_blank"
               rel="noopener noreferrer"
               className={`${BOTAO} flex-1 border border-line-strong bg-white px-5 text-espresso hover:bg-hover-soft lg:flex-none`}

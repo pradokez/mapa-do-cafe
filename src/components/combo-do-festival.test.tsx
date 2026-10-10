@@ -70,6 +70,7 @@ describe("ComboDoFestival", () => {
     expect(screen.queryByRole("img")).toBeNull();
     expect(screen.queryByRole("button", { name: "Ampliar arte do combo" })).toBeNull();
     expect(screen.getByTestId("arte-placeholder").getAttribute("style")).toContain("repeating-linear-gradient");
+    expect(screen.queryByText("Arte: Eu Amo Café")).toBeNull();
   });
 
   it("\"Ver no Instagram\" só aparece com o link do post", () => {
@@ -80,6 +81,10 @@ describe("ComboDoFestival", () => {
 
     cleanup();
     renderCombo({ instagram_url: null });
+    expect(screen.queryByRole("link", { name: /Ver no Instagram/ })).toBeNull();
+
+    cleanup();
+    renderCombo({ instagram_url: "javascript:alert(1)" });
     expect(screen.queryByRole("link", { name: /Ver no Instagram/ })).toBeNull();
   });
 

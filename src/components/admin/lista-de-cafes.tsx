@@ -8,11 +8,26 @@ import { totalDeCafes } from "@/lib/format";
 
 const limparClass = "font-semibold text-terracotta hover:underline";
 
+/** Fotos temporárias do café (#92) — o que ainda falta fotografar. */
+function Temporarias({ n }: { n: number | undefined }) {
+  if (!n) return null;
+  return <span className="text-terracotta"> · {n === 1 ? "1 temporária" : `${n} temporárias`}</span>;
+}
+
 /**
  * Lista do admin com a busca do site (nome ou bairro, sem caixa nem acento).
  * Filtra ao enviar: `?q=` na URL, sem JavaScript — recarregar e voltar mantêm a busca.
+ * `temporarias`: fotos temporárias por id do café (#92).
  */
-export function ListaDeCafes({ cafes, q }: { cafes: Cafe[]; q: string }) {
+export function ListaDeCafes({
+  cafes,
+  q,
+  temporarias = {},
+}: {
+  cafes: Cafe[];
+  q: string;
+  temporarias?: Record<string, number>;
+}) {
   const buscando = q.trim() !== "";
   const visiveis = buscando ? filtrarCafes(cafes, { ...FILTROS_VAZIOS, q }) : cafes;
 
@@ -76,7 +91,10 @@ export function ListaDeCafes({ cafes, q }: { cafes: Cafe[]; q: string }) {
                   <td className="py-3 pr-4 text-ink-2">{cafe.bairro}</td>
                   <td className="py-3 pr-4 text-ink-2">{cafe.cidade}</td>
                   <td className="py-3 pr-4"><StatusCafe ativo={cafe.ativo} /></td>
-                  <td className="py-3 pr-4 text-right tabular-nums text-ink-2">{cafe.fotos.length}</td>
+                  <td className="py-3 pr-4 text-right tabular-nums text-ink-2">
+                    {cafe.fotos.length}
+                    <Temporarias n={temporarias[cafe.id]} />
+                  </td>
                   <td className="py-3 text-right"><VerNoSite slug={cafe.slug} ativo={cafe.ativo} /></td>
                 </tr>
               ))}
@@ -95,6 +113,7 @@ export function ListaDeCafes({ cafes, q }: { cafes: Cafe[]; q: string }) {
                 </div>
                 <p className="mt-1 text-[13.5px] text-ink-2">
                   {cafe.bairro}, {cafe.cidade} · {cafe.fotos.length === 1 ? "1 foto" : `${cafe.fotos.length} fotos`}
+                  <Temporarias n={temporarias[cafe.id]} />
                 </p>
                 <div className="mt-2">
                   <VerNoSite slug={cafe.slug} ativo={cafe.ativo} />

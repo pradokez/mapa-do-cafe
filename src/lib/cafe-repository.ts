@@ -151,6 +151,25 @@ export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
   return data.map((foto, i) => ({ ...foto, url: urls[i] }));
 }
 
+/**
+ * Admin: quantas fotos temporárias cada café tem (#92), por id — café sem
+ * nenhuma fica de fora. A lista do painel vira a lista do que falta fotografar.
+ */
+export async function contarFotosTemporarias(): Promise<Record<string, number>> {
+  const { data, error } = await createSessionClient()
+    .from("cafe_fotos")
+    .select("cafe_id")
+    .eq("temporaria", true)
+    .overrideTypes<{ cafe_id: string }[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao contar as fotos temporárias: ${error.message}`);
+  }
+  const contagem: Record<string, number> = {};
+  for (const { cafe_id } of data) contagem[cafe_id] = (contagem[cafe_id] ?? 0) + 1;
+  return contagem;
+}
+
 /** Teto da lista de sugestões: sem paginação, um robô com muitos IPs não infla a página. */
 export const LIMITE_DE_SUGESTOES = 200;
 

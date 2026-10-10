@@ -70,4 +70,20 @@ describe("ListaDeCafes", () => {
     expect(form.getAttribute("method")).toBe("get");
     expect(form.getAttribute("action")).toBe("/admin");
   });
+
+  it("fotos temporárias (#92): a contagem aparece na tabela e no card, e some quando é zero", () => {
+    const fotos = (n: number) => Array.from({ length: n }, (_, i) => `f${i}.webp`);
+    const cafes = [{ ...CAFES[0], fotos: fotos(3) }, { ...CAFES[1], fotos: fotos(2) }, { ...CAFES[2], fotos: fotos(1) }];
+    render(<ListaDeCafes cafes={cafes} q="" temporarias={{ [cafes[0].id]: 1, [cafes[1].id]: 2 }} />);
+
+    const linhas = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    expect(linhas[0].textContent).toContain("3 · 1 temporária");
+    expect(linhas[1].textContent).toContain("2 · 2 temporárias");
+    expect(linhas[2].textContent).not.toContain("temporária");
+
+    const cards = screen.getAllByRole("listitem");
+    expect(cards[0].textContent).toContain("3 fotos · 1 temporária");
+    expect(cards[2].textContent).toContain("1 foto");
+    expect(cards[2].textContent).not.toContain("temporária");
+  });
 });

@@ -116,7 +116,14 @@ export async function fotoRegistrada(storagePath: string): Promise<boolean> {
 }
 
 /** Foto de um café no admin: URL pública, posição e a autorização registrada. */
-export type FotoDoCafe = Autorizacao & { id: string; storage_path: string; ordem: number; url: string };
+/** `temporaria` (#92): no ar como qualquer outra, marcada no admin para trocar depois. */
+export type FotoDoCafe = Autorizacao & {
+  id: string;
+  storage_path: string;
+  ordem: number;
+  temporaria: boolean;
+  url: string;
+};
 
 /**
  * Admin: fotos do café em `cafe_fotos`, na ordem do site (o mesmo desempate do
@@ -127,7 +134,7 @@ export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
 
   const { data, error } = await createSessionClient()
     .from("cafe_fotos")
-    .select("id, storage_path, ordem, origem, autorizado_por, autorizado_em, observacao")
+    .select("id, storage_path, ordem, temporaria, origem, autorizado_por, autorizado_em, observacao")
     .eq("cafe_id", cafeId)
     .order("ordem")
     .order("criado_em")
@@ -142,6 +149,25 @@ export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
     supabaseEnv().url,
   );
   return data.map((foto, i) => ({ ...foto, url: urls[i] }));
+}
+
+/**
+ * Admin: quantas fotos temporárias cada café tem (#92), por id — café sem
+ * nenhuma fica de fora. A lista do painel vira a lista do que falta fotografar.
+ */
+export async function contarFotosTemporarias(): Promise<Record<string, number>> {
+  const { data, error } = await createSessionClient()
+    .from("cafe_fotos")
+    .select("cafe_id")
+    .eq("temporaria", true)
+    .overrideTypes<{ cafe_id: string }[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao contar as fotos temporárias: ${error.message}`);
+  }
+  const contagem: Record<string, number> = {};
+  for (const { cafe_id } of data) contagem[cafe_id] = (contagem[cafe_id] ?? 0) + 1;
+  return contagem;
 }
 
 /** Teto da lista de sugestões: sem paginação, um robô com muitos IPs não infla a página. */

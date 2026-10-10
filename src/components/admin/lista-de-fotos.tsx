@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { FotoDoStorage } from "@/components/foto-do-storage";
 import { ArrowDownIcon, ArrowUpIcon, TrashIcon } from "@/components/icons";
-import { removerFoto, reordenarFoto } from "@/lib/admin/fotos-actions";
+import { marcarTemporaria, removerFoto, reordenarFoto } from "@/lib/admin/fotos-actions";
 import type { FotoDoCafe } from "@/lib/cafe-repository";
 import { moverFoto, type Movimento } from "@/lib/foto-ordem";
 import { ROTULO_ORIGEM } from "@/lib/foto-upload";
@@ -22,23 +22,25 @@ const altDaFoto = (indice: number, total: number, nome: string) => `Foto ${indic
 /** `AAAA-MM-DD` → `DD/MM/AAAA`, sem `Date` (nada de fuso no meio). */
 const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 
-type Acao = Movimento | "remover";
+type Acao = Movimento | "remover" | "temporaria";
 
 /**
  * Para onde o foco vai quando a lista nova chega do servidor (o
  * `revalidatePath` da action re-renderiza a página): a foto que andou, já na
- * posição esperada, ou, depois de remover, a que ficou no lugar dela.
+ * posição esperada; depois de remover, a que ficou no lugar dela; depois de
+ * marcar, o mesmo botão, já com o rótulo novo.
  */
 type Foco =
   | { tipo: "mover"; id: string; posicao: number; acao: Movimento }
-  | { tipo: "remover"; id: string; indice: number };
+  | { tipo: "remover"; id: string; indice: number }
+  | { tipo: "marcar"; id: string; temporaria: boolean };
 
 type Props = { cafeId: string; nome: string; fotos: FotoDoCafe[] };
 
 /**
  * Fotos do café no admin (#51), na ordem do site — a primeira é a capa — com
- * a autorização de cada uma. Reordenar e remover são botões (teclado e leitor
- * de tela); não há arrastar.
+ * a autorização de cada uma. Reordenar, marcar como temporária (#92) e
+ * remover são botões (teclado e leitor de tela); não há arrastar.
  */
 export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
   const lista = useRef<HTMLOListElement>(null);
@@ -66,6 +68,9 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
       // O botão usado pode ter ficado desabilitado (chegou ao topo/fim) ou sumido (virou capa).
       const alvo = botao(foco.id, foco.acao);
       (alvo && !alvo.disabled ? alvo : primeiroBotao(foco.id))?.focus();
+    } else if (foco.tipo === "marcar") {
+      if (fotos.find((f) => f.id === foco.id)?.temporaria !== foco.temporaria) return;
+      botao(foco.id, "temporaria")?.focus();
     } else {
       if (fotos.some((f) => f.id === foco.id)) return;
       const vizinha = fotos[Math.min(foco.indice, fotos.length - 1)];
@@ -94,6 +99,28 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
       const posicao = nova.indexOf(foto.id);
       setFoco({ tipo: "mover", id: foto.id, posicao, acao: movimento });
       setAviso(posicao === 0 ? "Foto agora é a capa." : `Foto movida para a posição ${posicao + 1} de ${total}.`);
+    } catch {
+      setErro(ERRO_ACAO);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function marcar(foto: FotoDoCafe) {
+    if (ocupado) return;
+    const temporaria = !foto.temporaria;
+
+    setOcupado(true);
+    setErro(null);
+    setAviso("");
+    try {
+      const resultado = await marcarTemporaria(cafeId, foto.id, temporaria);
+      if (!resultado.ok) {
+        setErro(resultado.erro);
+        return;
+      }
+      setFoco({ tipo: "marcar", id: foto.id, temporaria });
+      setAviso(temporaria ? "Foto marcada como temporária." : "Foto marcada como definitiva.");
     } catch {
       setErro(ERRO_ACAO);
     } finally {
@@ -157,6 +184,11 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
                       Capa
                     </span>
                   )}
+                  {foto.temporaria && (
+                    <span className="absolute bottom-1.5 left-1.5 rounded-full border border-aviso-line bg-aviso-bg px-2 py-0.5 text-[11.5px] font-semibold text-aviso-fg">
+                      Temporária
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -204,6 +236,14 @@ export function ListaDeFotos({ cafeId, nome, fotos }: Props) {
                         Usar como capa
                       </BotaoFoto>
                     )}
+                    <BotaoFoto
+                      acao="temporaria"
+                      rotulo={`Marcar ${rotulo} como ${foto.temporaria ? "definitiva" : "temporária"}`}
+                      disabled={ocupado}
+                      onClick={() => marcar(foto)}
+                    >
+                      {foto.temporaria ? "Marcar como definitiva" : "Marcar como temporária"}
+                    </BotaoFoto>
                     <BotaoFoto
                       acao="remover"
                       rotulo={`Remover ${rotulo}`}

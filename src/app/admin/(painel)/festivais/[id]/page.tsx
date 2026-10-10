@@ -9,9 +9,10 @@ import { StatusEdicao } from "@/components/admin/status-edicao";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { ChevronDownIcon } from "@/components/icons";
 import { salvarEdicao } from "@/lib/admin/festivais-actions";
-import { getEdicaoById, listTodosCafes } from "@/lib/cafe-repository";
+import { getEdicaoById, listArtesDaEdicao, listTodosCafes } from "@/lib/cafe-repository";
 import { formatarPreco, periodoDaEdicao, urlDaEdicao } from "@/lib/festival";
 import { statusNoAdmin } from "@/lib/festival-dados";
+import { hojeEmRecife } from "@/lib/foto-upload";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
 type Props = { params: { id: string }; searchParams: { nova?: string } };
@@ -26,7 +27,11 @@ const TITULO_SECAO = "text-[12px] font-semibold uppercase tracking-[0.08em] text
 
 export default async function AdminEdicao({ params, searchParams }: Props) {
   await requireAdmin();
-  const [edicao, cafes] = await Promise.all([getEdicaoById(params.id), listTodosCafes()]);
+  const [edicao, cafes, artes] = await Promise.all([
+    getEdicaoById(params.id),
+    listTodosCafes(),
+    listArtesDaEdicao(params.id),
+  ]);
   if (!edicao) notFound();
 
   const nome = `${edicao.festival.nome} ${edicao.ano}`;
@@ -93,7 +98,13 @@ export default async function AdminEdicao({ params, searchParams }: Props) {
           <h2 id="secao-participantes" className={TITULO_SECAO}>
             Participantes
           </h2>
-          <ParticipantesEdicao edicaoId={edicao.id} participacoes={edicao.participacoes} cafes={cafes} />
+          <ParticipantesEdicao
+            edicaoId={edicao.id}
+            participacoes={edicao.participacoes}
+            cafes={cafes}
+            artes={artes}
+            hoje={hojeEmRecife(new Date())}
+          />
         </section>
       </div>
     </>

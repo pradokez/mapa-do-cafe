@@ -8,7 +8,7 @@ import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
 import { urlPublicaDaArte, type Edicao, type FestivalSlug, type Participacao } from "./festival";
-import type { Autorizacao } from "./foto-upload";
+import type { Autorizacao, AutorizacaoDaArte } from "./foto-upload";
 import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
@@ -295,6 +295,48 @@ export async function getEdicaoById(id: string): Promise<Edicao | null> {
     throw new Error(`Falha ao buscar a edição ${id}: ${error.message}`);
   }
   return data && comArtesPublicas(data);
+}
+
+/** Arte de um participante no admin (#105): o caminho no bucket e quem autorizou. */
+export type ArteDoParticipante = AutorizacaoDaArte & { caminho: string };
+
+/**
+ * Admin: as artes da edição por participação — só quem tem arte. O público
+ * não lê a autorização (grant por coluna); as actions usam o caminho para
+ * apagar o arquivo antigo.
+ */
+export async function listArtesDaEdicao(edicaoId: string): Promise<Record<string, ArteDoParticipante>> {
+  if (!isUuid(edicaoId)) return {};
+
+  const { data, error } = await createSessionClient()
+    .from("festival_participacoes")
+    .select("id, arte_path, autorizado_por, autorizado_em")
+    .eq("edicao_id", edicaoId)
+    .not("arte_path", "is", null)
+    .overrideTypes<({ id: string; arte_path: string } & AutorizacaoDaArte)[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar as artes da edição ${edicaoId}: ${error.message}`);
+  }
+  return Object.fromEntries(
+    data.map(({ id, arte_path, autorizado_por, autorizado_em }) => [
+      id,
+      { caminho: arte_path, autorizado_por, autorizado_em },
+    ]),
+  );
+}
+
+/** Admin: o caminho já é a arte de alguma participação? O descarte (#105) não apaga arte no ar. */
+export async function arteRegistrada(caminho: string): Promise<boolean> {
+  const { count, error } = await createSessionClient()
+    .from("festival_participacoes")
+    .select("id", { count: "exact", head: true })
+    .eq("arte_path", caminho);
+
+  if (error) {
+    throw new Error(`Falha ao conferir a arte ${caminho}: ${error.message}`);
+  }
+  return (count ?? 0) > 0;
 }
 
 export type FestivalCadastrado = { id: string; slug: FestivalSlug; nome: string };

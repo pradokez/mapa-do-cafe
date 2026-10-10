@@ -20,6 +20,7 @@ const repo = vi.hoisted(() => ({
   getEdicaoById: vi.fn(),
   getCafeById: vi.fn(),
   listFestivaisCadastrados: vi.fn(),
+  listArtesDaEdicao: vi.fn(),
   CAFES_TAG: "cafes",
   FESTIVAIS_TAG: "festivais",
 }));
@@ -33,9 +34,12 @@ const banco = vi.hoisted(() => {
   const del = vi.fn(() => ({ eq }));
   const insert = vi.fn(() => Promise.resolve(resposta.atual));
   const from = vi.fn(() => ({ update, insert, delete: del }));
-  return { resposta, eq, update, del, insert, from };
+  const remove = vi.fn(() => Promise.resolve({ data: [], error: null }));
+  return { resposta, eq, update, del, insert, from, remove };
 });
-vi.mock("@/lib/supabase-server", () => ({ createSessionClient: () => ({ from: banco.from }) }));
+vi.mock("@/lib/supabase-server", () => ({
+  createSessionClient: () => ({ from: banco.from, storage: { from: () => ({ remove: banco.remove }) } }),
+}));
 
 import {
   adicionarParticipante,
@@ -83,6 +87,7 @@ beforeEach(() => {
   banco.resposta.atual = { error: null, count: 1 };
   repo.getEdicaoById.mockResolvedValue(EDICAO);
   repo.getCafeById.mockResolvedValue(cafe(CAFE_ID, { nome: "Borsoi" }));
+  repo.listArtesDaEdicao.mockResolvedValue({});
   repo.listFestivaisCadastrados.mockResolvedValue([
     { id: "f-eu-amo", slug: "eu-amo-cafe", nome: "Eu Amo Café" },
     { id: "f-recife", slug: "recife-coffee", nome: "Recife Coffee" },
@@ -325,6 +330,22 @@ describe("removerParticipante", () => {
     expect(await removerParticipante(EDICAO_ID, PART_ID)).toEqual({ ok: true });
     expect(banco.del).toHaveBeenCalledWith({ count: "exact" });
     expect(banco.eq).toHaveBeenCalledWith("id", PART_ID);
+  });
+
+  it("a arte dele sai do bucket depois da linha (#105)", async () => {
+    const arte = `${EDICAO_ID}/a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d.webp`;
+    repo.listArtesDaEdicao.mockResolvedValue({ [PART_ID]: { caminho: arte, autorizado_por: "ASCAPE", autorizado_em: "2026-10-01" } });
+    expect(await removerParticipante(EDICAO_ID, PART_ID)).toEqual({ ok: true });
+    expect(banco.remove).toHaveBeenCalledWith([arte]);
+  });
+
+  it("sem arte, não mexe no bucket; linha que não sai, a arte fica", async () => {
+    expect(await removerParticipante(EDICAO_ID, PART_ID)).toEqual({ ok: true });
+    expect(banco.remove).not.toHaveBeenCalled();
+    repo.listArtesDaEdicao.mockResolvedValue({ [PART_ID]: { caminho: "x", autorizado_por: "a", autorizado_em: "2026-10-01" } });
+    banco.resposta.atual = { error: null, count: 0 };
+    expect(await removerParticipante(EDICAO_ID, PART_ID)).toMatchObject({ ok: false });
+    expect(banco.remove).not.toHaveBeenCalled();
   });
 
   it("participante de outra edição não é apagado", async () => {

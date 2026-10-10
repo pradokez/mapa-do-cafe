@@ -82,7 +82,11 @@ alter table public.festival_edicoes enable row level security;
 alter table public.festival_participacoes enable row level security;
 
 revoke all on table public.festivais, public.festival_edicoes, public.festival_participacoes from anon, authenticated;
-grant select on table public.festivais, public.festival_edicoes, public.festival_participacoes to anon;
+grant select on table public.festivais, public.festival_edicoes to anon;
+-- Participação: o público lê o combo, não a autorização (quem autorizou a
+-- arte é assunto do admin, como nas fotos) — grant por coluna.
+grant select (id, edicao_id, cafe_id, numero, nome_combo, alt, instagram_url, arte_path)
+  on table public.festival_participacoes to anon;
 grant select on table public.festivais to authenticated;
 -- Edição nunca é apagada (sai do ar com `publicada = false`); participação sim
 -- (tirar um café da edição).

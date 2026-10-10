@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { CafeCard, type CardHighlight } from "@/components/cafe-card";
 import { EmptyCupIllustration } from "@/components/empty-cup-illustration";
@@ -31,9 +31,11 @@ type Props = {
   onHover?: (id: string | null) => void;
   /** Presente só com filtro ativo: mostra "Limpar filtros" ao lado do contador. */
   onLimpar?: () => void;
+  /** Acima do contador: a vitrine do festival (#106). */
+  topo?: ReactNode;
 };
 
-export function CafeList({ cafes, festivais, hovered = null, selectedId = null, onHover, onLimpar }: Props) {
+export function CafeList({ cafes, festivais, hovered = null, selectedId = null, onHover, onLimpar, topo }: Props) {
   const highlightOf = (id: string): CardHighlight | undefined => {
     if (id === selectedId || (id === hovered?.id && hovered.source === "pin")) return "linked";
     if (id === hovered?.id) return "lifted";
@@ -55,6 +57,7 @@ export function CafeList({ cafes, festivais, hovered = null, selectedId = null, 
       aria-label="Cafés"
       className={`${LISTA_SECTION} focus:outline-none`}
     >
+      {topo}
       <div className={LISTA_TOPO}>
         <p aria-live="polite" className="text-[12.5px] text-ink-3 lg:text-[13px]">{contadorLabel(cafes.length)}</p>
         {limpar && (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CafeDirectory } from "@/components/cafe-directory";
 import { listCafesAtivos, listFestivais } from "@/lib/cafe-repository";
-import { participantesNoAr } from "@/lib/festival";
+import { edicoesEmVitrine, participantesNoAr } from "@/lib/festival";
 
 // Dinâmica: o HTML já sai filtrado pelos params da URL (`?pets=true`), sem
 // piscar a lista completa até a hidratação. Cafés e festivais vêm do cache de
@@ -15,11 +15,13 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const [cafes, edicoes] = await Promise.all([listCafesAtivos(), listFestivais()]);
-  const festivais = participantesNoAr(edicoes, new Date());
+  const agora = new Date();
+  const festivais = participantesNoAr(edicoes, agora);
+  const vitrines = { edicoes: edicoesEmVitrine(edicoes, agora), agora };
 
   return (
     <div className="flex h-dvh flex-col">
-      <CafeDirectory cafes={cafes} festivais={festivais} />
+      <CafeDirectory cafes={cafes} festivais={festivais} vitrines={vitrines} />
     </div>
   );
 }

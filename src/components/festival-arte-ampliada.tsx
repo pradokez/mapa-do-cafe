@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, type RefCallback } from "react";
 
 import { passoDoArraste } from "@/components/arraste";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
@@ -10,6 +10,24 @@ import { ChevronLeftIcon, ChevronRightIcon, NavigationIcon, XIcon } from "@/comp
 import { caminhoDoCafe } from "@/lib/cafe";
 import { fonteDaArte, type Combo } from "@/lib/festival";
 import { googleMapsUrl } from "@/lib/format";
+
+/**
+ * Os botões que abrem a arte ampliada, um por combo: `ref(combo)` registra o
+ * botão e `focar(k)` devolve o foco ao do combo na posição `k` — o à vista
+ * quando o diálogo fechou (`onFechado`).
+ */
+export function useBotoesDosCombos(combos: readonly Combo[]) {
+  const botoes = useRef(new Map<string, HTMLButtonElement>());
+  return {
+    ref:
+      ({ participacao }: Combo): RefCallback<HTMLButtonElement> =>
+      (el) => {
+        if (el) botoes.current.set(participacao.id, el);
+        else botoes.current.delete(participacao.id);
+      },
+    focar: (k: number) => botoes.current.get(combos[k]?.participacao.id ?? "")?.focus(),
+  };
+}
 
 const SETA =
   "flex size-12 flex-none items-center justify-center rounded-full bg-cream/[.14] text-cream transition-colors hover:bg-cream/[.24] focus-visible:outline-cream max-lg:sr-only";

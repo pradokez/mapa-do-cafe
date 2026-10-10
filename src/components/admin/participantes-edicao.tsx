@@ -22,7 +22,7 @@ import { validarAutorizacaoDaArte, type AutorizacaoDaArte } from "@/lib/foto-upl
 import { ARTE, falhaDeRede, type Falha } from "@/lib/foto-upload-erro";
 import { localLabel } from "@/lib/format";
 
-import { CampoDaArte } from "./arte-do-participante";
+import { CampoDaArte } from "./campo-da-arte";
 import { ErroDoEnvio, subirParaOStorage, useImagemConvertida } from "./envio-de-imagem";
 
 import { botaoCtaClass, botaoNeutroClass, Erro, ERRO_REDE, inputClass, invalidoClass, labelClass } from "./form";

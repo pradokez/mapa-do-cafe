@@ -102,7 +102,7 @@ export function CampoDaArte({
       </div>
 
       <div>
-        <label htmlFor={`${prefixo}-arte`} className="mb-1.5 block text-[13.5px] font-semibold text-espresso">
+        <label htmlFor={`${prefixo}-arte`} className={labelClass}>
           {url ? "Trocar a arte" : "Enviar a arte"}
         </label>
         <input

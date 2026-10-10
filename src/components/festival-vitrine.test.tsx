@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -83,7 +83,7 @@ describe("Vitrine do festival na home", () => {
     expect(within(secao).getByRole("link", { name: "Ver todos" }).getAttribute("href")).toBe(
       "/festivais/eu-amo-cafe/2026",
     );
-    expect(within(secao).getAllByRole("button").map((b) => b.textContent)).toEqual(["Kaffe", "Versado"]);
+    expect(within(within(secao).getByRole("list")).getAllByRole("button").map((b) => b.textContent)).toEqual(["Kaffe", "Versado"]);
   });
 
   it("antes do início, a vitrine já aparece, com a contagem no lugar do prazo", () => {
@@ -129,5 +129,36 @@ describe("Vitrine do festival na home", () => {
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(within(vitrine()!).getByRole("button", { name: /Kaffe/ }));
+  });
+
+  it("no desktop, as setas passam para o próximo conjunto e se apagam nas pontas", async () => {
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    const secao = vitrine()!;
+    const fileira = within(secao).getByRole("list");
+    // Sem layout no jsdom: 300 px à vista de 900.
+    Object.defineProperty(fileira, "clientWidth", { value: 300, configurable: true });
+    Object.defineProperty(fileira, "scrollWidth", { value: 900, configurable: true });
+    const scrollBy = vi.fn();
+    fileira.scrollBy = scrollBy;
+    fireEvent.scroll(fileira);
+
+    const anteriores = within(secao).getByRole("button", { name: "Combos anteriores" });
+    const proximos = within(secao).getByRole("button", { name: "Próximos combos" });
+    expect(anteriores.getAttribute("aria-disabled")).toBe("true");
+    expect(proximos.getAttribute("aria-disabled")).toBe("false");
+
+    await userEvent.click(proximos);
+    expect(scrollBy).toHaveBeenCalledWith(expect.objectContaining({ left: expect.any(Number) }));
+    expect(scrollBy.mock.calls[0][0].left).toBeGreaterThan(0);
+
+    fileira.scrollLeft = 600;
+    fireEvent.scroll(fileira);
+    expect(proximos.getAttribute("aria-disabled")).toBe("true");
+    expect(anteriores.getAttribute("aria-disabled")).toBe("false");
+
+    // Na ponta, a seta apagada não rola.
+    scrollBy.mockClear();
+    await userEvent.click(proximos);
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 });

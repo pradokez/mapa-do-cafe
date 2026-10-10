@@ -91,7 +91,7 @@ export function ListaDeCafes({
                   <td className="py-3 pr-4 text-ink-2">{cafe.bairro}</td>
                   <td className="py-3 pr-4 text-ink-2">{cafe.cidade}</td>
                   <td className="py-3 pr-4"><StatusCafe ativo={cafe.ativo} /></td>
-                  <td className="py-3 pr-4 text-right tabular-nums text-ink-2">
+                  <td className="whitespace-nowrap py-3 pr-4 text-right tabular-nums text-ink-2">
                     {cafe.fotos.length}
                     <Temporarias n={temporarias[cafe.id]} />
                   </td>

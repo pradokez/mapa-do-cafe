@@ -81,18 +81,17 @@ export function participantesNoAr(edicoes: readonly Edicao[], agora: Date): Fest
 }
 
 /**
- * Combos de um café nas edições já começadas (bloco do detalhe): um por
- * edição ativa em que ele participa, na ordem de `edicoesNoAr`. Vazio antes
- * do início (o bloco ainda não tem o "começa em N dias"), fora da edição ou
- * para quem não participa.
+ * Combos de um café (bloco do detalhe): um por edição no ar em que ele
+ * participa, na ordem de `edicoesNoAr` — inclusive antes do início, com os
+ * textos de data em contagem (`prazoDoCombo`, `disponibilidadeDoCombo`).
+ * Vazio para edição não publicada ou encerrada e para quem não participa.
  */
 export function combosDoCafe<E extends Edicao>(
   edicoes: readonly E[],
   cafeId: string,
   agora: Date,
 ): { edicao: E; participacao: E["participacoes"][number] }[] {
-  const ativas = edicoesNoAr(edicoes, agora).filter((e) => estadoDaEdicao(e, agora) === "ativa");
-  return ativas.flatMap((edicao) => {
+  return edicoesNoAr(edicoes, agora).flatMap((edicao) => {
     const participacao = edicao.participacoes.find((p) => p.cafe_id === cafeId);
     return participacao ? [{ edicao, participacao }] : [];
   });
@@ -141,6 +140,30 @@ export function rotuloDeStatus(edicao: Periodo, agora: Date): string {
 export function ateODia(edicao: Pick<Edicao, "fim">): string {
   const { dia, mes } = partes(edicao.fim);
   return `até ${dia} ${mes}`;
+}
+
+/** Dias até o início, se a edição ainda não começou (no dia de Recife). */
+function diasParaComecar(edicao: Periodo, agora: Date): number | null {
+  return estadoDaEdicao(edicao, agora) === "futura" ? diasEntre(hojeEmRecife(agora), edicao.inicio) : null;
+}
+
+/** Prazo da pílula do combo: "começa em 5 dias" / "começa amanhã" antes do início; depois, "até 15 nov". */
+export function prazoDoCombo(edicao: Periodo, agora: Date): string {
+  const faltam = diasParaComecar(edicao, agora);
+  if (faltam === null) return ateODia(edicao);
+  return faltam === 1 ? "começa amanhã" : `começa em ${faltam} dias`;
+}
+
+/**
+ * Nota do combo: "Disponível a partir de 18 out (em 5 dias | amanhã), até 15
+ * nov, …" antes do início; depois, "Disponível enquanto durar o festival, …".
+ */
+export function disponibilidadeDoCombo(edicao: Periodo, agora: Date): string {
+  const faltam = diasParaComecar(edicao, agora);
+  if (faltam === null) return "Disponível enquanto durar o festival, no horário normal da casa.";
+  const { dia, mes } = partes(edicao.inicio);
+  const quando = faltam === 1 ? "amanhã" : `em ${faltam} dias`;
+  return `Disponível a partir de ${dia} ${mes} (${quando}), ${ateODia(edicao)}, no horário normal da casa.`;
 }
 
 /** "começa em 18 out": o primeiro dia, sem ano (a etiqueta da edição futura no admin). */

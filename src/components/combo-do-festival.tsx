@@ -6,8 +6,9 @@ import { ChevronRightIcon, InstagramIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import {
-  ateODia,
+  disponibilidadeDoCombo,
   formatarPreco,
+  prazoDoCombo,
   tituloDoCombo,
   urlDaEdicao,
   type Edicao,
@@ -19,20 +20,23 @@ type Props = {
   cafe: Pick<Cafe, "id">;
   edicao: Edicao;
   participacao: Participacao;
+  /** O dia de Recife decide os textos de data (antes do início, em contagem). */
+  agora: Date;
 };
 
 const BOTAO = "inline-flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold";
 
 /**
- * Combo do café no festival em andamento (#103, design 4a/4c), depois das
- * comodidades. O site só acrescenta o que não está na arte: festival, prazo
+ * Combo do café no festival no ar (#103, design 4a/4c), depois das
+ * comodidades — inclusive antes do início (#114), com prazo e nota em
+ * contagem. O site só acrescenta o que não está na arte: festival, prazo
  * e preço. Abaixo de `lg`, o arranjo do 4c (pílula em cima, arte, texto);
  * a partir dele, cartão com a arte à esquerda.
  */
-export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
+export function ComboDoFestival({ cafe, edicao, participacao, agora }: Props) {
   const festival = edicao.festival.nome;
   const titulo = tituloDoCombo(edicao, participacao);
-  const ate = ateODia(edicao);
+  const prazo = prazoDoCombo(edicao, agora);
   const idTitulo = `combo-${edicao.id}`;
   const { arte, alt } = participacao;
   // O link vem do banco: só http(s) vira href.
@@ -49,10 +53,10 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
           <span>
             <span className="lg:hidden">Combo do </span>
             {festival}
-            <span className="hidden lg:inline"> · {ate}</span>
+            <span className="hidden lg:inline"> · {prazo}</span>
           </span>
         </p>
-        <span className="text-[12.5px] text-ink-3 lg:hidden">{ate}</span>
+        <span className="text-[12.5px] text-ink-3 lg:hidden">{prazo}</span>
       </div>
 
       <figure className="flex flex-col gap-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
@@ -95,7 +99,7 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
         )}
         <hr className="hidden border-line lg:my-1.5 lg:block" />
         <p className="text-pretty text-[13px] leading-[1.55] text-ink-3 lg:text-[13.5px]">
-          Disponível enquanto durar o festival, no horário normal da casa.
+          {disponibilidadeDoCombo(edicao, agora)}
         </p>
         <div className="mt-1 flex gap-2 lg:mt-auto lg:gap-2.5">
           {instagram && (

@@ -10,6 +10,7 @@ import {
   bairrosDosCombos,
   combosDaEdicao,
   combosDoCafe,
+  disponibilidadeDoCombo,
   edicaoDaPagina,
   edicaoTemPagina,
   edicoesNoAr,
@@ -21,6 +22,7 @@ import {
   rotuloDeCombos,
   rotuloDeParticipantes,
   periodoDaEdicao,
+  prazoDoCombo,
   rotuloDeStatus,
   tituloDoCombo,
   urlDaEdicao,
@@ -248,16 +250,18 @@ describe("combosDoCafe", () => {
     expect(combosDoCafe([comKaffe], "versado", meioDia("2026-10-20"))).toEqual([]);
   });
 
-  it.each(["2026-10-17", "2026-11-16"])("fora da edição (%s), nenhum combo", (dia) => {
-    expect(combosDoCafe([comKaffe], "kaffe", meioDia(dia))).toEqual([]);
+  it("encerrada, nenhum combo", () => {
+    expect(combosDoCafe([comKaffe], "kaffe", meioDia("2026-11-16"))).toEqual([]);
   });
 
   it("edição não publicada nunca mostra combo", () => {
     expect(combosDoCafe([{ ...comKaffe, publicada: false }], "kaffe", meioDia("2026-10-20"))).toEqual([]);
   });
 
-  it("publicada mas antes do início, ainda sem combo (chip e selo já aparecem)", () => {
-    expect(combosDoCafe([comKaffe], "kaffe", meioDia("2026-10-17"))).toEqual([]);
+  it("publicada e antes do início, já mostra o combo (está no ar, como chip e selo)", () => {
+    expect(combosDoCafe([comKaffe], "kaffe", meioDia("2026-10-10"))).toEqual([
+      { edicao: comKaffe, participacao: participacao("kaffe") },
+    ]);
   });
 
   it("o dia é o de Recife: 15 nov às 22h ainda mostra o combo", () => {
@@ -277,6 +281,49 @@ describe("combosDoCafe", () => {
 describe("ateODia", () => {
   it("último dia da edição, como na pílula do combo", () => {
     expect(ateODia(EU_AMO_CAFE)).toBe("até 15 nov");
+  });
+});
+
+describe("prazoDoCombo", () => {
+  it("antes do início, conta os dias até começar", () => {
+    expect(prazoDoCombo(EU_AMO_CAFE, meioDia("2026-10-13"))).toBe("começa em 5 dias");
+  });
+
+  it("na véspera, \"começa amanhã\"", () => {
+    expect(prazoDoCombo(EU_AMO_CAFE, meioDia("2026-10-17"))).toBe("começa amanhã");
+  });
+
+  it.each(["2026-10-18", "2026-11-15"])("durante (%s), o último dia", (dia) => {
+    expect(prazoDoCombo(EU_AMO_CAFE, meioDia(dia))).toBe("até 15 nov");
+  });
+
+  it("o dia é o de Recife: 16 out às 23h ainda faltam 2 dias; à meia-noite, amanhã", () => {
+    expect(prazoDoCombo(EU_AMO_CAFE, new Date("2026-10-17T02:00:00Z"))).toBe("começa em 2 dias");
+    expect(prazoDoCombo(EU_AMO_CAFE, new Date("2026-10-17T03:00:00Z"))).toBe("começa amanhã");
+  });
+});
+
+describe("disponibilidadeDoCombo", () => {
+  it("antes do início, de quando a quando, com a contagem", () => {
+    expect(disponibilidadeDoCombo(EU_AMO_CAFE, meioDia("2026-10-13"))).toBe(
+      "Disponível a partir de 18 out (em 5 dias), até 15 nov, no horário normal da casa.",
+    );
+  });
+
+  it("na véspera, \"amanhã\"", () => {
+    expect(disponibilidadeDoCombo(EU_AMO_CAFE, meioDia("2026-10-17"))).toBe(
+      "Disponível a partir de 18 out (amanhã), até 15 nov, no horário normal da casa.",
+    );
+  });
+
+  it.each(["2026-10-18", "2026-11-15"])("durante (%s), enquanto durar o festival", (dia) => {
+    expect(disponibilidadeDoCombo(EU_AMO_CAFE, meioDia(dia))).toBe(
+      "Disponível enquanto durar o festival, no horário normal da casa.",
+    );
+  });
+
+  it("o dia é o de Recife: 17 out às 23h ainda é véspera", () => {
+    expect(disponibilidadeDoCombo(EU_AMO_CAFE, new Date("2026-10-18T02:00:00Z"))).toContain("(amanhã)");
   });
 });
 

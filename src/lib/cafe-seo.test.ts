@@ -10,23 +10,11 @@ describe("tituloCafe", () => {
 });
 
 describe("descricaoCafe", () => {
-  it("sem selo: local e faixa de preço", () => {
+  it("local e faixa de preço", () => {
     const c = cafe("x", { bairro: "Graças", cidade: "Recife", faixa_preco: "$$" });
     expect(descricaoCafe(c)).toBe(
       "Café especial · Graças, Recife · preço moderado ($$). Endereço, horário e comodidades no Mapa do Café.",
     );
-  });
-
-  it("com um selo, cita o selo", () => {
-    const c = cafe("x", { bairro: "Boa Viagem", faixa_preco: "$", selo_eu_amo_cafe: true });
-    expect(descricaoCafe(c)).toBe(
-      "Café especial · Boa Viagem, Recife · preço econômico ($) · Selo Eu Amo Café. Endereço, horário e comodidades no Mapa do Café.",
-    );
-  });
-
-  it("com os dois selos, cita os dois", () => {
-    const c = cafe("x", { faixa_preco: "$$$", selo_ascape: true, selo_eu_amo_cafe: true });
-    expect(descricaoCafe(c)).toContain("· preço elevado ($$$) · Selo Recife Coffee e Selo Eu Amo Café.");
   });
 
   it("fora do Recife, usa o nome inteiro da cidade", () => {

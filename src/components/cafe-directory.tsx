@@ -15,6 +15,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import type { Cafe } from "@/lib/cafe";
 import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
+import { pontosParaEnquadrar } from "@/lib/map-enquadramento";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
@@ -36,6 +37,8 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
     () => ordenarPorDistancia(filtrarCafes(cafes, filters), coords),
     [cafes, filters, coords],
   );
+  // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
+  const focus = useMemo(() => pontosParaEnquadrar(cafes, coords), [cafes, coords]);
 
   const [hovered, setHovered] = useState<Hovered | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
               visivelNoMobile={view === "mapa"}
               cafes={filtrados}
               userPosition={coords}
+              focus={focus}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

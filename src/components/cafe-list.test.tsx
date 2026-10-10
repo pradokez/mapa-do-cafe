@@ -12,7 +12,7 @@ afterEach(cleanup);
 describe("CafeList — estado vazio", () => {
   it("recorte vazio mostra a xícara vazia e o botão limpa os filtros", async () => {
     const onLimpar = vi.fn();
-    render(<CafeList cafes={[]} onLimpar={onLimpar} />);
+    render(<CafeList cafes={[]} festivais={{}} onLimpar={onLimpar} />);
 
     expect(screen.getByRole("heading", { name: "Xícara vazia por aqui" })).toBeDefined();
     expect(
@@ -27,7 +27,7 @@ describe("CafeList — estado vazio", () => {
   });
 
   it("sem filtro ativo não oferece limpar: só a mensagem", () => {
-    render(<CafeList cafes={[]} />);
+    render(<CafeList cafes={[]} festivais={{}} />);
 
     expect(screen.getByRole("heading", { name: "Xícara vazia por aqui" })).toBeDefined();
     expect(screen.queryByRole("button", { name: "Limpar filtros" })).toBeNull();
@@ -37,7 +37,7 @@ describe("CafeList — estado vazio", () => {
     ["link junto ao contador", 0],
     ["botão do estado vazio", 1],
   ])("limpar pelo %s leva o foco para a lista, não para o topo da página", async (_, i) => {
-    render(<CafeList cafes={[]} onLimpar={() => {}} />);
+    render(<CafeList cafes={[]} festivais={{}} onLimpar={() => {}} />);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Limpar filtros" })[i]);
 
@@ -45,7 +45,7 @@ describe("CafeList — estado vazio", () => {
   });
 
   it("com cafés no recorte, mostra a lista e não a xícara vazia", () => {
-    render(<CafeList cafes={[cafe("1", { nome: "Café Um" })]} onLimpar={() => {}} />);
+    render(<CafeList cafes={[cafe("1", { nome: "Café Um" })]} festivais={{}} onLimpar={() => {}} />);
 
     expect(screen.getByText("Café Um")).toBeDefined();
     expect(screen.queryByRole("heading", { name: "Xícara vazia por aqui" })).toBeNull();
@@ -57,7 +57,7 @@ describe("CafeList — fotos", () => {
     const cafes = ["a", "b", "c", "d", "e", "f"].map((id) =>
       cafe(id, { fotos: [`https://x.supabase.co/storage/v1/object/public/cafe-fotos/${id}.webp`] }),
     );
-    render(<CafeList cafes={cafes} />);
+    render(<CafeList cafes={cafes} festivais={{}} />);
 
     const lazy = cafes.map(({ id }) => screen.getByRole("img", { name: `Foto de ${id}` }).getAttribute("loading"));
     expect(lazy).toEqual([null, null, null, null, "lazy", "lazy"]);

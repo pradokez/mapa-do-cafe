@@ -6,12 +6,15 @@ import { CheckIcon } from "@/components/icons";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Cafe } from "@/lib/cafe";
 import { filtrarCafes, type CafeFilters } from "@/lib/cafe-filter";
+import type { FestivaisNoAr } from "@/lib/festival";
 
 type Props = {
   titulo: string;
   /** Botão que abre o sheet; recebe o foco de volta ao fechar. */
   trigger: React.ReactElement;
   cafes: Cafe[];
+  /** Participantes dos festivais no ar: o filtro de festival conta para o "Ver N cafés". */
+  festivais: FestivaisNoAr;
   /** Filtros em vigor (a URL): o rascunho parte deles a cada abertura. */
   filters: CafeFilters;
   onAplicar: (next: CafeFilters) => void;
@@ -23,7 +26,7 @@ type Props = {
  * URL, e "Ver N cafés" já conta o resultado do rascunho. Só o botão aplica
  * (uma entrada no histórico); Esc, toque no fundo ou arrasto para baixo descartam.
  */
-export function RascunhoSheet({ titulo, trigger, cafes, filters, onAplicar, children }: Props) {
+export function RascunhoSheet({ titulo, trigger, cafes, festivais, filters, onAplicar, children }: Props) {
   const [aberto, setAberto] = useState(false);
   const [rascunho, setRascunho] = useState(filters);
 
@@ -34,7 +37,7 @@ export function RascunhoSheet({ titulo, trigger, cafes, filters, onAplicar, chil
   // A busca não é do sheet: um termo que chega com ele aberto (debounce do
   // campo) vale para a contagem e não é desfeito ao aplicar.
   const efetivo = { ...rascunho, q: filters.q };
-  const total = filtrarCafes(cafes, efetivo).length;
+  const total = filtrarCafes(cafes, efetivo, festivais).length;
 
   return (
     <Sheet open={aberto} onOpenChange={abrirOuFechar}>

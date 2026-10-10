@@ -2,34 +2,39 @@
 
 import { useId } from "react";
 
-import { ATRIBUTOS, SELOS } from "@/components/cafe-atributos";
+import { ATRIBUTOS, selosNoAr, type SELOS } from "@/components/cafe-atributos";
 import { AtributoChip } from "@/components/filter-chip";
 import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import { alternar, contarFiltrosAtivos, FAIXAS, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
+import type { FestivaisNoAr } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
 
 type Props = {
   cafes: Cafe[];
+  /** Festivais no ar: só eles têm chip em "Selos"; sem nenhum, a seção some. */
+  festivais: FestivaisNoAr;
   filters: CafeFilters;
   onAplicar: (next: CafeFilters) => void;
 };
 
 /**
  * Botão de filtros do header mobile (com badge) + bottom sheet em seções:
- * selos e comodidades em chips (como no design v2), faixa de preço em linhas
- * (o chip "$" sozinho perderia o nome). Desvio consciente do design, em que o
- * botão abria o mesmo sheet do bairro: o bairro fica no próprio chip
- * (`BairroSheet`).
+ * selos (dos festivais no ar) e comodidades em chips (como no design v2),
+ * faixa de preço em linhas (o chip "$" sozinho perderia o nome). Desvio
+ * consciente do design, em que o botão abria o mesmo sheet do bairro: o
+ * bairro fica no próprio chip (`BairroSheet`).
  */
-export function FiltrosSheet({ cafes, filters, onAplicar }: Props) {
+export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
   const ativos = contarFiltrosAtivos(filters);
+  const selos = selosNoAr(festivais);
 
   return (
     <RascunhoSheet
       titulo="Filtros"
       cafes={cafes}
+      festivais={festivais}
       filters={filters}
       onAplicar={onAplicar}
       trigger={
@@ -54,9 +59,11 @@ export function FiltrosSheet({ cafes, filters, onAplicar }: Props) {
         const alternarFiltro = (filtro: FiltroBooleano) => mudar({ ...rascunho, [filtro]: !rascunho[filtro] });
         return (
           <>
-            <Secao titulo="Selos">
-              <Chips opcoes={SELOS} rascunho={rascunho} onToggle={alternarFiltro} />
-            </Secao>
+            {selos.length > 0 && (
+              <Secao titulo="Selos">
+                <Chips opcoes={selos} rascunho={rascunho} onToggle={alternarFiltro} />
+              </Secao>
+            )}
             <Secao titulo="Comodidades">
               <Chips opcoes={ATRIBUTOS} rascunho={rascunho} onToggle={alternarFiltro} />
             </Secao>
@@ -96,7 +103,7 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 }
 
 type ChipsProps = {
-  opcoes: typeof SELOS | typeof ATRIBUTOS;
+  opcoes: ReadonlyArray<(typeof SELOS)[number] | (typeof ATRIBUTOS)[number]>;
   rascunho: CafeFilters;
   onToggle: (filtro: FiltroBooleano) => void;
 };

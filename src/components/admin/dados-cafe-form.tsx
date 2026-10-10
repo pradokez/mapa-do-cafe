@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ATRIBUTOS, SELOS } from "@/components/cafe-atributos";
+import { ATRIBUTOS } from "@/components/cafe-atributos";
 import type { ResultadoCadastro, ResultadoCoordenadas, ResultadoSalvar } from "@/lib/admin/cafe-actions";
 import type { DiaSemana, FaixaPreco } from "@/lib/cafe";
 import {
@@ -90,12 +90,10 @@ function payloadDe({ horario, ...resto }: Estado) {
   };
 }
 
-const ROTULO_BOOLEANO = Object.fromEntries([...SELOS, ...ATRIBUTOS].map(({ key, label }) => [key, label])) as Record<
+const ROTULO_BOOLEANO = Object.fromEntries(ATRIBUTOS.map(({ key, label }) => [key, label])) as Record<
   Booleano,
   string
 >;
-const SELOS_KEYS: Booleano[] = SELOS.map(({ key }) => key);
-const COMODIDADES_KEYS = BOOLEANOS.filter((key) => !SELOS_KEYS.includes(key));
 
 const AR_CONDICIONADO = [
   { valor: true, rotulo: "Tem" },
@@ -453,13 +451,8 @@ export function DadosCafeForm(props: Props) {
         </fieldset>
 
         <fieldset>
-          <legend className={legendClass}>Selos</legend>
-          <div className="grid gap-x-6 sm:grid-cols-2">{SELOS_KEYS.map(checkbox)}</div>
-        </fieldset>
-
-        <fieldset>
           <legend className={legendClass}>Comodidades</legend>
-          <div className="grid gap-x-6 sm:grid-cols-2">{COMODIDADES_KEYS.map(checkbox)}</div>
+          <div className="grid gap-x-6 sm:grid-cols-2">{BOOLEANOS.map(checkbox)}</div>
           <fieldset className="mt-3" {...aria("tem_ar_condicionado")}>
             <legend className={labelClass}>Ar-condicionado</legend>
             <div className="flex flex-wrap gap-x-6">

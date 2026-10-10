@@ -1,16 +1,19 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
 import { BairroSheet } from "@/components/bairro-sheet";
-import { FILTROS_DA_BARRA } from "@/components/cafe-atributos";
+import { filtrosDaBarra } from "@/components/cafe-atributos";
 import { AtributoChip, chipClass } from "@/components/filter-chip";
 import { MaisFiltrosDropdown } from "@/components/mais-filtros-dropdown";
 import { BARRA_FILTROS } from "@/components/medidas";
 import type { Cafe, FaixaPreco } from "@/lib/cafe";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
+import type { FestivaisNoAr } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
 
 type Props = {
   /** Todos os cafés: o sheet de bairro conta o resultado do rascunho. */
   cafes: Cafe[];
+  /** Festivais no ar: só eles têm chip. */
+  festivais: FestivaisNoAr;
   filters: CafeFilters;
   bairros: BairroOpcao[];
   onToggle: (chave: FiltroBooleano) => void;
@@ -22,12 +25,13 @@ type Props = {
 
 /**
  * Barra de filtros da home: chips em pílula com scroll lateral, sem quebrar
- * linha — os selos e o estacionamento; os outros atributos ficam em "Mais
+ * linha — os festivais no ar e o estacionamento; os outros atributos ficam em "Mais
  * filtros" (desktop) e no sheet do botão de filtros (mobile). Desktop: 64 px,
  * bairro em dropdown. Mobile: chips de 36 px, bairro em bottom sheet.
  */
 export function FilterBar({
   cafes,
+  festivais,
   filters,
   bairros,
   onToggle,
@@ -45,7 +49,7 @@ export function FilterBar({
       onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
       className={`${BARRA_FILTROS} scroll-px-[18px] overflow-x-auto [scrollbar-width:none] lg:scroll-px-7 [&::-webkit-scrollbar]:hidden`}
     >
-      {FILTROS_DA_BARRA.map((opcao) => (
+      {filtrosDaBarra(festivais).map((opcao) => (
         <AtributoChip
           key={opcao.filtro}
           opcao={opcao}
@@ -53,7 +57,7 @@ export function FilterBar({
           onToggle={() => onToggle(opcao.filtro)}
         />
       ))}
-      <BairroSheet cafes={cafes} bairros={bairros} filters={filters} onAplicar={onAplicar} />
+      <BairroSheet cafes={cafes} festivais={festivais} bairros={bairros} filters={filters} onAplicar={onAplicar} />
       <BairroDropdown
         bairros={bairros}
         selecionados={filters.bairros}

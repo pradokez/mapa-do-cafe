@@ -17,8 +17,6 @@ function linha(slug: string, extra: Record<string, unknown> = {}) {
     cidade: "Recife",
     lat: -8.05,
     lng: -34.9,
-    selo_ascape: true,
-    selo_eu_amo_cafe: false,
     aceita_pets: false,
     tem_estacionamento: false,
     permite_coffee_office: false,

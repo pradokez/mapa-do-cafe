@@ -31,7 +31,7 @@ import {
   OPEN_GRAPH_BASE,
   tituloCafe,
 } from "@/lib/cafe-seo";
-import { combosDoCafe } from "@/lib/festival";
+import { combosDoCafe, participantesNoAr } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url.mjs";
 
@@ -67,9 +67,9 @@ export default async function CafePage({ params }: Props) {
 
   const agora = new Date();
   const horario = resumoHorario(cafe.horario_funcionamento, agora);
-  // "Ativa hoje" decidido aqui, fora do cache das edições (dia de Recife).
+  // No ar e ativa hoje decididos aqui, fora do cache das edições (dia de Recife).
   const combos = combosDoCafe(edicoes, cafe.id, agora);
-  const selos = selosDo(cafe);
+  const selos = selosDo(cafe, participantesNoAr(edicoes, agora));
   const jsonLd = jsonLdCafe(cafe, new URL(caminhoDoCafe(cafe), siteUrl()).href);
 
   return (

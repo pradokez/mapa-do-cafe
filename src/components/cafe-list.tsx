@@ -7,6 +7,7 @@ import { EmptyCupIllustration } from "@/components/empty-cup-illustration";
 import { LISTA_GRADE, LISTA_SECTION, LISTA_TOPO } from "@/components/medidas";
 import { RodapeSugestoes } from "@/components/rodape-sugestoes";
 import type { Cafe } from "@/lib/cafe";
+import type { FestivaisNoAr } from "@/lib/festival";
 import { contadorLabel } from "@/lib/format";
 
 /**
@@ -21,6 +22,8 @@ export type Hovered = { id: string; source: "card" | "pin" };
 
 type Props = {
   cafes: Cafe[];
+  /** Participantes dos festivais no ar: os selos dos cards. */
+  festivais: FestivaisNoAr;
   hovered?: Hovered | null;
   /** Café com o preview aberto no mapa: card elevado com borda, como no hover do pin. */
   selectedId?: string | null;
@@ -30,7 +33,7 @@ type Props = {
   onLimpar?: () => void;
 };
 
-export function CafeList({ cafes, hovered = null, selectedId = null, onHover, onLimpar }: Props) {
+export function CafeList({ cafes, festivais, hovered = null, selectedId = null, onHover, onLimpar }: Props) {
   const highlightOf = (id: string): CardHighlight | undefined => {
     if (id === selectedId || (id === hovered?.id && hovered.source === "pin")) return "linked";
     if (id === hovered?.id) return "lifted";
@@ -80,7 +83,7 @@ export function CafeList({ cafes, hovered = null, selectedId = null, onHover, on
                 onFocus={() => onHover?.(cafe.id)}
                 onBlur={() => onHover?.(null)}
               >
-                <CafeCard cafe={cafe} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
+                <CafeCard cafe={cafe} festivais={festivais} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
               </li>
             ))}
           </ul>

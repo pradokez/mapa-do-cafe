@@ -238,7 +238,7 @@ function comArtesPublicas({ participacoes, ...edicao }: LinhaEdicao): Edicao {
 /**
  * Edições publicadas dos festivais, com os participantes (só cafés no ar — a
  * RLS decide) e as artes em URL pública. Encerradas e futuras vêm junto:
- * "ativa hoje" é decidido no render (`edicoesAtivas`), fora do cache, para o
+ * "no ar hoje" é decidido no render (`edicoesNoAr`), fora do cache, para o
  * cache nunca atravessar a virada do dia. Mesmo esquema de cache de
  * `listCafesAtivos`, com tag própria.
  */

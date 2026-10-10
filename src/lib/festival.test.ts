@@ -4,10 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   ateODia,
   combosDoCafe,
-  edicoesAtivas,
+  edicoesNoAr,
   estadoDaEdicao,
   formatarPreco,
   ordenarPorNumero,
+  participantesNoAr,
   periodoDaEdicao,
   rotuloDeStatus,
   tituloDoCombo,
@@ -60,36 +61,67 @@ describe("estadoDaEdicao", () => {
   });
 });
 
-describe("edicoesAtivas", () => {
-  it("devolve a edição publicada no primeiro e no último dia", () => {
-    expect(edicoesAtivas([EU_AMO_CAFE], meioDia("2026-10-18"))).toEqual([EU_AMO_CAFE]);
-    expect(edicoesAtivas([EU_AMO_CAFE], meioDia("2026-11-15"))).toEqual([EU_AMO_CAFE]);
+describe("edicoesNoAr", () => {
+  it("no ar do dia em que é publicada até o último dia, inclusive antes de começar", () => {
+    expect(edicoesNoAr([EU_AMO_CAFE], meioDia("2026-10-10"))).toEqual([EU_AMO_CAFE]);
+    expect(edicoesNoAr([EU_AMO_CAFE], meioDia("2026-10-18"))).toEqual([EU_AMO_CAFE]);
+    expect(edicoesNoAr([EU_AMO_CAFE], meioDia("2026-11-15"))).toEqual([EU_AMO_CAFE]);
   });
 
-  it("não devolve nada na véspera nem no dia seguinte", () => {
-    expect(edicoesAtivas([EU_AMO_CAFE], meioDia("2026-10-17"))).toEqual([]);
-    expect(edicoesAtivas([EU_AMO_CAFE], meioDia("2026-11-16"))).toEqual([]);
+  it("sai do ar sozinha no dia seguinte ao último", () => {
+    expect(edicoesNoAr([EU_AMO_CAFE], meioDia("2026-11-16"))).toEqual([]);
   });
 
-  it("edição não publicada nunca está ativa, mesmo dentro do período", () => {
-    expect(edicoesAtivas([{ ...EU_AMO_CAFE, publicada: false }], meioDia("2026-11-01"))).toEqual([]);
+  it("edição não publicada nunca está no ar, nem antes nem durante o período", () => {
+    const rascunho = { ...EU_AMO_CAFE, publicada: false };
+    expect(edicoesNoAr([rascunho], meioDia("2026-10-10"))).toEqual([]);
+    expect(edicoesNoAr([rascunho], meioDia("2026-11-01"))).toEqual([]);
   });
 
   it("vira o dia em Recife, não em UTC", () => {
-    expect(edicoesAtivas([EU_AMO_CAFE], new Date("2026-11-16T01:00:00Z"))).toEqual([EU_AMO_CAFE]);
-    expect(edicoesAtivas([EU_AMO_CAFE], new Date("2026-11-16T03:00:00Z"))).toEqual([]);
+    expect(edicoesNoAr([EU_AMO_CAFE], new Date("2026-11-16T01:00:00Z"))).toEqual([EU_AMO_CAFE]);
+    expect(edicoesNoAr([EU_AMO_CAFE], new Date("2026-11-16T03:00:00Z"))).toEqual([]);
   });
 
-  it("duas edições ativas ao mesmo tempo: as duas, a que termina primeiro antes", () => {
-    expect(edicoesAtivas([RECIFE_COFFEE, EU_AMO_CAFE], meioDia("2026-11-10"))).toEqual([
+  it("duas edições no ar ao mesmo tempo: as duas, a que termina primeiro antes", () => {
+    expect(edicoesNoAr([RECIFE_COFFEE, EU_AMO_CAFE], meioDia("2026-11-10"))).toEqual([
       EU_AMO_CAFE,
       RECIFE_COFFEE,
     ]);
   });
 
-  it("uma por festival: duas edições do mesmo festival no mesmo dia dão só a que termina primeiro", () => {
-    const outra = { ...EU_AMO_CAFE, id: "e3", ano: 2027, fim: "2026-12-31" };
-    expect(edicoesAtivas([outra, EU_AMO_CAFE], meioDia("2026-11-01"))).toEqual([EU_AMO_CAFE]);
+  it("uma por festival: com a edição seguinte já publicada, fica a que termina primeiro", () => {
+    const proxima = { ...EU_AMO_CAFE, id: "e3", ano: 2027, inicio: "2027-10-17", fim: "2027-11-14" };
+    expect(edicoesNoAr([proxima, EU_AMO_CAFE], meioDia("2026-11-01"))).toEqual([EU_AMO_CAFE]);
+    expect(edicoesNoAr([proxima, EU_AMO_CAFE], meioDia("2026-11-16"))).toEqual([proxima]);
+  });
+});
+
+describe("participantesNoAr", () => {
+  const comCafes = (edicao: Edicao, ...cafes: string[]): Edicao => ({
+    ...edicao,
+    participacoes: cafes.map((cafe_id, i) => ({
+      id: `${edicao.id}-${i}`,
+      cafe_id,
+      numero: null,
+      nome_combo: null,
+      alt: null,
+      instagram_url: null,
+      arte: null,
+    })),
+  });
+
+  it("os cafés de cada festival no ar, pelo slug", () => {
+    const edicoes = [comCafes(EU_AMO_CAFE, "a", "b"), comCafes(RECIFE_COFFEE, "b", "c")];
+    expect(participantesNoAr(edicoes, meioDia("2026-11-10"))).toEqual({
+      "eu-amo-cafe": ["a", "b"],
+      "recife-coffee": ["b", "c"],
+    });
+  });
+
+  it("festival fora do ar não aparece; no ar sem participantes aparece vazio", () => {
+    const edicoes = [comCafes(EU_AMO_CAFE), comCafes({ ...RECIFE_COFFEE, publicada: false }, "c")];
+    expect(participantesNoAr(edicoes, meioDia("2026-10-10"))).toEqual({ "eu-amo-cafe": [] });
   });
 });
 
@@ -209,6 +241,10 @@ describe("combosDoCafe", () => {
 
   it("edição não publicada nunca mostra combo", () => {
     expect(combosDoCafe([{ ...comKaffe, publicada: false }], "kaffe", meioDia("2026-10-20"))).toEqual([]);
+  });
+
+  it("publicada mas antes do início, ainda sem combo (chip e selo já aparecem)", () => {
+    expect(combosDoCafe([comKaffe], "kaffe", meioDia("2026-10-17"))).toEqual([]);
   });
 
   it("o dia é o de Recife: 15 nov às 22h ainda mostra o combo", () => {

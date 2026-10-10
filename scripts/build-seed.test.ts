@@ -79,7 +79,6 @@ describe("seed do Supabase", () => {
       expect([true, false, null], cafe.slug).toContain(cafe.tem_ar_condicionado);
       expect(typeof cafe.acessivel_pcd, cafe.slug).toBe("boolean");
       expect(typeof cafe.opcoes_vegetarianas, cafe.slug).toBe("boolean");
-      expect(typeof cafe.selo_eu_amo_cafe, cafe.slug).toBe("boolean");
     }
   });
 

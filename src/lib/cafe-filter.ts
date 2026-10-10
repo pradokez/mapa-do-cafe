@@ -1,9 +1,18 @@
 import type { Cafe, FaixaPreco } from "./cafe";
+import type { FestivaisNoAr, FestivalSlug } from "./festival";
 
-/** Filtros booleanos: chave do estado → campo do café e param da URL (`?pets=true`). */
-const FILTROS_BOOLEANOS = {
-  ascape: { campo: "selo_ascape", param: "ascape" },
-  euAmoCafe: { campo: "selo_eu_amo_cafe", param: "eu_amo_cafe" },
+/**
+ * Filtros de festival: chave do estado → festival e param da URL. Passa quem
+ * participa da edição no ar; com o festival fora do ar, o filtro não existe
+ * (o param é ignorado e não volta na serialização).
+ */
+const FILTROS_DE_FESTIVAL = {
+  recifeCoffee: { festival: "recife-coffee", param: "recife_coffee" },
+  euAmoCafe: { festival: "eu-amo-cafe", param: "eu_amo_cafe" },
+} as const satisfies Record<string, { festival: FestivalSlug; param: string }>;
+
+/** Filtros de atributo: chave do estado → campo do café e param da URL (`?pets=true`). */
+const FILTROS_DE_ATRIBUTO = {
   pets: { campo: "aceita_pets", param: "pets" },
   estacionamento: { campo: "tem_estacionamento", param: "estacionamento" },
   coffeeOffice: { campo: "permite_coffee_office", param: "coffee_office" },
@@ -13,7 +22,12 @@ const FILTROS_BOOLEANOS = {
   arCondicionado: { campo: "tem_ar_condicionado", param: "ar_condicionado" },
 } as const satisfies Record<string, { campo: keyof Cafe; param: string }>;
 
-export type FiltroBooleano = keyof typeof FILTROS_BOOLEANOS;
+type FiltroDeFestival = keyof typeof FILTROS_DE_FESTIVAL;
+type FiltroDeAtributo = keyof typeof FILTROS_DE_ATRIBUTO;
+export type FiltroBooleano = FiltroDeFestival | FiltroDeAtributo;
+
+/** Params que já foram de filtro: ignorados na leitura e apagados na escrita. */
+const PARAMS_ANTIGOS = ["ascape"];
 
 export type CafeFilters = Record<FiltroBooleano, boolean> & {
   /** Slugs de bairro aceitos (união); vazio = filtro desligado. */
@@ -25,7 +39,7 @@ export type CafeFilters = Record<FiltroBooleano, boolean> & {
 };
 
 export const FILTROS_VAZIOS: CafeFilters = {
-  ascape: false,
+  recifeCoffee: false,
   euAmoCafe: false,
   pets: false,
   estacionamento: false,
@@ -38,7 +52,12 @@ export const FILTROS_VAZIOS: CafeFilters = {
   q: "",
 };
 
-const CHAVES = Object.keys(FILTROS_BOOLEANOS) as FiltroBooleano[];
+const FESTIVAIS = Object.keys(FILTROS_DE_FESTIVAL) as FiltroDeFestival[];
+const ATRIBUTOS = Object.keys(FILTROS_DE_ATRIBUTO) as FiltroDeAtributo[];
+const CHAVES: FiltroBooleano[] = [...FESTIVAIS, ...ATRIBUTOS];
+const PARAM = Object.fromEntries(
+  Object.entries({ ...FILTROS_DE_FESTIVAL, ...FILTROS_DE_ATRIBUTO }).map(([chave, { param }]) => [chave, param]),
+) as Record<FiltroBooleano, string>;
 
 /** Ordem canônica das faixas, na URL e no estado. */
 export const FAIXAS: readonly FaixaPreco[] = ["$", "$$", "$$$"];
@@ -49,14 +68,19 @@ const aceita = <T>(lista: readonly T[], valor: T) => lista.length === 0 || lista
 /**
  * Interseção dos filtros ligados — dentro de bairro e de preço, a união das
  * opções marcadas; na busca, cada palavra precisa casar com o nome ou o
- * bairro. Filtro desligado não exclui ninguém. Preserva a ordem.
+ * bairro; num festival, os participantes da edição no ar (`festivais`). Filtro
+ * desligado, ou de festival fora do ar, não exclui ninguém. Preserva a ordem.
  */
-export function filtrarCafes(cafes: Cafe[], filters: CafeFilters): Cafe[] {
-  const ligados = CHAVES.filter((chave) => filters[chave]);
+export function filtrarCafes(cafes: Cafe[], filters: CafeFilters, festivais: FestivaisNoAr = {}): Cafe[] {
+  const atributos = ATRIBUTOS.filter((chave) => filters[chave]);
+  const participantes = FESTIVAIS.filter((chave) => filters[chave])
+    .map((chave) => festivais[FILTROS_DE_FESTIVAL[chave].festival])
+    .filter((ids) => ids !== undefined);
   const palavras = normalizar(filters.q).split(/\s+/).filter(Boolean);
   return cafes.filter(
     (cafe) =>
-      ligados.every((chave) => cafe[FILTROS_BOOLEANOS[chave].campo]) &&
+      atributos.every((chave) => cafe[FILTROS_DE_ATRIBUTO[chave].campo]) &&
+      participantes.every((ids) => ids.includes(cafe.id)) &&
       aceita(filters.bairros, cafe.bairro_slug) &&
       aceita(filters.precos, cafe.faixa_preco) &&
       casaBusca(cafe, palavras),
@@ -82,20 +106,31 @@ function lista(valor: string | null): string[] {
   return valor ? valor.split(",").filter(Boolean) : [];
 }
 
+type ContextoDaLeitura = {
+  /** Slugs de bairro aceitos; sem a lista, qualquer slug passa. */
+  bairros?: readonly string[];
+  /** Festivais no ar; o param de festival fora do ar é ignorado. */
+  festivais?: FestivaisNoAr;
+};
+
 /**
  * Lê o estado da URL; o que não reconhece, ignora em silêncio. Com
- * `bairrosValidos`, slug que não é de nenhum café some (link antigo de bairro
- * que saiu do diretório vira filtro desligado, não lista vazia).
+ * `bairros`, slug que não é de nenhum café some (link antigo de bairro que
+ * saiu do diretório vira filtro desligado, não lista vazia); o mesmo com o
+ * festival que não está no ar (`?eu_amo_cafe=true` de uma edição encerrada).
  */
-export function parseFilters(params: ParamsLike, bairrosValidos?: readonly string[]): CafeFilters {
+export function parseFilters(params: ParamsLike, { bairros, festivais = {} }: ContextoDaLeitura = {}): CafeFilters {
   const filters = { ...FILTROS_VAZIOS };
   for (const chave of CHAVES) {
-    filters[chave] = params.get(FILTROS_BOOLEANOS[chave].param) === "true";
+    filters[chave] = params.get(PARAM[chave]) === "true";
+  }
+  for (const chave of FESTIVAIS) {
+    filters[chave] &&= festivais[FILTROS_DE_FESTIVAL[chave].festival] !== undefined;
   }
   const precos = lista(params.get("preco"));
   filters.precos = FAIXAS.filter((faixa) => precos.includes(faixa));
   filters.bairros = Array.from(new Set(lista(params.get("bairro"))))
-    .filter((slug) => !bairrosValidos || bairrosValidos.includes(slug))
+    .filter((slug) => !bairros || bairros.includes(slug))
     .sort();
   filters.q = params.get("q")?.trim() ?? "";
   return filters;
@@ -111,10 +146,10 @@ export function parseFilters(params: ParamsLike, bairrosValidos?: readonly strin
 export function serializeFilters(filters: CafeFilters, base?: URLSearchParams): string {
   const params = new URLSearchParams(base);
   for (const chave of CHAVES) {
-    const { param } = FILTROS_BOOLEANOS[chave];
-    if (filters[chave]) params.set(param, "true");
-    else params.delete(param);
+    if (filters[chave]) params.set(PARAM[chave], "true");
+    else params.delete(PARAM[chave]);
   }
+  for (const param of PARAMS_ANTIGOS) params.delete(param);
   definirLista(params, "bairro", [...filters.bairros].sort());
   definirLista(params, "preco", FAIXAS.filter((faixa) => filters.precos.includes(faixa)));
   const q = filters.q.trim();

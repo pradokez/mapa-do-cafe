@@ -18,31 +18,22 @@ export const SITE_DESCRICAO = "Diretório de cafés especiais em Recife, Olinda 
  */
 export const OPEN_GRAPH_BASE = { siteName: SITE_NOME, locale: "pt_BR", type: "website" } as const;
 
-// Os rótulos de `SELOS` (components/cafe-atributos) vêm com ícones React; aqui só o texto.
-const SELOS = [
-  { key: "selo_ascape", label: "Selo Recife Coffee" },
-  { key: "selo_eu_amo_cafe", label: "Selo Eu Amo Café" },
-] as const;
-
 /** `<title>` do detalhe: "81 Coffee Co. · Mapa do Café". */
 export function tituloCafe(cafe: Pick<Cafe, "nome">): string {
   return `${cafe.nome} · ${SITE_NOME}`;
 }
 
 /**
- * Meta description: "Café especial · Graças, Recife · preço moderado ($$) ·
- * Selo Recife Coffee. Endereço, horário e comodidades no Mapa do Café."
- * Sem preposição antes do bairro ("nas Graças", "no Pina"): o banco não sabe qual.
+ * Meta description: "Café especial · Graças, Recife · preço moderado ($$).
+ * Endereço, horário e comodidades no Mapa do Café." Sem preposição antes do
+ * bairro ("nas Graças", "no Pina"): o banco não sabe qual. Sem o selo de
+ * festival: o snippet do buscador seguiria citando-o depois da edição.
  */
-export function descricaoCafe(
-  cafe: Pick<Cafe, "bairro" | "cidade" | "faixa_preco" | "selo_ascape" | "selo_eu_amo_cafe">,
-): string {
-  const selos = SELOS.filter(({ key }) => cafe[key]).map(({ label }) => label);
+export function descricaoCafe(cafe: Pick<Cafe, "bairro" | "cidade" | "faixa_preco">): string {
   const partes = [
     "Café especial",
     `${cafe.bairro}, ${cafe.cidade}`,
     `preço ${faixaPrecoNome(cafe.faixa_preco).toLowerCase()} (${cafe.faixa_preco})`,
-    ...(selos.length > 0 ? [selos.join(" e ")] : []),
   ];
   return `${partes.join(" · ")}. Endereço, horário e comodidades no ${SITE_NOME}.`;
 }

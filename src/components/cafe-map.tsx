@@ -22,12 +22,18 @@ type Props = (
       cafes: Cafe[];
       /** Ponto "Você está aqui". Só na home: o detalhe já diz "1,2 km de você". */
       userPosition?: Coordenadas | null;
+      /**
+       * Pontos a enquadrar no lugar de todos os cafés (a posição e os mais próximos, #96).
+       * Uma vez por mapa, e só se a pessoa ainda não arrastou nem deu zoom.
+       */
+      focus?: Coordenadas[] | null;
     }
   | {
       /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
       variant: "mini";
       cafes: Pin[];
       userPosition?: never;
+      focus?: never;
     }
 ) & {
   hoveredId?: string | null;
@@ -48,6 +54,7 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Sem cafés para enquadrar: centro de Recife.
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
+const MAX_ZOOM = 15;
 // Pins ancorados pela ponta sobem 40 px a partir do ponto; o zoom ocupa a direita.
 const FIT_PADDING = { top: 72, right: 72, bottom: 32, left: 32 };
 
@@ -121,6 +128,7 @@ export function CafeMap({
   previewPlacement = "pin",
   className = "",
   userPosition = null,
+  focus = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
@@ -133,6 +141,12 @@ export function CafeMap({
 
   // Enquadramento só na criação: filtrar não deve fazer o mapa pular.
   const initialCafes = useRef(cafes);
+  // O foco mais recente: o mapa que nasce depois da posição (mobile) já nasce nele.
+  const focusAtual = useRef(focus);
+  focusAtual.current = focus;
+  const enquadrou = useRef(false);
+  // Arrastou, deu zoom ou usou o teclado: o mapa fica onde a pessoa deixou.
+  const mexeu = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -145,16 +159,11 @@ export function CafeMap({
       mapboxRef.current = mapboxgl;
       const cafes = initialCafes.current;
       const isMini = variant === "mini";
-
-      let bounds: [[number, number], [number, number]] | undefined;
-      if (!isMini && cafes.length > 0) {
-        const lngs = cafes.map((c) => c.lng);
-        const lats = cafes.map((c) => c.lat);
-        bounds = [
-          [Math.min(...lngs), Math.min(...lats)],
-          [Math.max(...lngs), Math.max(...lats)],
-        ];
-      }
+      const foco = isMini ? null : focusAtual.current;
+      const pontos = isMini ? [] : (foco ?? cafes);
+      const bounds = pontos.length > 0 ? limites(pontos) : undefined;
+      enquadrou.current = foco !== null;
+      mexeu.current = false;
 
       try {
         instance = new mapboxgl.Map({
@@ -171,7 +180,7 @@ export function CafeMap({
             "LogoControl.Title": "Site do Mapbox",
           },
           ...(bounds
-            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: 15 } }
+            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: MAX_ZOOM } }
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
         });
       } catch {
@@ -180,6 +189,10 @@ export function CafeMap({
       }
 
       instance.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
+      // Só gesto traz `originalEvent`; o `fitBounds` daqui não conta como mexer.
+      instance.on("movestart", (e) => {
+        if (e.originalEvent) mexeu.current = true;
+      });
       instance.on("style.load", () => {
         if (!instance) return;
         for (const [layer, prop, value] of PAINT) {
@@ -228,8 +241,17 @@ export function CafeMap({
     }
   }, [map, cafes, variant]);
 
+  // A posição chega depois de o mapa aparecer (na primeira visita, só depois do "Permitir"):
+  // aproxima uma vez, se a pessoa ainda não mexeu. Com `prefers-reduced-motion`, o próprio
+  // Mapbox troca a animação por um salto (nada aqui pede `essential`).
+  useEffect(() => {
+    if (!map || !focus || enquadrou.current || mexeu.current) return;
+    enquadrou.current = true;
+    map.fitBounds(limites(focus), { padding: FIT_PADDING, maxZoom: MAX_ZOOM });
+  }, [map, focus]);
+
   // Ponto parado de quem usa, sem `GeolocateControl` (pediria a permissão de novo, por
-  // conta própria). Não entra no enquadramento: quem está longe não afasta o mapa.
+  // conta própria). Quem está longe não afasta o mapa: o enquadramento vem de `focus`.
   const voceLat = userPosition?.lat;
   const voceLng = userPosition?.lng;
   useEffect(() => {
@@ -361,18 +383,39 @@ export function CafeMap({
           <button
             type="button"
             aria-label="Aproximar"
-            onClick={() => map.zoomIn()}
+            onClick={() => {
+              mexeu.current = true;
+              map.zoomIn();
+            }}
             className={`${ZOOM_BUTTON} border-b border-map-control-line`}
           >
             +
           </button>
-          <button type="button" aria-label="Afastar" onClick={() => map.zoomOut()} className={ZOOM_BUTTON}>
+          <button
+            type="button"
+            aria-label="Afastar"
+            onClick={() => {
+              mexeu.current = true;
+              map.zoomOut();
+            }}
+            className={ZOOM_BUTTON}
+          >
             −
           </button>
         </div>
       )}
     </div>
   );
+}
+
+/** Retângulo (sudoeste, nordeste) que contém todos os pontos. */
+function limites(pontos: readonly Coordenadas[]): [[number, number], [number, number]] {
+  const lngs = pontos.map((p) => p.lng);
+  const lats = pontos.map((p) => p.lat);
+  return [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ];
 }
 
 function createPinElement(

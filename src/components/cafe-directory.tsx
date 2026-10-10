@@ -17,6 +17,7 @@ import type { Cafe } from "@/lib/cafe";
 import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
 import { combosDaEdicao, type Edicao, type FestivaisNoAr } from "@/lib/festival";
+import { pontosParaEnquadrar } from "@/lib/map-enquadramento";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
@@ -48,6 +49,8 @@ export function CafeDirectory({
     () => ordenarPorDistancia(filtrarCafes(cafes, filters, festivais), coords),
     [cafes, filters, festivais, coords],
   );
+  // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
+  const focus = useMemo(() => pontosParaEnquadrar(cafes, coords), [cafes, coords]);
 
   // Os cafés dos combos saem da lista que já veio, sem repetir no payload.
   const combosDasVitrines = useMemo(
@@ -123,6 +126,7 @@ export function CafeDirectory({
               visivelNoMobile={view === "mapa"}
               cafes={filtrados}
               userPosition={coords}
+              focus={focus}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

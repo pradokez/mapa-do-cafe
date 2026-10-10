@@ -26,7 +26,7 @@ export function ArteDoCombo({ arte, alt, titulo, credito }: Props) {
     <DialogPrimitive.Root open={aberta} onOpenChange={setAberta}>
       <DialogPrimitive.Trigger
         aria-label="Ampliar arte do combo"
-        className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[14px] bg-hover-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta lg:rounded-xl"
+        className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-[14px] bg-hover-soft lg:rounded-xl"
       >
         <FotoDoStorage
           src={arte}
@@ -59,7 +59,7 @@ export function ArteDoCombo({ arte, alt, titulo, credito }: Props) {
           <span className="cursor-default text-xs text-line-strong">{credito}</span>
           <DialogPrimitive.Close
             aria-label="Fechar"
-            className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-cream text-espresso focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream"
+            className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-cream text-espresso focus-visible:outline-cream"
           >
             <XIcon size={18} strokeWidth={2.2} />
           </DialogPrimitive.Close>

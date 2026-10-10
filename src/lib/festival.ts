@@ -200,7 +200,7 @@ export function edicaoDaPagina<E extends Edicao>(
   const doFestival = edicoes.filter((e) => e.publicada && e.festival.slug === festival);
   const edicao = doFestival.find((e) => String(e.ano) === ano);
   if (!edicao) return null;
-  const noAr = doFestival.find((e) => estadoDaEdicao(e, agora) !== "encerrada") ?? null;
+  const [noAr = null] = edicoesNoAr(doFestival, agora);
   return { edicao, estado: estadoDaEdicao(edicao, agora), noAr };
 }
 

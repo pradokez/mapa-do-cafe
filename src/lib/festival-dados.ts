@@ -160,7 +160,8 @@ export type StatusNoAdmin = "rascunho" | EstadoEdicao;
 
 /**
  * Etiqueta da edição no painel: "Rascunho" enquanto não publicada (o site não
- * a vê, seja qual for a data); publicada, o estado pelo dia de Recife.
+ * a vê, seja qual for a data); publicada, o estado pelo dia de Recife. Publicada
+ * e futura já está no ar (chip, selo e filtro — `edicoesNoAr`); só os combos esperam.
  */
 export function statusNoAdmin(
   edicao: Pick<Edicao, "publicada" | "inicio" | "fim">,
@@ -171,7 +172,7 @@ export function statusNoAdmin(
   if (status === "ativa") return { status, rotulo: "No ar" };
   if (status === "encerrada") return { status, rotulo: "Encerrada" };
   const comeca = rotuloDeStatus(edicao, agora);
-  return { status, rotulo: `Publicada · ${comeca[0].toLowerCase()}${comeca.slice(1)}` };
+  return { status, rotulo: `No ar · ${comeca[0].toLowerCase()}${comeca.slice(1)}` };
 }
 
 /** Por que a edição não pode ir ao ar, ou `null` (o banco também exige o preço). */

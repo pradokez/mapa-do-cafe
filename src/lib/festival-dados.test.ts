@@ -202,8 +202,8 @@ describe("statusNoAdmin", () => {
     });
   });
 
-  it("publicada: futura, no ar ou encerrada pelo dia de Recife", () => {
-    expect(statusNoAdmin(EDICAO_2026, em("2026-10-17")).rotulo).toBe("Publicada · começa em 18 out");
+  it("publicada: no ar desde a publicação (futura avisa o início), encerrada pelo dia de Recife", () => {
+    expect(statusNoAdmin(EDICAO_2026, em("2026-10-17")).rotulo).toBe("No ar · começa em 18 out");
     expect(statusNoAdmin(EDICAO_2026, em("2026-10-18")).rotulo).toBe("No ar");
     expect(statusNoAdmin(EDICAO_2026, em("2026-11-15")).status).toBe("ativa");
     expect(statusNoAdmin(EDICAO_2026, em("2026-11-16")).rotulo).toBe("Encerrada");

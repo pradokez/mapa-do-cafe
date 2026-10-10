@@ -23,7 +23,8 @@ type Props = {
 /**
  * Seção Publicação da edição (#102): publicar e despublicar, sempre com
  * confirmação (nos dois sentidos — despublicar tira chip, selo e combos do
- * site na hora). Publicada, a edição entra e sai do ar sozinha pelas datas.
+ * site na hora). Publicada, a edição já está no ar (`edicoesNoAr`, #101): os
+ * combos esperam o início e tudo sai sozinho depois do último dia.
  * Sem preço não publica: o botão nem abre o diálogo.
  */
 export function PublicacaoForm({ edicaoId, nome, periodo, publicada, preco }: Props) {
@@ -36,18 +37,18 @@ export function PublicacaoForm({ edicaoId, nome, periodo, publicada, preco }: Pr
 
   const texto = publicada
     ? {
-        estado: `Publicada: chip, selo, vitrine e combos aparecem no site de ${periodo} e saem sozinhos depois do último dia.`,
+        estado: `Publicada: chip, selo e filtro ficam no site até o último dia, e os combos aparecem de ${periodo}. Tudo sai sozinho depois.`,
         acao: "Despublicar",
         titulo: `Despublicar ${nome}?`,
         efeito:
-          "Chip, selo, vitrine e combos saem do site na hora, e a página da edição deixa de abrir. Nada é apagado: datas e participantes ficam guardados.",
+          "Chip, selo, filtro e combos saem do site na hora, e a página da edição deixa de abrir. Nada é apagado: datas e participantes ficam guardados.",
         feito: "Pronto: a edição saiu do site.",
       }
     : {
         estado: "Rascunho: o site não mostra esta edição.",
         acao: "Publicar",
         titulo: `Publicar ${nome}?`,
-        efeito: `Chip, selo, vitrine e combos aparecem no site de ${periodo}, e saem sozinhos depois do último dia. Quem estiver sem arte aparece com o placeholder.`,
+        efeito: `Chip, selo e filtro entram no site na hora, mesmo antes do início; os combos aparecem de ${periodo}. Tudo sai sozinho depois do último dia. Quem estiver sem arte aparece com o placeholder.`,
         feito: "Pronto: a edição está publicada.",
       };
 

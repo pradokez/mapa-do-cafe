@@ -24,7 +24,7 @@ export default async function AdminFestivais() {
         <div>
           <h1 className="font-display text-[30px] leading-[1.1] text-espresso">Festivais</h1>
           <p className="mt-1.5 text-[14px] text-ink-3">
-            Publicada, a edição entra e sai do site sozinha pelas datas.
+            Publicada, a edição já aparece no site; os combos esperam o início, e tudo sai sozinho depois do último dia.
           </p>
         </div>
         <Link href="/admin/festivais/nova" className={`${botaoCtaClass} inline-flex items-center gap-1.5`}>

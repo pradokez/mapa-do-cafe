@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { CafeMapPreview } from "@/components/cafe-map-preview";
 import type { Cafe } from "@/lib/cafe";
+import type { Coordenadas } from "@/lib/cafe-distance";
 import { placePreview } from "@/lib/map-preview-placement";
 
 /** O que um pin precisa. O mini mapa do admin (#53) mostra um café que ainda não existe. */
@@ -19,11 +20,14 @@ type Props = (
       /** Mapa navegável da home: o preview do pin precisa do café inteiro. */
       variant?: "full";
       cafes: Cafe[];
+      /** Ponto "Você está aqui". Só na home: o detalhe já diz "1,2 km de você". */
+      userPosition?: Coordenadas | null;
     }
   | {
       /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
       variant: "mini";
       cafes: Pin[];
+      userPosition?: never;
     }
 ) & {
   hoveredId?: string | null;
@@ -80,6 +84,11 @@ const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="tr
 <path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>
 </g></svg>`;
 
+// Ponto de quem usa: o azul de posição dos apps de mapa (não lembra pin nem pin ativo), borda `cream`.
+// Abaixo dos pins (o `z-[1]` deles vence a ordem no DOM) e sem receber clique.
+const VOCE_HTML = `<span class="absolute inset-0 rounded-full bg-map-voce/20 motion-safe:animate-ping"></span>
+<span class="relative block size-4 rounded-full border-[3px] border-cream bg-map-voce shadow-[0_1px_4px_rgba(0,0,0,.5)]"></span>`;
+
 const PIN_SCALE = {
   full: "group-data-[active=true]:scale-[1.3]",
   mini: "group-data-[active=true]:scale-[1.2]",
@@ -111,6 +120,7 @@ export function CafeMap({
   onClose,
   previewPlacement = "pin",
   className = "",
+  userPosition = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
@@ -217,6 +227,25 @@ export function CafeMap({
       current.set(cafe.id, new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([cafe.lng, cafe.lat]).addTo(map));
     }
   }, [map, cafes, variant]);
+
+  // Ponto parado de quem usa, sem `GeolocateControl` (pediria a permissão de novo, por
+  // conta própria). Não entra no enquadramento: quem está longe não afasta o mapa.
+  const voceLat = userPosition?.lat;
+  const voceLng = userPosition?.lng;
+  useEffect(() => {
+    const mapboxgl = mapboxRef.current;
+    if (!map || !mapboxgl || voceLat === undefined || voceLng === undefined) return;
+    const el = document.createElement("div");
+    // Inline, não classe: o Marker escreve `pointer-events: auto` no style, salvo se já houver um valor ali.
+    el.style.pointerEvents = "none";
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", "Você está aqui");
+    el.innerHTML = VOCE_HTML;
+    const marker = new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([voceLng, voceLat]).addTo(map);
+    return () => {
+      marker.remove();
+    };
+  }, [map, voceLat, voceLng]);
 
   // O mini mapa segue o café: no formulário do admin, lat/lng mudam enquanto são digitados.
   // O `full` nunca recentraliza — filtrar não deve fazer o mapa pular.
@@ -353,7 +382,7 @@ function createPinElement(
 ): HTMLElement {
   const interactive = Boolean(handlers.current.onSelect);
   const el = document.createElement(interactive ? "button" : "div");
-  el.className = `group block data-[active=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
+  el.className = `group block z-[1] data-[active=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
   el.setAttribute("aria-label", cafe.nome);
   if (interactive) {
     el.setAttribute("type", "button");

@@ -92,6 +92,7 @@ export function CafeDirectory({ cafes }: { cafes: Cafe[] }) {
             <HomeMap
               visivelNoMobile={view === "mapa"}
               cafes={filtrados}
+              userPosition={coords}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

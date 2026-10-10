@@ -62,10 +62,14 @@ const CAMINHO_NO_BUCKET = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.webp$/i;
  */
 export function urlsPublicasDasFotos(fotos: unknown, supabaseUrl: string): string[] {
   if (!Array.isArray(fotos)) return [];
-  const base = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${BUCKET_FOTOS}/`;
   return fotos
     .filter((foto): foto is string => typeof foto === "string")
-    .map((foto) => (CAMINHO_NO_BUCKET.test(foto) ? base + foto : foto));
+    .map((foto) => (CAMINHO_NO_BUCKET.test(foto) ? urlPublicaNoBucket(supabaseUrl, BUCKET_FOTOS, foto) : foto));
+}
+
+/** URL pública de um objeto num bucket público — as fotos e as artes dos festivais. */
+export function urlPublicaNoBucket(supabaseUrl: string, bucket: string, caminho: string): string {
+  return `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${bucket}/${caminho}`;
 }
 
 // FNV-1a 32 bits: estável entre runtimes, sem dependência.

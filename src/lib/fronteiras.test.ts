@@ -119,7 +119,7 @@ function corpos(codigo: string): { nome: string; corpo: string }[] {
 const GUARDA = /await requireAdmin\(\)|if \(!\(await sessaoDeAdmin\(\)\)\)/;
 
 // Qualquer leitura, escrita ou efeito.
-const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|revalidat/;
+const EFEITO = /createSessionClient\(|\.from\(|\.storage\b|getCafeById|getCafeBySlug|listFotosDoCafe|listTodosCafes|fotoRegistrada|listEdicoes|getEdicaoById|revalidat/;
 
 // Guarda de segurança (#59): a checagem de admin mora DENTRO de cada Server
 // Action de escrita, não só na página. Uma action que esquecesse o

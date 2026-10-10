@@ -67,6 +67,18 @@ from jsonb_to_recordset(${TAG}${cafesJson}${TAG}::jsonb) as c (
 on conflict (id) do update set
   ${updates},
   atualizado_em = now();
+
+-- Participações nas edições de 2026 a partir dos selos — o mesmo insert da
+-- migration dos festivais, que num projeto novo roda antes de existir café.
+-- Sai daqui quando as colunas \`selo_*\` saírem (#101).
+insert into public.festival_participacoes (edicao_id, cafe_id)
+select e.id, c.id
+from public.cafes c
+join public.festival_edicoes e on e.ano = 2026
+join public.festivais f on f.id = e.festival_id
+where (f.slug = 'eu-amo-cafe' and c.selo_eu_amo_cafe)
+   or (f.slug = 'recife-coffee' and c.selo_ascape)
+on conflict (edicao_id, cafe_id) do nothing;
 `;
 }
 

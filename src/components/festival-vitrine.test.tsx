@@ -89,6 +89,12 @@ describe("Vitrine do festival na home", () => {
     expect(vitrine()).toBeNull();
   });
 
+  it("sem nenhum participante na lista de cafés (saíram do ar), não há vitrine", () => {
+    const foraDoAr = { ...EU_AMO_CAFE, participacoes: [participacao("z", 1)] };
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[foraDoAr]} />);
+    expect(vitrine()).toBeNull();
+  });
+
   it.each(["/?pets=true", "/?q=kaffe", "/?eu_amo_cafe=true"])("com filtro ou busca (%s), a vitrine some", (url) => {
     replaceState(null, "", url);
     render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} />);

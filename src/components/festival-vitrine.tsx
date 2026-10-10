@@ -47,8 +47,8 @@ export function FestivalVitrine({ edicao, combos }: Props) {
           Ver todos
         </Link>
       </div>
-      {/* py/-my: o anel de foco das artes não sai cortado pelo scroll. */}
-      <ul className="-my-1 flex scroll-px-1 gap-3 overflow-x-auto py-1 pr-4 [scrollbar-width:none] lg:pr-7 [&::-webkit-scrollbar]:hidden">
+      {/* p/-m: o anel de foco das artes (4 px para fora) não sai cortado pelo scroll. */}
+      <ul className="-my-1 -ml-1 flex scroll-px-1 gap-3 overflow-x-auto py-1 pl-1 pr-4 [scrollbar-width:none] lg:pr-7 [&::-webkit-scrollbar]:hidden">
         {combos.map((combo, k) => (
           <li key={combo.participacao.id} className="flex-none">
             <button

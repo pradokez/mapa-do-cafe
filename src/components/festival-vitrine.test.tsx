@@ -86,6 +86,14 @@ describe("Vitrine do festival na home", () => {
     expect(within(within(secao).getByRole("list")).getAllByRole("button").map((b) => b.textContent)).toEqual(["Kaffe", "Versado"]);
   });
 
+  it("diz de onde vêm as artes, com link para o Instagram do festival", () => {
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+
+    const link = within(vitrine()!).getByRole("link", { name: /^Eu Amo Café/ });
+    expect(link.closest("p")?.textContent).toBe("Artes divulgadas no Instagram do Eu Amo Café (abre em nova aba).");
+    expect(link.getAttribute("href")).toBe("https://www.instagram.com/euamocafefestival/");
+  });
+
   it("antes do início, a vitrine já aparece, com a contagem no lugar do prazo", () => {
     const antes = new Date("2026-10-10T15:00:00Z");
     render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: antes }} />);
@@ -123,6 +131,9 @@ describe("Vitrine do festival na home", () => {
     await userEvent.click(within(vitrine()!).getByRole("button", { name: /Versado/ }));
     const dialogo = screen.getByRole("dialog", { name: "Versado, combo 2 de 2" });
     expect(within(dialogo).getByRole("link", { name: "Ver café" }).getAttribute("href")).toBe("/cafes/versado");
+    expect(within(dialogo).getByRole("link", { name: /^Eu Amo Café/ }).getAttribute("href")).toBe(
+      "https://www.instagram.com/euamocafefestival/",
+    );
 
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("dialog", { name: "Kaffe, combo 1 de 2" })).toBeDefined();

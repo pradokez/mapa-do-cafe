@@ -49,7 +49,7 @@ const COMBOS = [
 ];
 
 function renderGrade() {
-  render(<FestivalGrade combos={COMBOS} festival="Eu Amo Café" ano={2026} encerrada={false} />);
+  render(<FestivalGrade combos={COMBOS} festival={{ slug: "eu-amo-cafe", nome: "Eu Amo Café" }} ano={2026} encerrada={false} />);
 }
 
 const nomesNaGrade = () =>

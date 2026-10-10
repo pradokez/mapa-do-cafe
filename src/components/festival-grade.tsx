@@ -11,6 +11,7 @@ import {
   fonteDaArte,
   rotuloDeCombos,
   type Combo,
+  type Edicao,
 } from "@/lib/festival";
 
 const CHIP =
@@ -20,7 +21,7 @@ const CHIP_DESLIGADO = "border-line-strong bg-white text-espresso hover:bg-hover
 
 type Props = {
   combos: Combo[];
-  festival: string;
+  festival: Edicao["festival"];
   ano: number;
   encerrada: boolean;
 };

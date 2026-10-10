@@ -150,46 +150,48 @@ export function EdicaoForm(props: Props) {
         </div>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4 md:max-w-[560px]">
-        <div>
-          <label htmlFor="edicao-inicio" className={labelClass}>
-            Início
-          </label>
-          <input
-            {...campo("inicio")}
-            type="date"
-            value={estado.inicio}
-            onChange={(e) => mudar("inicio", e.target.value)}
-            className={`${inputClass} ${invalidoClass}`}
-          />
-          <Erro id="edicao-inicio-erro" erro={erros.inicio} className="mt-1.5" />
+      <div>
+        <div className="grid gap-5 sm:grid-cols-2 sm:gap-4 md:max-w-[560px]">
+          <div>
+            <label htmlFor="edicao-inicio" className={labelClass}>
+              Início
+            </label>
+            <input
+              {...campo("inicio")}
+              type="date"
+              value={estado.inicio}
+              onChange={(e) => mudar("inicio", e.target.value)}
+              className={`${inputClass} ${invalidoClass}`}
+            />
+            <Erro id="edicao-inicio-erro" erro={erros.inicio} className="mt-1.5" />
+          </div>
+          <div>
+            <label htmlFor="edicao-fim" className={labelClass}>
+              Fim <span className="font-normal text-ink-3">(último dia)</span>
+            </label>
+            <input
+              {...campo("fim")}
+              type="date"
+              value={estado.fim}
+              min={estado.inicio || undefined}
+              onChange={(e) => mudar("fim", e.target.value)}
+              className={`${inputClass} ${invalidoClass}`}
+            />
+            <Erro id="edicao-fim-erro" erro={erros.fim} className="mt-1.5" />
+          </div>
         </div>
-        <div>
-          <label htmlFor="edicao-fim" className={labelClass}>
-            Fim <span className="font-normal text-ink-3">(último dia)</span>
-          </label>
-          <input
-            {...campo("fim")}
-            type="date"
-            value={estado.fim}
-            min={estado.inicio || undefined}
-            onChange={(e) => mudar("fim", e.target.value)}
-            className={`${inputClass} ${invalidoClass}`}
-          />
-          <Erro id="edicao-fim-erro" erro={erros.fim} className="mt-1.5" />
-        </div>
+        <p className={dicaClass}>
+          {ano ? `Edição ${ano} — o ano sai do início.` : "O ano da edição sai da data de início."}
+          {enderecoNovo && (
+            <>
+              {" "}
+              <strong className="font-semibold text-terracotta">
+                Ao salvar, a página da edição muda para {enderecoNovo}.
+              </strong>
+            </>
+          )}
+        </p>
       </div>
-      <p className={`${dicaClass} -mt-3`}>
-        {ano ? `Edição ${ano} — o ano sai do início.` : "O ano da edição sai da data de início."}
-        {enderecoNovo && (
-          <>
-            {" "}
-            <strong className="font-semibold text-terracotta">
-              Ao salvar, a página da edição muda para {enderecoNovo}.
-            </strong>
-          </>
-        )}
-      </p>
 
       <div className="max-w-[240px]">
         <label htmlFor="edicao-preco" className={labelClass}>

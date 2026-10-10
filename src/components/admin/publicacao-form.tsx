@@ -31,7 +31,8 @@ export function PublicacaoForm({ edicaoId, nome, periodo, publicada, preco }: Pr
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
-  const impedimento = publicada ? null : erroDePublicacao({ preco });
+  // A action recusa do mesmo jeito; aqui o botão nem aparece, e a frase diz onde resolver.
+  const semPreco = !publicada && erroDePublicacao({ preco }) !== null;
 
   const texto = publicada
     ? {
@@ -73,8 +74,8 @@ export function PublicacaoForm({ edicaoId, nome, periodo, publicada, preco }: Pr
     <div className="mt-3 flex flex-col gap-3">
       <p className="text-[14px] text-ink-2">{texto.estado}</p>
 
-      {impedimento ? (
-        <p className="text-[14px] font-medium text-terracotta">{impedimento} (em Dados, abaixo)</p>
+      {semPreco ? (
+        <p className="text-[14px] font-medium text-terracotta">Para publicar, preencha o preço do combo em Dados.</p>
       ) : (
         <Dialog.Root open={aberto} onOpenChange={abrirOuFechar}>
           <Dialog.Trigger className={`${publicada ? botaoNeutroClass : botaoCtaClass} self-start`}>

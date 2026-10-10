@@ -79,12 +79,6 @@ export default async function AdminEdicao({ params, searchParams }: Props) {
             preco={edicao.preco}
           />
         </section>
-        <section aria-labelledby="secao-participantes" className="rounded-xl border border-card-line bg-white px-5 py-4">
-          <h2 id="secao-participantes" className={TITULO_SECAO}>
-            Participantes
-          </h2>
-          <ParticipantesEdicao edicaoId={edicao.id} participacoes={edicao.participacoes} cafes={cafes} />
-        </section>
         {/* Recolhido até ser pedido, como os Dados do café. */}
         <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
           <summary className="-mx-5 -my-4 grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-x-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
@@ -102,6 +96,12 @@ export default async function AdminEdicao({ params, searchParams }: Props) {
           </p>
           <EdicaoForm edicao={edicao} salvar={salvarEdicao.bind(null, edicao.id)} />
         </details>
+        <section aria-labelledby="secao-participantes" className="rounded-xl border border-card-line bg-white px-5 py-4">
+          <h2 id="secao-participantes" className={TITULO_SECAO}>
+            Participantes
+          </h2>
+          <ParticipantesEdicao edicaoId={edicao.id} participacoes={edicao.participacoes} cafes={cafes} />
+        </section>
       </div>
     </>
   );

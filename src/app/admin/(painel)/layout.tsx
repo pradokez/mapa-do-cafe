@@ -25,7 +25,7 @@ export default async function PainelLayout({ children }: { children: React.React
         </p>
       )}
       <header className="flex h-[72px] items-center justify-between gap-4 border-b border-line px-4 sm:px-7">
-        <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
           <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex shrink-0 items-end gap-5">
             <Logo />
             <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 lg:inline">

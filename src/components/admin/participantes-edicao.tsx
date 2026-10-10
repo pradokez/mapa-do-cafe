@@ -4,6 +4,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useRef, useState } from "react";
 
+import { ChevronDownIcon } from "@/components/icons";
 import { adicionarParticipante, removerParticipante, salvarParticipante } from "@/lib/admin/festivais-actions";
 import { compararPorNome, type Cafe } from "@/lib/cafe";
 import { ordenarPorNumero, type Participacao } from "@/lib/festival";
@@ -251,22 +252,27 @@ function ParticipanteItem({
   return (
     <li>
       <details className="group rounded-xl border border-card-line bg-white">
-        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-3 [&::-webkit-details-marker]:hidden">
-          <span className="w-12 shrink-0 text-[13.5px] font-semibold tabular-nums text-ink-3">
+        {/* Grade: no celular, as etiquetas descem para uma segunda linha e o nome nunca encolhe a zero. */}
+        <summary className="grid cursor-pointer list-none grid-cols-[3rem_1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-3 sm:grid-cols-[3rem_1fr_auto_auto] [&::-webkit-details-marker]:hidden">
+          <span className="text-[13.5px] font-semibold tabular-nums text-ink-3">
             {participacao.numero === null ? "—" : `Nº ${participacao.numero}`}
           </span>
-          <span className="min-w-0 flex-1">
+          <span className="min-w-0">
             <span className="block truncate text-[15px] font-semibold text-espresso">{cafe?.nome ?? "Café removido"}</span>
             {participacao.nome_combo && (
               <span className="block truncate text-[13px] text-ink-3">{participacao.nome_combo}</span>
             )}
           </span>
-          <span className="flex flex-wrap gap-1.5">
+          <span className="col-start-2 row-start-2 flex flex-wrap gap-1.5 empty:hidden sm:col-start-3 sm:row-start-1">
             {participacao.numero === null && <span className={etiquetaPendente}>Sem número</span>}
             {!temArte && <span className={etiquetaPendente}>Sem arte</span>}
             {cafe && !cafe.ativo && <span className={etiquetaNeutra}>Fora do ar</span>}
           </span>
-          <span className="sr-only">Editar</span>
+          <ChevronDownIcon
+            size={18}
+            strokeWidth={2}
+            className="col-start-3 row-start-1 text-ink-2 transition-transform group-open:rotate-180 sm:col-start-4"
+          />
         </summary>
 
         <form ref={form} onSubmit={enviar} noValidate className="flex flex-col gap-4 border-t border-line px-4 pb-4 pt-4">

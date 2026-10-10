@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
+import { urlPublicaDaArte, type Edicao, type Participacao } from "./festival";
 import type { Autorizacao } from "./foto-upload";
 import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
@@ -209,4 +210,89 @@ export async function contarSugestoes(): Promise<ContagemDeSugestoes> {
     }),
   );
   return Object.fromEntries(contagens) as ContagemDeSugestoes;
+}
+
+/** Tag do cache das edições públicas — o admin a invalida (`revalidarCafe`). */
+export const FESTIVAIS_TAG = "festivais";
+
+const SELECT_EDICAO = `id, ano, inicio, fim, descricao, preco, publicada,
+  festival:festivais!inner(slug, nome),
+  participacoes:festival_participacoes(id, cafe_id, numero, nome_combo, alt, instagram_url, arte_path)`;
+
+type LinhaEdicao = Omit<Edicao, "participacoes"> & {
+  participacoes: (Omit<Participacao, "arte"> & { arte_path: string | null })[];
+};
+
+/** `arte_path` guarda o caminho no bucket; quem lê a edição recebe a URL pública. */
+function comArtesPublicas({ participacoes, ...edicao }: LinhaEdicao): Edicao {
+  const url = supabaseEnv().url;
+  return {
+    ...edicao,
+    participacoes: participacoes.map(({ arte_path, ...p }) => ({
+      ...p,
+      arte: arte_path && urlPublicaDaArte(arte_path, url),
+    })),
+  };
+}
+
+/**
+ * Edições publicadas dos festivais, com os participantes (só cafés no ar — a
+ * RLS decide) e as artes em URL pública. Encerradas e futuras vêm junto:
+ * "ativa hoje" é decidido no render (`edicoesAtivas`), fora do cache, para o
+ * cache nunca atravessar a virada do dia. Mesmo esquema de cache de
+ * `listCafesAtivos`, com tag própria.
+ */
+export const listFestivais = unstable_cache(
+  fetchFestivais,
+  ["festivais", process.env.VERCEL_GIT_COMMIT_SHA ?? "local"],
+  { revalidate: 3600, tags: [FESTIVAIS_TAG] },
+);
+
+async function fetchFestivais(): Promise<Edicao[]> {
+  const { data, error } = await createAnonClient()
+    .from("festival_edicoes")
+    .select(SELECT_EDICAO)
+    .eq("publicada", true)
+    .order("inicio")
+    .overrideTypes<LinhaEdicao[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar os festivais: ${error.message}`);
+  }
+  return data.map(comArtesPublicas);
+}
+
+/**
+ * Admin: todas as edições, publicadas ou não, as mais novas primeiro, com
+ * todos os participantes (inclusive cafés fora do ar). Sem cache, com a sessão
+ * do cookie — a RLS decide; sem sessão de admin, só voltariam as publicadas.
+ */
+export async function listEdicoes(): Promise<Edicao[]> {
+  const { data, error } = await createSessionClient()
+    .from("festival_edicoes")
+    .select(SELECT_EDICAO)
+    .order("inicio", { ascending: false })
+    .overrideTypes<LinhaEdicao[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar as edições do admin: ${error.message}`);
+  }
+  return data.map(comArtesPublicas);
+}
+
+/** Admin: edição pelo id, publicada ou não; `null` se não existe (→ 404). */
+export async function getEdicaoById(id: string): Promise<Edicao | null> {
+  if (!isUuid(id)) return null;
+
+  const { data, error } = await createSessionClient()
+    .from("festival_edicoes")
+    .select(SELECT_EDICAO)
+    .eq("id", id)
+    .maybeSingle()
+    .overrideTypes<LinhaEdicao, { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao buscar a edição ${id}: ${error.message}`);
+  }
+  return data && comArtesPublicas(data);
 }

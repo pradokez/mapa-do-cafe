@@ -28,7 +28,7 @@ const config: Config = {
         "map-bg": "#1E1B19",
         "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
         "map-pin": "#F1E6D8",
-        "map-voce": "#7FB077",
+        "map-voce": "#4C8DF6",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

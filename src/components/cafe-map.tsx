@@ -84,7 +84,7 @@ const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="tr
 <path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>
 </g></svg>`;
 
-// Ponto de quem usa: verde da paleta (não lembra pin nem pin ativo), borda `cream`.
+// Ponto de quem usa: o azul de posição dos apps de mapa (não lembra pin nem pin ativo), borda `cream`.
 // Abaixo dos pins (o `z-[1]` deles vence a ordem no DOM) e sem receber clique.
 const VOCE_HTML = `<span class="absolute inset-0 rounded-full bg-map-voce/20 motion-safe:animate-ping"></span>
 <span class="relative block size-4 rounded-full border-[3px] border-cream bg-map-voce shadow-[0_1px_4px_rgba(0,0,0,.5)]"></span>`;

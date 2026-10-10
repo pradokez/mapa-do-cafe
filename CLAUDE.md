@@ -258,7 +258,7 @@ Duas linhas alinhadas à direita, formando uma unidade:
 | `aviso-bg` / `aviso-line` / `aviso-fg` | `#FBEFE8` / `#EBC9B8` / `#7A3216` | Caixa de limite de envios (e de falha) nas sugestões — texto 8,1:1 |
 | `open` | `#3F6B3A` | "Aberto hoje" |
 | `map-bg` | `#1E1B19` | Fundo do mapa |
-| `map-voce` | `#7FB077` | Ponto "Você está aqui" no mapa da home — ~6,8:1 sobre o `map-bg`; verde do "aberto" clareado, para não lembrar pin nem pin ativo |
+| `map-voce` | `#4C8DF6` | Ponto "Você está aqui" no mapa da home — ~5,2:1 sobre o `map-bg`; o azul de posição dos apps de mapa, que lê como "você" sem legenda e não lembra pin nem pin ativo. Único azul da paleta: não usar em outro lugar |
 
 Pins — inativo: preenchimento `#F1E6D8`, contorno e xícara `espresso`. Ativo: preenchimento `terracotta`, contorno e xícara `on-terracotta`, escala 1,3, `z-index` acima dos demais.
 

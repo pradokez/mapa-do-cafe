@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { CAFE_COLUMNS, type Cafe } from "../src/lib/cafe";
-import { dentroDaRegiao, validarHorarioDia } from "../src/lib/cafe-dados";
+import { CIDADES, dentroDaRegiao, FAIXAS, slugify, validarHorarioDia } from "../src/lib/cafe-dados";
 import { distanciaKm } from "../src/lib/cafe-distance";
 import { buildSeedSql } from "./build-seed";
 
@@ -22,19 +22,29 @@ describe("seed do Supabase", () => {
     );
   });
 
-  it("carrega os 56 cafés: 54 ativos, 5 em Olinda, 2 em Jaboatão, ids e slugs únicos", () => {
+  // O JSON é um retrato da produção (`pnpm seed:pull`): as regras valem para
+  // qualquer quantidade de cafés, sem contagem fixa que quebre a cada café novo.
+  it("ids e slugs são únicos, e há pelo menos um café no ar (um pull quebrado não passa)", () => {
     const todos = cafes();
 
-    expect(todos).toHaveLength(56);
-    expect(new Set(todos.map((c) => c.id)).size).toBe(56);
-    expect(new Set(todos.map((c) => c.slug)).size).toBe(56);
-    expect(todos.filter((c) => c.ativo)).toHaveLength(54);
-    expect(todos.filter((c) => !c.ativo).map((c) => c.slug).sort()).toEqual([
-      "castigliani",
-      "versado-derby",
-    ]);
-    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(5);
-    expect(todos.filter((c) => c.cidade === "Jaboatão dos Guararapes")).toHaveLength(2);
+    expect(new Set(todos.map((c) => c.id)).size).toBe(todos.length);
+    expect(new Set(todos.map((c) => c.slug)).size).toBe(todos.length);
+    expect(todos.some((c) => c.ativo)).toBe(true);
+  });
+
+  it("cidade e faixa de preço só têm os valores que o banco aceita", () => {
+    for (const cafe of cafes()) {
+      expect(CIDADES, cafe.slug).toContain(cafe.cidade);
+      expect(FAIXAS, cafe.slug).toContain(cafe.faixa_preco);
+    }
+  });
+
+  it("bairro_slug sai do bairro, pela mesma regra do admin (senão o filtro ganha bairro duplicado)", () => {
+    for (const cafe of cafes()) expect(cafe.bairro_slug, cafe.slug).toBe(slugify(cafe.bairro));
+  });
+
+  it("fotos ficam vazias no retrato: o arquivo só existe no bucket da produção", () => {
+    expect(cafes().filter((c) => c.fotos.length > 0).map((c) => c.slug)).toEqual([]);
   });
 
   it("todo café tem coordenadas dentro da região de Recife, Olinda e Jaboatão", () => {
@@ -80,6 +90,13 @@ describe("seed do Supabase", () => {
     for (const cafe of cafes) {
       expect(Object.keys(cafe).sort(), String(cafe.slug)).toEqual(colunas);
     }
+  });
+
+  it("reaplicar o seed nunca altera café existente: só insere os que faltam (a produção é a fonte da verdade)", () => {
+    const sql = buildSeedSql("[]");
+
+    expect(sql).toContain("on conflict (id) do nothing");
+    expect(sql).not.toMatch(/do update/i);
   });
 
   it("recusa JSON que fecharia o literal do SQL antes da hora", () => {

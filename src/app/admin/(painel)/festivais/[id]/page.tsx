@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EdicaoForm } from "@/components/admin/edicao-form";
 import { ParticipantesEdicao } from "@/components/admin/participantes-edicao";
 import { PublicacaoForm } from "@/components/admin/publicacao-form";
+import { LinkNoSite } from "@/components/admin/status-cafe";
 import { StatusEdicao } from "@/components/admin/status-edicao";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { ChevronDownIcon } from "@/components/icons";
@@ -47,15 +48,7 @@ export default async function AdminEdicao({ params, searchParams }: Props) {
           <StatusEdicao {...status} />
           {/* Futura, a página ainda dá 404 no site; publicada e no ar ou encerrada, abre. */}
           {edicao.publicada && status.status !== "futura" && (
-            <a
-              href={urlDaEdicao(edicao)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="whitespace-nowrap text-[13.5px] font-semibold text-terracotta underline-offset-2 hover:underline"
-            >
-              Ver no site <span aria-hidden="true">↗</span>
-              <span className="sr-only"> (abre em nova aba)</span>
-            </a>
+            <LinkNoSite href={urlDaEdicao(edicao)} />
           )}
         </div>
       </header>

@@ -10,17 +10,11 @@ export function StatusCafe({ ativo }: { ativo: boolean }) {
   );
 }
 
-/**
- * Link para o café no site público — só para café ativo (o inativo dá 404 lá).
- * Nova aba, sem `opener` nem `referrer` saindo do admin.
- */
-export function VerNoSite({ slug, ativo }: { slug: string; ativo: boolean }) {
-  if (!ativo) {
-    return <span className="whitespace-nowrap text-[13px] text-ink-3">não aparece no site</span>;
-  }
+/** Link para uma página do site público, em nova aba, sem `opener` nem `referrer` saindo do admin. */
+export function LinkNoSite({ href }: { href: string }) {
   return (
     <a
-      href={`/cafes/${slug}`}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="whitespace-nowrap text-[13.5px] font-semibold text-terracotta underline-offset-2 hover:underline"
@@ -29,4 +23,12 @@ export function VerNoSite({ slug, ativo }: { slug: string; ativo: boolean }) {
       <span className="sr-only"> (abre em nova aba)</span>
     </a>
   );
+}
+
+/** Link para o café no site público — só para café ativo (o inativo dá 404 lá). */
+export function VerNoSite({ slug, ativo }: { slug: string; ativo: boolean }) {
+  if (!ativo) {
+    return <span className="whitespace-nowrap text-[13px] text-ink-3">não aparece no site</span>;
+  }
+  return <LinkNoSite href={`/cafes/${slug}`} />;
 }

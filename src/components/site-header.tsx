@@ -7,13 +7,15 @@ type Props = {
   children?: React.ReactNode;
   /** Ações do header mobile, à direita do logo (o botão de filtros, na home). Somem a partir de `lg`. */
   actions?: React.ReactNode;
+  /** Coluna da direita no desktop (o "Me paga um café?", na home). Some abaixo de `lg`. */
+  extra?: React.ReactNode;
 };
 
 /**
  * Desktop: grid 1fr / auto / 1fr de 72 px. Na home, abaixo de `lg`, vira o
  * header mobile do design — logo e ações numa linha, a busca embaixo.
  */
-export function SiteHeader({ children, actions }: Props) {
+export function SiteHeader({ children, actions, extra }: Props) {
   const logo = (
     <Link href="/" aria-label="Mapa do Café (Recife!) — início" className="justify-self-start">
       <Logo />
@@ -31,8 +33,9 @@ export function SiteHeader({ children, actions }: Props) {
   return (
     <header className="grid flex-none grid-cols-[1fr_auto] items-center gap-3 px-[18px] pb-2.5 pt-[22px] lg:h-[72px] lg:grid-cols-[1fr_auto_1fr] lg:gap-0 lg:border-b lg:border-line lg:px-7 lg:py-0">
       {logo}
-      {actions && <div className="justify-self-end lg:hidden">{actions}</div>}
+      {actions && <div className="flex items-center gap-2 justify-self-end lg:hidden">{actions}</div>}
       {children && <div className="col-span-2 lg:col-span-1">{children}</div>}
+      {extra && <div className="hidden items-center justify-self-end lg:flex">{extra}</div>}
     </header>
   );
 }

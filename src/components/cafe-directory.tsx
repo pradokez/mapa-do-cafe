@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { ApoioPix } from "@/components/apoio-pix";
 import { CafeList, type Hovered } from "@/components/cafe-list";
 import { FestivalVitrine } from "@/components/festival-vitrine";
 import { FilterBar } from "@/components/filter-bar";
@@ -18,6 +19,7 @@ import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
 import { combosDaEdicao, type Edicao, type FestivaisNoAr } from "@/lib/festival";
 import { pontosParaEnquadrar } from "@/lib/map-enquadramento";
+import type { ConfigDoPix } from "@/lib/pix";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
@@ -26,16 +28,20 @@ import { pontosParaEnquadrar } from "@/lib/map-enquadramento";
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
  * sempre abre na lista. Tudo no cliente, sem round-trip. As vitrines dos
  * festivais no ar (#106) ficam no topo da lista só sem filtro nem busca.
+ * Com o Pix configurado, o "Me paga um café?" (#121) entra no header.
  */
 export function CafeDirectory({
   cafes,
   festivais,
   vitrines,
+  pix = null,
 }: {
   cafes: Cafe[];
   festivais: FestivaisNoAr;
   /** Edições com vitrine hoje (`edicoesEmVitrine`) e o instante em que o servidor decidiu. */
   vitrines: { edicoes: Edicao[]; agora: Date };
+  /** `configDoPix` das envs; sem ela, o botão de apoio não aparece. */
+  pix?: ConfigDoPix | null;
 }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
@@ -83,7 +89,15 @@ export function CafeDirectory({
 
   return (
     <>
-      <SiteHeader actions={<FiltrosSheet cafes={cafes} festivais={festivais} filters={filters} onAplicar={aplicar} />}>
+      <SiteHeader
+        actions={
+          <>
+            {pix && <ApoioPix config={pix} variante="mobile" />}
+            <FiltrosSheet cafes={cafes} festivais={festivais} filters={filters} onAplicar={aplicar} />
+          </>
+        }
+        extra={pix && <ApoioPix config={pix} variante="desktop" />}
+      >
         <SearchField value={filters.q} onSearch={buscar} />
       </SiteHeader>
       <main className="flex min-h-0 flex-1 flex-col">

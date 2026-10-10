@@ -21,10 +21,10 @@ type Props = {
 
 /**
  * Botão de filtros do header mobile (com badge) + bottom sheet em seções:
- * selos (dos festivais no ar) e comodidades em chips (como no design v2), faixa de preço em linhas
- * (o chip "$" sozinho perderia o nome). Desvio consciente do design, em que o
- * botão abria o mesmo sheet do bairro: o bairro fica no próprio chip
- * (`BairroSheet`).
+ * selos (dos festivais no ar) e comodidades em chips (como no design v2),
+ * faixa de preço em linhas (o chip "$" sozinho perderia o nome). Desvio
+ * consciente do design, em que o botão abria o mesmo sheet do bairro: o
+ * bairro fica no próprio chip (`BairroSheet`).
  */
 export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
   const ativos = contarFiltrosAtivos(filters);

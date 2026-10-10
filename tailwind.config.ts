@@ -29,6 +29,10 @@ const config: Config = {
         "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
         "map-pin": "#F1E6D8",
         "map-voce": "#4C8DF6",
+        // Ponto da pílula do festival (#103), sobre `espresso`. Decorativo: o texto ao lado diz o festival.
+        "festival-ponto": "#E58A5F",
+        // Fundo da arte ampliada (#103): opaco no mobile, translúcido no desktop (design 4a/4c).
+        lightbox: "#120B06",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

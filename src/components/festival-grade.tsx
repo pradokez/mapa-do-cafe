@@ -1,10 +1,10 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
-import { FestivalArteAmpliada } from "@/components/festival-arte-ampliada";
+import { FestivalArteAmpliada, useBotoesDosCombos } from "@/components/festival-arte-ampliada";
 import {
   bairroDoParam,
   bairrosDosCombos,
@@ -38,9 +38,9 @@ export function FestivalGrade({ combos, festival, ano, encerrada }: Props) {
   const bairros = useMemo(() => bairrosDosCombos(combos), [combos]);
   const bairro = bairroDoParam(searchParams.get("bairro"), bairros);
   const visiveis = bairro ? combos.filter(({ cafe }) => cafe.bairro_slug === bairro) : combos;
+  const botoes = useBotoesDosCombos(visiveis);
 
   const [aberto, setAberto] = useState<number | null>(null);
-  const cards = useRef(new Map<string, HTMLButtonElement>());
 
   const hrefDo = (slug: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -90,10 +90,7 @@ export function FestivalGrade({ combos, festival, ano, encerrada }: Props) {
           <li key={combo.participacao.id}>
             <button
               type="button"
-              ref={(el) => {
-                if (el) cards.current.set(combo.participacao.id, el);
-                else cards.current.delete(combo.participacao.id);
-              }}
+              ref={botoes.ref(combo)}
               onClick={() => setAberto(k)}
               className="flex w-full flex-col gap-2 rounded-xl text-left text-espresso transition-opacity hover:opacity-90 lg:cursor-zoom-in lg:gap-2.5"
             >
@@ -117,7 +114,7 @@ export function FestivalGrade({ combos, festival, ano, encerrada }: Props) {
         combos={visiveis}
         indice={aberto}
         onIndice={setAberto}
-        onFechado={(k) => cards.current.get(visiveis[k]?.participacao.id ?? "")?.focus()}
+        onFechado={botoes.focar}
         festival={festival}
         ano={ano}
         encerrada={encerrada}

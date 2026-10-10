@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
-import { FestivalArteAmpliada } from "@/components/festival-arte-ampliada";
+import { FestivalArteAmpliada, useBotoesDosCombos } from "@/components/festival-arte-ampliada";
 import { fonteDaArte, resumoDaVitrine, urlDaEdicao, type Combo, type Edicao } from "@/lib/festival";
 
 /** Artes à vista ao abrir a home (150 px cada): carregam já; as outras, ao rolar. */
@@ -26,7 +26,7 @@ export function FestivalVitrine({ edicao, combos }: Props) {
   const titulo = useId();
   const { nome } = edicao.festival;
   const [aberto, setAberto] = useState<number | null>(null);
-  const cards = useRef(new Map<string, HTMLButtonElement>());
+  const botoes = useBotoesDosCombos(combos);
 
   return (
     <section
@@ -53,10 +53,7 @@ export function FestivalVitrine({ edicao, combos }: Props) {
           <li key={combo.participacao.id} className="flex-none">
             <button
               type="button"
-              ref={(el) => {
-                if (el) cards.current.set(combo.participacao.id, el);
-                else cards.current.delete(combo.participacao.id);
-              }}
+              ref={botoes.ref(combo)}
               onClick={() => setAberto(k)}
               className="flex w-[150px] flex-col gap-2 rounded-[10px] text-left transition-opacity hover:opacity-90 focus-visible:outline-cream lg:cursor-zoom-in"
             >
@@ -76,7 +73,7 @@ export function FestivalVitrine({ edicao, combos }: Props) {
         combos={combos}
         indice={aberto}
         onIndice={setAberto}
-        onFechado={(k) => cards.current.get(combos[k]?.participacao.id ?? "")?.focus()}
+        onFechado={botoes.focar}
         festival={nome}
         ano={edicao.ano}
         encerrada={false}

@@ -7,7 +7,8 @@
  * decisão acontece no render, nunca dentro de um cache.
  */
 
-import { urlPublicaNoBucket } from "./cafe-photos";
+import { compararPorNome, type Cafe } from "./cafe";
+import { resolveCafePhotos, urlPublicaNoBucket, type PhotoSource } from "./cafe-photos";
 import { hojeEmRecife } from "./foto-upload";
 
 export type FestivalSlug = "recife-coffee" | "eu-amo-cafe";
@@ -119,16 +120,19 @@ function partes(data: string): { dia: number; mes: string; ano: string } {
 
 /**
  * Faixa de status: "Acontecendo agora · termina em 10 dias" / "· termina
- * amanhã" / "· último dia", "Edição encerrada", ou "Começa em 18 out".
+ * amanhã" / "· último dia", "Edição encerrada", e antes do início (a edição
+ * publicada já está no ar, decisão de 10/10/2026) "Em breve · começa em 5
+ * dias" / "· começa amanhã".
  */
 export function rotuloDeStatus(edicao: Periodo, agora: Date): string {
   const estado = estadoDaEdicao(edicao, agora);
   if (estado === "encerrada") return "Edição encerrada";
+  const hoje = hojeEmRecife(agora);
   if (estado === "futura") {
-    const { dia, mes } = partes(edicao.inicio);
-    return `Começa em ${dia} ${mes}`;
+    const faltam = diasEntre(hoje, edicao.inicio);
+    return `Em breve · ${faltam === 1 ? "começa amanhã" : `começa em ${faltam} dias`}`;
   }
-  const faltam = diasEntre(hojeEmRecife(agora), edicao.fim);
+  const faltam = diasEntre(hoje, edicao.fim);
   const quando = faltam === 0 ? "último dia" : faltam === 1 ? "termina amanhã" : `termina em ${faltam} dias`;
   return `Acontecendo agora · ${quando}`;
 }
@@ -137,6 +141,12 @@ export function rotuloDeStatus(edicao: Periodo, agora: Date): string {
 export function ateODia(edicao: Pick<Edicao, "fim">): string {
   const { dia, mes } = partes(edicao.fim);
   return `até ${dia} ${mes}`;
+}
+
+/** "começa em 18 out": o primeiro dia, sem ano (a etiqueta da edição futura no admin). */
+export function comecaEm(edicao: Pick<Edicao, "inicio">): string {
+  const { dia, mes } = partes(edicao.inicio);
+  return `começa em ${dia} ${mes}`;
 }
 
 /** "18 out a 15 nov 2026", "3 a 28 mai 2026", "28 dez 2026 a 5 jan 2027", "18 out 2026". */
@@ -178,4 +188,89 @@ export const BUCKET_ARTES = "festival-artes";
 /** Caminho no bucket (`{edicao_id}/{uuid}.webp`) → URL pública. O banco não sabe o endereço do projeto. */
 export function urlPublicaDaArte(caminho: string, supabaseUrl: string): string {
   return urlPublicaNoBucket(supabaseUrl, BUCKET_ARTES, caminho);
+}
+
+/**
+ * A edição tem página (e entra no sitemap): publicada e com pelo menos um
+ * participante — sem nenhum, a página seria uma faixa sobre uma grade vazia.
+ */
+export function edicaoTemPagina(edicao: Pick<Edicao, "publicada" | "participacoes">): boolean {
+  return edicao.publicada && edicao.participacoes.length > 0;
+}
+
+/**
+ * A edição da página `/festivais/{festival}/{ano}`, com o estado de hoje, ou
+ * `null` (→ 404) se ela não tem página (`edicaoTemPagina`). Com página, abre
+ * em qualquer estado: futura (já está no ar, decisão de 10/10/2026), ativa ou
+ * encerrada. `noAr` é a edição do mesmo festival no ar hoje, também com
+ * página, para o "Ver edição {ano}" da encerrada.
+ */
+export function edicaoDaPagina<E extends Edicao>(
+  edicoes: readonly E[],
+  festival: string,
+  ano: string,
+  agora: Date,
+): { edicao: E; estado: EstadoEdicao; noAr: E | null } | null {
+  const doFestival = edicoes.filter((e) => edicaoTemPagina(e) && e.festival.slug === festival);
+  const edicao = doFestival.find((e) => String(e.ano) === ano);
+  if (!edicao) return null;
+  const [noAr = null] = edicoesNoAr(doFestival, agora);
+  return { edicao, estado: estadoDaEdicao(edicao, agora), noAr };
+}
+
+/** Um combo da página: a participação e o café dela. */
+export interface Combo {
+  participacao: Participacao;
+  cafe: Cafe;
+}
+
+/**
+ * Os combos da edição na ordem da divulgação (`ordenarPorNumero`). A RLS já
+ * tira os cafés fora do ar; a participação sem café na lista também sai.
+ */
+export function combosDaEdicao(edicao: Pick<Edicao, "participacoes">, cafes: readonly Cafe[]): Combo[] {
+  const porId = new Map(cafes.map((cafe) => [cafe.id, cafe]));
+  return ordenarPorNumero(edicao.participacoes).flatMap((participacao) => {
+    const cafe = porId.get(participacao.cafe_id);
+    return cafe ? [{ participacao, cafe }] : [];
+  });
+}
+
+export interface BairroDoFestival {
+  slug: string;
+  nome: string;
+}
+
+/** Opções do filtro da página: os bairros dos participantes, sem repetir, em ordem alfabética. */
+export function bairrosDosCombos(combos: readonly Combo[]): BairroDoFestival[] {
+  const porSlug = new Map(combos.map(({ cafe }) => [cafe.bairro_slug, cafe.bairro]));
+  return Array.from(porSlug, ([slug, nome]) => ({ slug, nome }))
+    .sort((a, b) => compararPorNome(a, b));
+}
+
+/** `?bairro=` da página (escolha única): só um bairro dos participantes; o resto é ignorado. */
+export function bairroDoParam(
+  param: string | null | undefined,
+  bairros: readonly BairroDoFestival[],
+): string | null {
+  return param && bairros.some(({ slug }) => slug === param) ? param : null;
+}
+
+/** Contador da grade: "1 combo" / "N combos". */
+export function rotuloDeCombos(n: number): string {
+  return n === 1 ? "1 combo" : `${n} combos`;
+}
+
+/** Faixa da página: "1 café participante" / "N cafés participantes". */
+export function rotuloDeParticipantes(n: number): string {
+  return n === 1 ? "1 café participante" : `${n} cafés participantes`;
+}
+
+/**
+ * A imagem de um combo: a arte, ou, enquanto ela não chega (o café participa
+ * sem arte), o placeholder listrado do café — o mesmo do card dele.
+ */
+export function fonteDaArte({ participacao, cafe }: Combo): PhotoSource {
+  if (participacao.arte) return { kind: "url", src: participacao.arte };
+  return resolveCafePhotos({ id: cafe.id, fotos: [] })[0];
 }

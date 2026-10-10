@@ -7,7 +7,7 @@
 import type { Cafe } from "./cafe";
 import { HOSTS_INSTAGRAM, lerUrl, textoAparado, type Normalizado } from "./cafe-dados";
 import { filtrarCafes, FILTROS_VAZIOS } from "./cafe-filter";
-import { estadoDaEdicao, rotuloDeStatus, type Edicao, type EstadoEdicao, type Participacao } from "./festival";
+import { comecaEm, estadoDaEdicao, type Edicao, type EstadoEdicao, type Participacao } from "./festival";
 
 const objeto = (entrada: unknown): Record<string, unknown> =>
   entrada && typeof entrada === "object" ? (entrada as Record<string, unknown>) : {};
@@ -171,8 +171,7 @@ export function statusNoAdmin(
   const status = estadoDaEdicao(edicao, agora);
   if (status === "ativa") return { status, rotulo: "No ar" };
   if (status === "encerrada") return { status, rotulo: "Encerrada" };
-  const comeca = rotuloDeStatus(edicao, agora);
-  return { status, rotulo: `No ar · ${comeca[0].toLowerCase()}${comeca.slice(1)}` };
+  return { status, rotulo: `No ar · ${comecaEm(edicao)}` };
 }
 
 /** Por que a edição não pode ir ao ar, ou `null` (o banco também exige o preço). */

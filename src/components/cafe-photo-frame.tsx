@@ -13,6 +13,8 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   /** Texto alternativo da foto real; vazio quando o texto em volta já diz qual é o café. */
   alt?: string;
   carregamento?: Carregamento;
+  /** `cover` (padrão) preenche a moldura; `contain` mostra a imagem inteira (a arte do combo ampliada). */
+  encaixe?: "cover" | "contain";
 };
 
 /**
@@ -25,6 +27,7 @@ export function CafePhotoFrame({
   photo,
   alt = "",
   carregamento = "lazy",
+  encaixe = "cover",
   className = "",
   style,
   children,
@@ -43,7 +46,7 @@ export function CafePhotoFrame({
           fill
           priority={carregamento === "priority"}
           loading={carregamento === "priority" ? undefined : carregamento}
-          className="object-cover"
+          className={encaixe === "contain" ? "object-contain" : "object-cover"}
         />
       )}
       {children}

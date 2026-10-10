@@ -5,6 +5,7 @@ import { atributosDo, selosDo } from "@/components/cafe-atributos";
 import { CafeCarousel } from "@/components/cafe-carousel";
 import { CafeDetailAside } from "@/components/cafe-detail-aside";
 import { CafeHoursPanel } from "@/components/cafe-hours-panel";
+import { ComboDoFestival } from "@/components/combo-do-festival";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
 import { InfoIcon, MapPinIcon, StarIcon } from "@/components/icons";
 import {
@@ -22,6 +23,7 @@ import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
 import { resumoHorario } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
+import { listFestivais } from "@/lib/cafe-repository";
 import {
   descricaoCafe,
   imagemCompartilhamento,
@@ -29,6 +31,7 @@ import {
   OPEN_GRAPH_BASE,
   tituloCafe,
 } from "@/lib/cafe-seo";
+import { combosDoCafe } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
 import { siteUrl } from "@/lib/site-url.mjs";
 
@@ -59,10 +62,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const HERO_SLOTS = 4;
 
 export default async function CafePage({ params }: Props) {
-  const cafe = await getCafe(params.slug);
+  const [cafe, edicoes] = await Promise.all([getCafe(params.slug), listFestivais()]);
   if (!cafe) notFound(); // o layout já barrou; aqui só estreita o tipo
 
-  const horario = resumoHorario(cafe.horario_funcionamento, new Date());
+  const agora = new Date();
+  const horario = resumoHorario(cafe.horario_funcionamento, agora);
+  // "Ativa hoje" decidido aqui, fora do cache das edições (dia de Recife).
+  const combos = combosDoCafe(edicoes, cafe.id, agora);
   const selos = selosDo(cafe);
   const jsonLd = jsonLdCafe(cafe, new URL(caminhoDoCafe(cafe), siteUrl()).href);
 
@@ -134,6 +140,10 @@ export default async function CafePage({ params }: Props) {
                 {faixaPrecoNome(cafe.faixa_preco)}
               </li>
             </ul>
+
+            {combos.map(({ edicao, participacao }) => (
+              <ComboDoFestival key={edicao.id} cafe={cafe} edicao={edicao} participacao={participacao} />
+            ))}
 
             <hr className="mb-2 mt-[30px] border-line" />
             <CafeHoursPanel resumo={horario} />

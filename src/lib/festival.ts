@@ -63,6 +63,30 @@ export function edicoesAtivas<E extends Edicao>(edicoes: readonly E[], agora: Da
   return ativas.filter((e, i) => ativas.findIndex((o) => o.festival.slug === e.festival.slug) === i);
 }
 
+/**
+ * Combos de um café nas edições no ar hoje (bloco do detalhe): um por edição
+ * ativa em que ele participa, na ordem de `edicoesAtivas`. Vazio fora da
+ * edição ou para quem não participa.
+ */
+export function combosDoCafe<E extends Edicao>(
+  edicoes: readonly E[],
+  cafeId: string,
+  agora: Date,
+): { edicao: E; participacao: E["participacoes"][number] }[] {
+  return edicoesAtivas(edicoes, agora).flatMap((edicao) => {
+    const participacao = edicao.participacoes.find((p) => p.cafe_id === cafeId);
+    return participacao ? [{ edicao, participacao }] : [];
+  });
+}
+
+/** "Combo 13"; sem número ainda, "Combo do Eu Amo Café". */
+export function tituloDoCombo(
+  edicao: Pick<Edicao, "festival">,
+  participacao: Pick<Participacao, "numero">,
+): string {
+  return participacao.numero === null ? `Combo do ${edicao.festival.nome}` : `Combo ${participacao.numero}`;
+}
+
 /** Dias inteiros de `de` até `ate` (`AAAA-MM-DD`). */
 function diasEntre(de: string, ate: string): number {
   return Math.round((Date.parse(ate) - Date.parse(de)) / 86_400_000);
@@ -89,6 +113,12 @@ export function rotuloDeStatus(edicao: Periodo, agora: Date): string {
   const faltam = diasEntre(hojeEmRecife(agora), edicao.fim);
   const quando = faltam === 0 ? "último dia" : faltam === 1 ? "termina amanhã" : `termina em ${faltam} dias`;
   return `Acontecendo agora · ${quando}`;
+}
+
+/** "até 15 nov": o último dia, sem ano (a pílula do combo só aparece com a edição no ar). */
+export function ateODia(edicao: Pick<Edicao, "fim">): string {
+  const { dia, mes } = partes(edicao.fim);
+  return `até ${dia} ${mes}`;
 }
 
 /** "18 out a 15 nov 2026", "3 a 28 mai 2026", "28 dez 2026 a 5 jan 2027", "18 out 2026". */

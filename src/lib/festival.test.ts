@@ -2,12 +2,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  ateODia,
+  combosDoCafe,
   edicoesAtivas,
   estadoDaEdicao,
   formatarPreco,
   ordenarPorNumero,
   periodoDaEdicao,
   rotuloDeStatus,
+  tituloDoCombo,
   urlDaEdicao,
   urlPublicaDaArte,
   type Edicao,
@@ -176,4 +179,64 @@ describe("URLs", () => {
 it("é puro: não importa React, Supabase nem Mapbox", () => {
   const codigo = readFileSync(new URL("./festival.ts", import.meta.url), "utf8");
   expect(codigo).not.toMatch(/from ["'](react|@supabase\/[^"']*|mapbox-gl)["']/);
+});
+
+describe("combosDoCafe", () => {
+  const participacao = (cafe_id: string, numero: number | null = 13): Participacao => ({
+    id: `p-${cafe_id}`,
+    cafe_id,
+    numero,
+    nome_combo: "Profiteroles + cappuccino",
+    alt: null,
+    instagram_url: null,
+    arte: null,
+  });
+  const comKaffe = { ...EU_AMO_CAFE, participacoes: [participacao("outro", 2), participacao("kaffe")] };
+
+  it("durante a edição, devolve o combo do café participante", () => {
+    expect(combosDoCafe([comKaffe], "kaffe", meioDia("2026-10-20"))).toEqual([
+      { edicao: comKaffe, participacao: participacao("kaffe") },
+    ]);
+  });
+
+  it("quem não participa não tem combo", () => {
+    expect(combosDoCafe([comKaffe], "versado", meioDia("2026-10-20"))).toEqual([]);
+  });
+
+  it.each(["2026-10-17", "2026-11-16"])("fora da edição (%s), nenhum combo", (dia) => {
+    expect(combosDoCafe([comKaffe], "kaffe", meioDia(dia))).toEqual([]);
+  });
+
+  it("edição não publicada nunca mostra combo", () => {
+    expect(combosDoCafe([{ ...comKaffe, publicada: false }], "kaffe", meioDia("2026-10-20"))).toEqual([]);
+  });
+
+  it("o dia é o de Recife: 15 nov às 22h ainda mostra o combo", () => {
+    expect(combosDoCafe([comKaffe], "kaffe", new Date("2026-11-16T01:00:00Z"))).toHaveLength(1);
+  });
+
+  it("com duas edições ativas, um combo por edição, a que termina primeiro antes", () => {
+    const recife = { ...RECIFE_COFFEE, participacoes: [participacao("kaffe", 4)] };
+    const combos = combosDoCafe([recife, comKaffe], "kaffe", meioDia("2026-11-05"));
+    expect(combos.map((c) => [c.edicao.festival.slug, c.participacao.numero])).toEqual([
+      ["eu-amo-cafe", 13],
+      ["recife-coffee", 4],
+    ]);
+  });
+});
+
+describe("ateODia", () => {
+  it("último dia da edição, como na pílula do combo", () => {
+    expect(ateODia(EU_AMO_CAFE)).toBe("até 15 nov");
+  });
+});
+
+describe("tituloDoCombo", () => {
+  it("com número, \"Combo 13\"", () => {
+    expect(tituloDoCombo(EU_AMO_CAFE, { numero: 13 })).toBe("Combo 13");
+  });
+
+  it("sem número, o nome do festival", () => {
+    expect(tituloDoCombo(EU_AMO_CAFE, { numero: null })).toBe("Combo do Eu Amo Café");
+  });
 });

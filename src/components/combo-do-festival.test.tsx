@@ -78,7 +78,9 @@ describe("ComboDoFestival", () => {
     const arte = screen.getByAltText(ALT);
     expect(arte.getAttribute("src")).toBe(ARTE);
     expect(arte.className).toContain("object-contain");
-    expect(screen.getByText("Arte: Eu Amo Café")).toBeTruthy();
+    const credito = screen.getByRole("link", { name: /^Eu Amo Café/ });
+    expect(credito.closest("figcaption")?.textContent).toBe("Arte: Eu Amo Café (abre em nova aba)");
+    expect(credito.getAttribute("href")).toBe("https://www.instagram.com/euamocafefestival/");
   });
 
   it("sem arte, mostra o placeholder listrado e nada para ampliar", () => {
@@ -86,7 +88,7 @@ describe("ComboDoFestival", () => {
     expect(screen.queryByRole("img")).toBeNull();
     expect(screen.queryByRole("button", { name: "Ampliar arte do combo" })).toBeNull();
     expect(screen.getByTestId("arte-placeholder").getAttribute("style")).toContain("repeating-linear-gradient");
-    expect(screen.queryByText("Arte: Eu Amo Café")).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Eu Amo Café/ })).toBeNull();
   });
 
   it("\"Ver no Instagram\" só aparece com o link do post", () => {

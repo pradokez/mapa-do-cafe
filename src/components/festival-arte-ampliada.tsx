@@ -6,9 +6,10 @@ import { useRef, type RefCallback } from "react";
 
 import { passoDoArraste } from "@/components/arraste";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
+import { InstagramDoFestival } from "@/components/instagram-do-festival";
 import { ChevronLeftIcon, ChevronRightIcon, NavigationIcon, XIcon } from "@/components/icons";
 import { caminhoDoCafe } from "@/lib/cafe";
-import { fonteDaArte, type Combo } from "@/lib/festival";
+import { fonteDaArte, type Combo, type Edicao } from "@/lib/festival";
 import { googleMapsUrl } from "@/lib/format";
 
 /**
@@ -39,7 +40,7 @@ type Props = {
   onIndice: (indice: number | null) => void;
   /** Ao fechar, para onde vai o foco: o card do combo à vista, não o que abriu. */
   onFechado: (indice: number) => void;
-  festival: string;
+  festival: Edicao["festival"];
   ano: number;
   encerrada: boolean;
 };
@@ -132,7 +133,11 @@ export function FestivalArteAmpliada({ combos, indice, onIndice, onFechado, fest
                   </p>
                 )}
                 <p className="mt-0.5 text-[11.5px] text-sobre-espresso-2 lg:mb-1 lg:mt-auto lg:text-xs lg:text-ink-3">
-                  Arte: {festival}
+                  Arte:{" "}
+                  <InstagramDoFestival
+                    festival={festival}
+                    className="max-lg:focus-visible:outline-cream lg:hover:text-espresso"
+                  />
                 </p>
                 <div className="mt-auto flex gap-2 pt-4 lg:mt-0 lg:flex-col lg:pt-0">
                   <Link

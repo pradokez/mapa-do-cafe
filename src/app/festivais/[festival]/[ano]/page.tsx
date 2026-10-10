@@ -77,7 +77,7 @@ export default async function FestivalPage({ params }: Props) {
               )}
             </div>
           )}
-          <FestivalGrade combos={combos} festival={edicao.festival.nome} ano={edicao.ano} encerrada={encerrada} />
+          <FestivalGrade combos={combos} festival={edicao.festival} ano={edicao.ano} encerrada={encerrada} />
         </div>
       </main>
     </div>

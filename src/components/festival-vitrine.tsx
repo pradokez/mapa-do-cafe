@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { FestivalArteAmpliada, useBotoesDosCombos } from "@/components/festival-arte-ampliada";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { InstagramDoFestival } from "@/components/instagram-do-festival";
 import { fonteDaArte, resumoDaVitrine, urlDaEdicao, type Combo, type Edicao } from "@/lib/festival";
 
 /** Artes à vista ao abrir a home (150 px cada): carregam já; as outras, ao rolar. */
@@ -133,13 +134,17 @@ export function FestivalVitrine({ edicao, combos, agora }: Props) {
           </li>
         ))}
       </ul>
+      <p className="text-xs text-sobre-espresso-2">
+        Artes divulgadas no Instagram do{" "}
+        <InstagramDoFestival festival={edicao.festival} className="hover:text-cream focus-visible:outline-cream" />.
+      </p>
 
       <FestivalArteAmpliada
         combos={combos}
         indice={aberto}
         onIndice={setAberto}
         onFechado={botoes.focar}
-        festival={nome}
+        festival={edicao.festival}
         ano={edicao.ano}
         encerrada={false}
       />

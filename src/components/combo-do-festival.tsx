@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArteDoCombo } from "@/components/arte-do-combo";
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronRightIcon, InstagramIcon } from "@/components/icons";
+import { InstagramDoFestival } from "@/components/instagram-do-festival";
 import type { Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import {
@@ -63,7 +64,9 @@ export function ComboDoFestival({ cafe, edicao, participacao, agora }: Props) {
         {arte && alt ? (
           <>
             <ArteDoCombo arte={arte} alt={alt} titulo={`${titulo} · ${festival}`} credito={`Arte: ${festival}`} />
-            <figcaption className="px-0.5 text-xs text-ink-3">Arte: {festival}</figcaption>
+            <figcaption className="px-0.5 text-xs text-ink-3">
+              Arte: <InstagramDoFestival festival={edicao.festival} className="hover:text-espresso" />
+            </figcaption>
           </>
         ) : (
           // Sem arte, o placeholder do café (o mesmo do card), sem crédito e sem nada para ampliar.

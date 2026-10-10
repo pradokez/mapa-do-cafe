@@ -7,7 +7,7 @@ import { unstable_cache } from "next/cache";
 import { isUuid } from "./admin-auth";
 import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
-import { urlPublicaDaArte, type Edicao, type Participacao } from "./festival";
+import { urlPublicaDaArte, type Edicao, type FestivalSlug, type Participacao } from "./festival";
 import type { Autorizacao } from "./foto-upload";
 import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
@@ -295,4 +295,20 @@ export async function getEdicaoById(id: string): Promise<Edicao | null> {
     throw new Error(`Falha ao buscar a edição ${id}: ${error.message}`);
   }
   return data && comArtesPublicas(data);
+}
+
+export type FestivalCadastrado = { id: string; slug: FestivalSlug; nome: string };
+
+/** Admin: os dois festivais (entram por migration) — o seletor do cadastro de edição e o `festival_id` do insert. */
+export async function listFestivaisCadastrados(): Promise<FestivalCadastrado[]> {
+  const { data, error } = await createSessionClient()
+    .from("festivais")
+    .select("id, slug, nome")
+    .order("nome")
+    .overrideTypes<FestivalCadastrado[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar os festivais cadastrados: ${error.message}`);
+  }
+  return data;
 }

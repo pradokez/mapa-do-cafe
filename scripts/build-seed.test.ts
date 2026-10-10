@@ -22,18 +22,18 @@ describe("seed do Supabase", () => {
     );
   });
 
-  it("carrega os 53 cafés: 51 ativos, 4 em Olinda, 2 em Jaboatão, ids e slugs únicos", () => {
+  it("carrega os 56 cafés: 54 ativos, 5 em Olinda, 2 em Jaboatão, ids e slugs únicos", () => {
     const todos = cafes();
 
-    expect(todos).toHaveLength(53);
-    expect(new Set(todos.map((c) => c.id)).size).toBe(53);
-    expect(new Set(todos.map((c) => c.slug)).size).toBe(53);
-    expect(todos.filter((c) => c.ativo)).toHaveLength(51);
+    expect(todos).toHaveLength(56);
+    expect(new Set(todos.map((c) => c.id)).size).toBe(56);
+    expect(new Set(todos.map((c) => c.slug)).size).toBe(56);
+    expect(todos.filter((c) => c.ativo)).toHaveLength(54);
     expect(todos.filter((c) => !c.ativo).map((c) => c.slug).sort()).toEqual([
       "castigliani",
       "versado-derby",
     ]);
-    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(4);
+    expect(todos.filter((c) => c.cidade === "Olinda")).toHaveLength(5);
     expect(todos.filter((c) => c.cidade === "Jaboatão dos Guararapes")).toHaveLength(2);
   });
 

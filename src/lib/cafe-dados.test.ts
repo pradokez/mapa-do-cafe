@@ -293,7 +293,7 @@ describe("validarSlug (o endereço /cafes/<slug> de um café novo)", () => {
 });
 
 describe("validarDadosCafe", () => {
-  it("os 53 cafés do seed passam sem mudar nada: as regras não recusam dado real", () => {
+  it("os 56 cafés do seed passam sem mudar nada: as regras não recusam dado real", () => {
     for (const cafe of seed) {
       expect(validarDadosCafe(dadosDe(cafe)), cafe.slug).toEqual({ ok: true, valores: dadosDe(cafe) });
     }

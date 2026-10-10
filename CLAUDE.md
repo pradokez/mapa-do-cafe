@@ -163,7 +163,7 @@ O tipo `Cafe` em `src/lib/cafe.ts` espelha esse formato. Constraints no banco: `
 
 Cafés com `ativo = false` nunca aparecem na listagem pública nem em `/cafes/[slug]` — garantido também por RLS (`select` público só com `ativo`). Só o admin lê os inativos (ver "Admin e auth").
 
-**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (53 cafés: 51 ativos, 4 em Olinda, 2 em Jaboatão — associados da ASCAPE e cafeterias de café especial que não são). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro da região (Recife, Olinda, Jaboatão), `tem_ar_condicionado` só `true`/`false`/`null`, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
+**Seed:** `supabase/seed/cafes.json` é a fonte da verdade (56 cafés: 54 ativos, 5 em Olinda, 2 em Jaboatão — associados da ASCAPE e cafeterias de café especial que não são). `supabase/seed.sql` é **gerado** por `pnpm seed:build` — nunca edite o SQL à mão; um teste falha se os dois saírem de sincronia. O mesmo teste trava a forma do seed: coordenadas dentro da região (Recife, Olinda, Jaboatão), `tem_ar_condicionado` só `true`/`false`/`null`, 7 dias de horário no formato válido e nenhum par de cafés ativos a menos de 30 m (um pin esconderia o outro).
 
 Revisão de lançamento (#14): **O Melhor Cantinho da Cidade** e **A Vida é Bela** dividem de fato o endereço R. Francisco Lacerda, 394 (Várzea) — as coordenadas estão afastadas ~44 m **de propósito**, para os pins não se sobreporem. Na #38, o JSON novo chegou com os dois a 8 m; as coordenadas da #14 foram mantidas. Também na #38, `borsoi-cafe` virou `borsoi-cafe-riomar` (mesmo `id`); `/cafes/borsoi-cafe` redireciona (308, `next.config.mjs`, a partir de `src/lib/slugs-antigos.mjs`). O `palatsi-ilha-do-leite` tem bairro "Ilha do Leite" e endereço terminando em "- Paissandu": revisado e **mantido**.
 
@@ -363,7 +363,7 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 | `cafe-hours` | Unitário puro — aberto/fechado, índice de hoje (atenção a domingo), jsonb incompleto | **Alta** |
 | `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem, ordenação (crescente, sem origem, desempate estável) | **Alta** |
 | `cafe-photos` | Unitário puro — placeholder determinístico, precedência Storage > placeholder, caminho → URL pública | **Alta** |
-| `cafe-dados` | Unitário puro — cada constraint do banco, horário (turnos, "Fechado", meia-noite, sobreposição), Instagram e telefone, opcionais vazios, coordenadas de link do Maps e hosts aceitos; os 53 cafés do seed passam sem mudança | **Alta** |
+| `cafe-dados` | Unitário puro — cada constraint do banco, horário (turnos, "Fechado", meia-noite, sobreposição), Instagram e telefone, opcionais vazios, coordenadas de link do Maps e hosts aceitos; os 56 cafés do seed passam sem mudança | **Alta** |
 | `foto-ordem` | Unitário puro — subir, descer, capa, bordas e movimento inválido, normalização de buracos e empates | **Alta** |
 | `foto-upload-erro` | Unitário puro — cada código HTTP, Storage e Postgres com frase própria, órfão, desconhecido → genérica, `sanear` sem URL nem token | **Alta** |
 | `foto-upload` | Unitário puro — tipos e limites (HEIC), dimensões, autorização (obrigatórios, data em Recife, sem futuro), caminho de outro café recusado | **Alta** |
@@ -410,7 +410,7 @@ Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, aut
 - **Pins colados pelo admin.** A regra "nenhum par de cafés ativos a menos de 30 m" só é garantida pelo teste do seed; o formulário do admin (#48) valida um café por vez e não compara com os outros. Depois de mudar coordenadas pelo admin, confira no mapa se um pin não esconde outro.
 - **Login do admin sem captcha.** As Server Actions chamam o Supabase de IPs da Vercel, então o rate limit de login por IP não separa atacante de administradora (e pode bloqueá-la por minutos). O TOTP limita o estrago de uma senha vazada; um captcha (Cloudflare Turnstile, suportado pelo Supabase Auth) fica para uma possível Fase 4, se houver necessidade.
 - **Sugestões dependem de `SUGESTOES_IP_SECRET` na Vercel** (Production e Preview). Sem ela, o envio falha fechado e ninguém consegue mandar nada. Trocar o valor só zera os limites em curso. A `enviar_sugestao` é exposta pela API do Supabase: quem tivesse a publishable key (só no servidor, nunca no bundle) poderia chamá-la direto com hashes inventados, pulando o limite — mais um motivo para a chave nunca ganhar `NEXT_PUBLIC_`.
-- O filtro **Recife Coffee** era redundante no lançamento (todos os 29 eram ASCAPE); desde a #38 ele discrimina (35 dos 51 ativos).
+- O filtro **Recife Coffee** era redundante no lançamento (todos os 29 eram ASCAPE); desde a #38 ele discrimina (35 dos 54 ativos).
 
 ## Links
 

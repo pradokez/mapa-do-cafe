@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { NavDoPainel } from "@/components/admin/nav-do-painel";
 import { Logo } from "@/components/logo";
 import { escritaDoAdmin } from "@/lib/admin-escrita";
 import { sair } from "@/lib/admin/auth-actions";
@@ -24,14 +25,17 @@ export default async function PainelLayout({ children }: { children: React.React
         </p>
       )}
       <header className="flex h-[72px] items-center justify-between gap-4 border-b border-line px-4 sm:px-7">
-        <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex items-end gap-5">
-          <Logo />
-          <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 sm:inline">
-            Admin
-          </span>
-        </Link>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
+          <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex shrink-0 items-end gap-5">
+            <Logo />
+            <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 lg:inline">
+              Admin
+            </span>
+          </Link>
+          <NavDoPainel />
+        </div>
         <div className="flex min-w-0 items-center gap-3">
-          <span className="hidden truncate text-[13.5px] text-ink-3 md:inline">{email}</span>
+          <span className="hidden truncate text-[13.5px] text-ink-3 lg:inline">{email}</span>
           <form action={sair}>
             <button
               type="submit"

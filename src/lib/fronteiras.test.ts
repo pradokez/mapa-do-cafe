@@ -90,6 +90,16 @@ describe("fronteira da escrita pública (sugestões)", () => {
   });
 });
 
+// Pix (#120): a chave vai para o HTML de qualquer jeito, mas a leitura é do
+// servidor — o padrão sem NEXT_PUBLIC_ evita levar outra env junto por engano.
+describe("fronteira do Pix", () => {
+  it("as envs do Pix não vão para o bundle e estão documentadas no .env.example", () => {
+    expect(comCodigo(/NEXT_PUBLIC_PIX/)).toEqual([]);
+    const exemplo = readFileSync(join(SRC, "..", ".env.example"), "utf8");
+    for (const env of ["PIX_CHAVE", "PIX_NOME", "PIX_CIDADE"]) expect(exemplo).toMatch(new RegExp(`^${env}=$`, "m"));
+  });
+});
+
 describe("fronteira do Mapbox", () => {
   it("só o <CafeMap /> importa mapbox-gl (regra 1): trocar de lib mexe num arquivo só", () => {
     expect(comCodigo(/["']mapbox-gl(\/[^"']*)?["']/)).toEqual(["components/cafe-map.tsx"]);

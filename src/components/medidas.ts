@@ -14,6 +14,11 @@
 export const BUSCA_MOLDURA =
   "flex h-[42px] w-full items-center gap-2.5 rounded-full border border-line-strong bg-white px-[18px] text-ink-3 shadow-[0_1px_2px_rgba(44,26,14,.05)] lg:w-[440px]";
 
+/** Botão redondo de 44 px do header mobile: filtros e "Me paga um café?". */
+export const BOTAO_HEADER_MOBILE = "size-11 rounded-full";
+/** "Me paga um café?" no desktop (#121): ícone e texto, 42 px. */
+export const APOIO_BOTAO_DESKTOP = "h-[42px] w-[176px] rounded-full";
+
 /** Faixa da barra de filtros (64 px no desktop). */
 export const BARRA_FILTROS =
   "flex flex-none items-center gap-[7px] border-b border-line px-[18px] pb-3 pt-1.5 lg:h-16 lg:gap-2 lg:px-7 lg:py-0";

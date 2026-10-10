@@ -5,10 +5,9 @@
  */
 
 import type { Cafe } from "./cafe";
+import { HOSTS_INSTAGRAM, lerUrl, textoAparado, type Normalizado } from "./cafe-dados";
 import { filtrarCafes, FILTROS_VAZIOS } from "./cafe-filter";
 import { estadoDaEdicao, rotuloDeStatus, type Edicao, type EstadoEdicao, type Participacao } from "./festival";
-
-const textoAparado = (valor: unknown) => (typeof valor === "string" ? valor.trim() : "");
 
 const objeto = (entrada: unknown): Record<string, unknown> =>
   entrada && typeof entrada === "object" ? (entrada as Record<string, unknown>) : {};
@@ -77,9 +76,6 @@ export function validarEdicao(entrada: unknown): ResultadoEdicao {
   };
 }
 
-type Normalizado<T> = { ok: true; valor: T } | { ok: false; erro: string };
-
-const HOSTS_INSTAGRAM = ["instagram.com", "www.instagram.com"];
 const CODIGO_DO_POST = /^[A-Za-z0-9_-]{1,64}$/;
 const ERRO_POST = "Cole o link do post ou do reel no Instagram.";
 
@@ -92,13 +88,8 @@ export function normalizarPostInstagram(valor: unknown): Normalizado<string | nu
   const texto = textoAparado(valor);
   if (!texto) return { ok: true, valor: null };
 
-  let url: URL;
-  try {
-    url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(texto) ? texto : `https://${texto}`);
-  } catch {
-    return { ok: false, erro: ERRO_POST };
-  }
-  if (url.protocol !== "https:" || !HOSTS_INSTAGRAM.includes(url.hostname)) return { ok: false, erro: ERRO_POST };
+  const url = lerUrl(/^[a-z][a-z0-9+.-]*:/i.test(texto) ? texto : `https://${texto}`);
+  if (url?.protocol !== "https:" || !HOSTS_INSTAGRAM.includes(url.hostname)) return { ok: false, erro: ERRO_POST };
 
   // `/p/{código}`, `/reel/{código}` ou, no link copiado do perfil, `/{usuario}/p/{código}`.
   const partes = url.pathname.split("/").filter(Boolean);

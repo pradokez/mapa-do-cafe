@@ -92,12 +92,12 @@ export function horarioDosTurnos({ fechado, turnos }: HorarioDia): string {
     .join(", ");
 }
 
-type Normalizado<T> = { ok: true; valor: T } | { ok: false; erro: string };
+export type Normalizado<T> = { ok: true; valor: T } | { ok: false; erro: string };
 
-const textoAparado = (valor: unknown) => (typeof valor === "string" ? valor.trim() : "");
+export const textoAparado = (valor: unknown) => (typeof valor === "string" ? valor.trim() : "");
 
 const USUARIO_INSTAGRAM = /^[A-Za-z0-9._]{1,30}$/;
-const HOSTS_INSTAGRAM = ["instagram.com", "www.instagram.com"];
+export const HOSTS_INSTAGRAM = ["instagram.com", "www.instagram.com"];
 
 /**
  * `@usuario`, `usuario` ou o link do perfil → `https://instagram.com/usuario`;
@@ -184,7 +184,7 @@ export function coordenadasDaUrl(url: string): Coordenadas | null {
   return lat === undefined ? null : { lat: Number(lat), lng: Number(lng) };
 }
 
-function lerUrl(texto: string): URL | null {
+export function lerUrl(texto: string): URL | null {
   try {
     return new URL(texto);
   } catch {

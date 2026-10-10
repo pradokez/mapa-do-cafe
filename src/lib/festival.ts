@@ -239,7 +239,7 @@ export function bairroDoParam(
   param: string | null | undefined,
   bairros: readonly BairroDoFestival[],
 ): string | null {
-  return bairros.some(({ slug }) => slug === param) ? (param as string) : null;
+  return param && bairros.some(({ slug }) => slug === param) ? param : null;
 }
 
 /** Contador da grade: "1 combo" / "N combos". */

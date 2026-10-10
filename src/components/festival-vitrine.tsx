@@ -123,7 +123,7 @@ export function FestivalVitrine({ edicao, combos, agora }: Props) {
               className="flex w-[150px] flex-col gap-2 rounded-[10px] text-left transition-opacity hover:opacity-90 focus-visible:outline-cream lg:cursor-zoom-in"
             >
               <CafePhotoFrame
-                photo={fonteDaArte(combo)}
+                photo={fonteDaArte(combo, { tom: "escuro" })}
                 alt={combo.participacao.alt ?? ""}
                 carregamento={k < ARTES_A_VISTA ? "eager" : "lazy"}
                 className="aspect-[4/5] w-full rounded-[10px]"

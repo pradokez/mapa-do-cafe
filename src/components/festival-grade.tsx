@@ -72,14 +72,15 @@ export function FestivalGrade({ combos, festival, ano, encerrada }: Props) {
 
   return (
     <>
-      <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between lg:gap-5">
+      <div className="lg:flex lg:items-center lg:justify-between lg:gap-5">
         <nav aria-label="Filtrar por bairro" className="-mx-4 lg:mx-0">
           <ul className="flex gap-[7px] overflow-x-auto px-4 py-1 [scrollbar-width:none] lg:flex-wrap lg:gap-2 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
             {chip(null, "Todos")}
             {bairros.map(({ slug, nome }) => chip(slug, nome))}
           </ul>
         </nav>
-        <p role="status" className="flex-none px-0.5 text-[13px] text-ink-3">
+        {/* Só no desktop, como no design (5b não tem contador). */}
+        <p role="status" className="hidden flex-none text-[13px] text-ink-3 lg:block">
           {rotuloDeCombos(visiveis.length)}
         </p>
       </div>

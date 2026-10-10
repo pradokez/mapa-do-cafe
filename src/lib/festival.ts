@@ -2,8 +2,9 @@
  * Festivais (PRD #98) — regras puras de uma edição: quando está ativa, como
  * se descreve (status, período, preço) e onde fica. Sem React, sem Supabase.
  *
- * Ativa = publicada e com `inicio <= hoje <= fim`, no dia de Recife (a Vercel
- * roda em UTC). A decisão acontece no render, nunca dentro de um cache.
+ * No ar = publicada e com `hoje <= fim` (futura ou ativa); ativa = com
+ * `inicio <= hoje <= fim`. Sempre no dia de Recife (a Vercel roda em UTC). A
+ * decisão acontece no render, nunca dentro de um cache.
  */
 
 import { urlPublicaNoBucket } from "./cafe-photos";
@@ -53,27 +54,44 @@ export function estadoDaEdicao(edicao: Periodo, agora: Date): EstadoEdicao {
 }
 
 /**
- * Edições no ar hoje: publicadas e dentro do período, uma por festival, a que
- * termina primeiro antes (é a ordem das vitrines empilhadas).
+ * Edições no ar hoje: publicadas e ainda não encerradas — já começaram ou vão
+ * começar (a administradora publica antes, e o site mostra "começa em N
+ * dias"). Uma por festival, a que termina primeiro antes (é a ordem das
+ * vitrines empilhadas).
  */
-export function edicoesAtivas<E extends Edicao>(edicoes: readonly E[], agora: Date): E[] {
-  const ativas = edicoes
-    .filter((e) => e.publicada && estadoDaEdicao(e, agora) === "ativa")
+export function edicoesNoAr<E extends Edicao>(edicoes: readonly E[], agora: Date): E[] {
+  const noAr = edicoes
+    .filter((e) => e.publicada && estadoDaEdicao(e, agora) !== "encerrada")
     .sort((a, b) => a.fim.localeCompare(b.fim));
-  return ativas.filter((e, i) => ativas.findIndex((o) => o.festival.slug === e.festival.slug) === i);
+  return noAr.filter((e, i) => noAr.findIndex((o) => o.festival.slug === e.festival.slug) === i);
 }
 
 /**
- * Combos de um café nas edições no ar hoje (bloco do detalhe): um por edição
- * ativa em que ele participa, na ordem de `edicoesAtivas`. Vazio fora da
- * edição ou para quem não participa.
+ * Ids dos cafés participantes de cada festival no ar — o que chip, selo e
+ * filtro precisam. Festival fora do ar não tem chave. Dado simples, para
+ * atravessar a fronteira Server → Client Component.
+ */
+export type FestivaisNoAr = Partial<Record<FestivalSlug, string[]>>;
+
+export function participantesNoAr(edicoes: readonly Edicao[], agora: Date): FestivaisNoAr {
+  return Object.fromEntries(
+    edicoesNoAr(edicoes, agora).map((e) => [e.festival.slug, e.participacoes.map((p) => p.cafe_id)]),
+  );
+}
+
+/**
+ * Combos de um café nas edições já começadas (bloco do detalhe): um por
+ * edição ativa em que ele participa, na ordem de `edicoesNoAr`. Vazio antes
+ * do início (o bloco ainda não tem o "começa em N dias"), fora da edição ou
+ * para quem não participa.
  */
 export function combosDoCafe<E extends Edicao>(
   edicoes: readonly E[],
   cafeId: string,
   agora: Date,
 ): { edicao: E; participacao: E["participacoes"][number] }[] {
-  return edicoesAtivas(edicoes, agora).flatMap((edicao) => {
+  const ativas = edicoesNoAr(edicoes, agora).filter((e) => estadoDaEdicao(e, agora) === "ativa");
+  return ativas.flatMap((edicao) => {
     const participacao = edicao.participacoes.find((p) => p.cafe_id === cafeId);
     return participacao ? [{ edicao, participacao }] : [];
   });

@@ -54,6 +54,10 @@ describe("brCodePix", () => {
     expect(campo(codigo, "60")).toBe("JABOATAO");
   });
 
+  it("caracteres fora do permitido no BR Code (emoji, aspas curvas) saem do campo", () => {
+    expect(campo(brCodePix({ ...CONFIG, nome: "Café ☕ “Bom”", valor: null }), "59")).toBe("CAFE BOM");
+  });
+
   it("nome é truncado em 25 caracteres e cidade em 15, sem espaço sobrando no fim", () => {
     const codigo = brCodePix({
       ...CONFIG,
@@ -129,6 +133,13 @@ describe("configDoPix", () => {
     expect(config).toEqual({ chave: CHAVE, nome: "KEZIAH OLIVEIRA PRADO", cidade: "FORTALEZA" });
     expect(brCodePix({ ...config!, valor: null })).toBe(COPIA_E_COLA_DO_INTER);
     expect(configDoPix({ PIX_CHAVE: CHAVE })).toEqual(config);
+  });
+
+  it("nome ou cidade sem nada que caiba no campo também caem no padrão, em vez de um campo vazio", () => {
+    expect(configDoPix({ PIX_CHAVE: CHAVE, PIX_NOME: "☕", PIX_CIDADE: "🏖️" })).toMatchObject({
+      nome: "KEZIAH OLIVEIRA PRADO",
+      cidade: "FORTALEZA",
+    });
   });
 
   it("apara espaços da chave", () => {

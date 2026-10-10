@@ -37,9 +37,14 @@ export function configDoPix(env: Partial<Record<string, string>> = process.env):
   if (!chave || chave.length > MAX_CHAVE) return null;
   return {
     chave,
-    nome: env.PIX_NOME?.trim() || NOME_PADRAO,
-    cidade: env.PIX_CIDADE?.trim() || CIDADE_PADRAO,
+    nome: ouPadrao(env.PIX_NOME, MAX_NOME, NOME_PADRAO),
+    cidade: ouPadrao(env.PIX_CIDADE, MAX_CIDADE, CIDADE_PADRAO),
   };
+}
+
+/** Vazio, ou sem nada que sobre no campo (☕), daria um `5900` que o banco recusa. */
+function ouPadrao(texto: string | undefined, max: number, padrao: string): string {
+  return texto && textoDoCampo(texto, max) ? texto.trim() : padrao;
 }
 
 /** O copia e cola do Pix estático, na ordem de campos do Inter. */

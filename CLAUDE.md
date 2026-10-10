@@ -46,7 +46,7 @@ Node 24 (`.nvmrc`), pnpm.
 | `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. `tonsDoPlaceholder` dá as cores das listras (a imagem de compartilhamento usa as mesmas). `urlsPublicasDasFotos` transforma os caminhos de `cafes.fotos` em URLs públicas do bucket `cafe-fotos`. |
 | `cafe-seo` | `src/lib/cafe-seo.ts` | **Puro.** `(café)` → título, meta description, imagem de compartilhamento (`imagemCompartilhamento`) e JSON-LD `CafeOrCoffeeShop`. "Fechado" vira 00:00–00:00; dia sem informação fica fora do JSON-LD. |
 | `cafe-repository` | `src/lib/cafe-repository.ts` | Única porta de leitura do Supabase. Público (sem sessão): `listCafesAtivos()` (cache de 1 h, tag `cafes`), `getCafeBySlug(slug)`. Admin (sessão do cookie, a RLS decide): `listTodosCafes()`, `getCafeById(id)`, `listFotosDoCafe(cafeId)` (fotos de `cafe_fotos` na ordem do site, com URL e autorização), `fotoRegistrada(caminho)`, `listSugestoes(status[])` (mais recentes primeiro, no máximo 200 — `LIMITE_DE_SUGESTOES`) e `contarSugestoes()` (`{ nova, lida, arquivada }`, #84). Toda leitura de café sai com `fotos` já em URL pública. |
-| `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks. Não expõe nada da API do Mapbox. |
+| `cafe-map` | `src/components/cafe-map.tsx` | Encapsula 100% do Mapbox. Interface declarativa: cafés, `hoveredId`, `selectedId`, callbacks e, só no mapa da home (`full`), `userPosition` (#93). Não expõe nada da API do Mapbox. |
 | `use-geolocation` | `src/hooks/use-geolocation.ts` | Hook fino: `idle` / `prompting` / `granted` / `denied` / `unavailable` + coordenadas. O cálculo é do `cafe-distance`. |
 | `foto-upload` | `src/lib/foto-upload.ts` | **Puro.** Regras do upload de foto, comuns ao formulário e às Server Actions: tipos e limites (entrada JPEG/PNG/WebP ≤ 15 MB, HEIC recusado com instrução; saída WebP ≤ 2 MB), `dimensoesDestino` (lado maior 1600 px), `validarAutorizacao`, `hojeEmRecife`, caminho no bucket (`caminhoDaFoto`, `ehCaminhoDoCafe`). |
 | `foto-upload-erro` | `src/lib/foto-upload-erro.ts` | **Puro.** Falhas do upload de foto (#74): `Falha` (etapa `converter`/`preparar`/`enviar`/`registrar`, código, HTTP, mensagem original), classificadores (`falhaDoStorage`, `falhaDoPut`, `falhaDoPostgres`, `falhaDeRede`), `sanear` (tira URL e token) e `mensagemDaFalha` → frase + linhas de "Detalhes técnicos". |
@@ -258,8 +258,11 @@ Duas linhas alinhadas à direita, formando uma unidade:
 | `aviso-bg` / `aviso-line` / `aviso-fg` | `#FBEFE8` / `#EBC9B8` / `#7A3216` | Caixa de limite de envios (e de falha) nas sugestões — texto 8,1:1 |
 | `open` | `#3F6B3A` | "Aberto hoje" |
 | `map-bg` | `#1E1B19` | Fundo do mapa |
+| `map-voce` | `#7FB077` | Ponto "Você está aqui" no mapa da home — ~6,8:1 sobre o `map-bg`; verde do "aberto" clareado, para não lembrar pin nem pin ativo |
 
 Pins — inativo: preenchimento `#F1E6D8`, contorno e xícara `espresso`. Ativo: preenchimento `terracotta`, contorno e xícara `on-terracotta`, escala 1,3, `z-index` acima dos demais.
+
+**Ponto "Você está aqui" (#93):** com a geolocalização concedida, o mapa da home (desktop e mobile) mostra a posição: 16 px, `map-voce` com borda `cream` de 3 px e halo `map-voce/20` que pulsa só com `motion-safe`. Sem círculo de precisão. É um marcador próprio, sem o `GeolocateControl` do Mapbox (que pediria a permissão por conta própria, duplicando o `use-geolocation`), e uma leitura só, sem `watchPosition` (a lista reordenaria enquanto a pessoa anda). Fica abaixo dos pins (pins em `z-[1]`) e não recebe clique: `pointer-events: none` **inline**, porque o `Marker` do Mapbox escreve `auto` no `style` quando não encontra valor ali, e a classe perderia. Não entra no `fitBounds`: quem está longe de Recife não vê o mapa se afastar. O mini mapa (detalhe e admin) não aceita a prop: lá já aparece "1,2 km de você".
 
 A paleta e as fontes da v1.0 (Archivo Black, Inter, `#2B1810`, `#F5EDDF`, `#B8553A`, `#EADFCB`) estão **mortas**. Se aparecerem no código, é bug.
 

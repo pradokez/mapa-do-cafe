@@ -57,16 +57,20 @@ export default async function FestivalPage({ params }: Props) {
         <FestivalFaixa edicao={edicao} estado={estado} participantes={combos.length} agora={agora} />
         <div className={`${FESTIVAL_CONTEUDO} flex flex-col gap-3.5 pb-10 pt-4 lg:gap-[22px] lg:pb-16 lg:pt-7`}>
           {encerrada && (
-            <div className="flex flex-col gap-1 rounded-xl bg-hover-soft px-3.5 py-3 text-[13px] leading-[1.45] text-ink-2 lg:flex-row lg:items-center lg:gap-3 lg:px-4 lg:py-3.5 lg:text-sm">
+            // No mobile (5b), o texto é mais curto e o link segue na mesma linha.
+            <div className="rounded-xl bg-hover-soft px-3.5 py-3 text-[13px] leading-[1.45] text-ink-2 lg:flex lg:items-center lg:gap-3 lg:px-4 lg:py-3.5 lg:text-sm">
               <InfoIcon strokeWidth={2} className="hidden flex-none lg:block" />
-              <p>
-                <strong className="font-semibold text-espresso">Esta edição terminou.</strong> Os combos ficam aqui
-                como registro, mas não estão mais à venda.
-              </p>
+              <p className="inline lg:block">
+                <strong className="font-semibold text-espresso">Esta edição terminou.</strong>{" "}
+                <span className="lg:hidden">Os combos não estão mais à venda.</span>
+                <span className="hidden lg:inline">
+                  Os combos ficam aqui como registro, mas não estão mais à venda.
+                </span>
+              </p>{" "}
               {noAr && noAr.id !== edicao.id && (
                 <Link
                   href={urlDaEdicao(noAr)}
-                  className="flex-none self-start font-semibold text-terracotta hover:text-terracotta-hover lg:ml-auto lg:self-auto"
+                  className="font-semibold text-terracotta hover:text-terracotta-hover lg:ml-auto lg:flex-none"
                 >
                   Ver edição {noAr.ano}
                 </Link>

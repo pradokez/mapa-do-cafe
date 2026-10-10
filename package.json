@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:security": "vitest run --config vitest.security.config.ts",
-    "seed:build": "tsx scripts/build-seed.ts"
+    "seed:build": "tsx scripts/build-seed.ts",
+    "seed:pull": "tsx scripts/pull-seed.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

@@ -499,6 +499,19 @@ describe("fonteDaArte", () => {
     const [doCard] = resolveCafePhotos(cafe("a"));
     expect(fonte).toEqual(doCard);
   });
+
+  it("sem arte e com tom escuro, o placeholder escuro do café (a vitrine, sobre espresso)", () => {
+    const fonte = fonteDaArte({ participacao: { ...participacao, arte: null }, cafe: cafe("a") }, { tom: "escuro" });
+    const [escuro] = resolveCafePhotos(cafe("a"), { tom: "escuro" });
+    expect(fonte).toEqual(escuro);
+  });
+
+  it("com arte, o tom não importa", () => {
+    expect(fonteDaArte({ participacao, cafe: cafe("a") }, { tom: "escuro" })).toEqual({
+      kind: "url",
+      src: participacao.arte,
+    });
+  });
 });
 
 describe("edicaoTemPagina", () => {

@@ -8,7 +8,7 @@
  */
 
 import { compararPorNome, type Cafe } from "./cafe";
-import { resolveCafePhotos, urlPublicaNoBucket, type PhotoSource } from "./cafe-photos";
+import { resolveCafePhotos, urlPublicaNoBucket, type PhotoSource, type TomDoPlaceholder } from "./cafe-photos";
 import { hojeEmRecife } from "./foto-upload";
 
 export type FestivalSlug = "recife-coffee" | "eu-amo-cafe";
@@ -314,9 +314,10 @@ export function rotuloDeParticipantes(n: number): string {
 
 /**
  * A imagem de um combo: a arte, ou, enquanto ela não chega (o café participa
- * sem arte), o placeholder listrado do café — o mesmo do card dele.
+ * sem arte), o placeholder listrado do café — o mesmo do card dele, ou o
+ * escuro (`tom`) sobre `espresso`.
  */
-export function fonteDaArte({ participacao, cafe }: Combo): PhotoSource {
+export function fonteDaArte({ participacao, cafe }: Combo, { tom }: { tom?: TomDoPlaceholder } = {}): PhotoSource {
   if (participacao.arte) return { kind: "url", src: participacao.arte };
-  return resolveCafePhotos({ id: cafe.id, fotos: [] })[0];
+  return resolveCafePhotos({ id: cafe.id, fotos: [] }, { tom })[0];
 }

@@ -105,6 +105,36 @@ describe("resolveCafePhotos", () => {
       { kind: "url", src: "http://exemplo.com/b.jpg" },
     ]);
   });
+
+  describe("com tom escuro (sobre espresso, como a vitrine da home)", () => {
+    const escuroDe = (cafe: Pick<Cafe, "id" | "fotos">) => {
+      const [photo] = resolveCafePhotos(cafe, { tom: "escuro" });
+      if (photo.kind !== "placeholder") throw new Error("esperava placeholder");
+      return photo.background;
+    };
+
+    it("listra um tom escuro com o espresso, e não o par claro do card", () => {
+      expect(escuroDe({ id: ID, fotos: [] })).toMatch(
+        /^repeating-linear-gradient\(135deg, #[0-9A-F]{6} 0 12px, #2C1A0E 12px 24px\)$/,
+      );
+      expect(escuroDe({ id: ID, fotos: [] })).not.toBe(placeholderOf({ id: ID, fotos: [] }));
+    });
+
+    it("é determinístico, e cafés diferentes se distribuem entre os tons escuros do design", () => {
+      const seed: Cafe[] = JSON.parse(
+        readFileSync(new URL("../../supabase/seed/cafes.json", import.meta.url), "utf8"),
+      );
+
+      expect(escuroDe({ id: ID, fotos: [] })).toBe(escuroDe({ id: ID, fotos: [] }));
+      expect(new Set(seed.map(escuroDe)).size).toBe(4);
+    });
+
+    it("não muda as fotos reais", () => {
+      const fotos = ["https://exemplo.com/a.jpg"];
+
+      expect(resolveCafePhotos({ id: ID, fotos }, { tom: "escuro" })).toEqual([{ kind: "url", src: fotos[0] }]);
+    });
+  });
 });
 
 describe("urlsPublicasDasFotos (caminho do Storage → URL pública)", () => {

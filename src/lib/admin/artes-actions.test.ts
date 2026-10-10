@@ -225,6 +225,16 @@ describe("registrarArte", () => {
     expect(banco.storage.remove).toHaveBeenCalledWith([CAMINHO]);
   });
 
+  it("participante que saiu da edição durante o envio: falha e o arquivo novo sai", async () => {
+    repo.getEdicaoById.mockResolvedValue(edicao([]));
+    expect(await registrarArte(EDICAO_ID, PART_ID, CAMINHO, CAMPOS)).toMatchObject({
+      ok: false,
+      falha: { etapa: "registrar", codigo: "participante" },
+    });
+    expect(banco.update).not.toHaveBeenCalled();
+    expect(banco.storage.remove).toHaveBeenCalledWith([CAMINHO]);
+  });
+
   it("arquivo que não chegou ao bucket: não grava a linha", async () => {
     banco.storage.exists.mockResolvedValue({ data: false, error: null });
     expect(await registrarArte(EDICAO_ID, PART_ID, CAMINHO, CAMPOS)).toMatchObject({

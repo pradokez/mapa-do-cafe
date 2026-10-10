@@ -1,14 +1,23 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { cafe } from "./cafe.fixture";
+import { resolveCafePhotos } from "./cafe-photos";
 import {
   ateODia,
+  bairroDoParam,
+  bairrosDosCombos,
+  combosDaEdicao,
   combosDoCafe,
+  edicaoDaPagina,
   edicoesNoAr,
   estadoDaEdicao,
+  fonteDaArte,
   formatarPreco,
   ordenarPorNumero,
   participantesNoAr,
+  rotuloDeCombos,
+  rotuloDeParticipantes,
   periodoDaEdicao,
   rotuloDeStatus,
   tituloDoCombo,
@@ -133,7 +142,9 @@ describe("rotuloDeStatus", () => {
     ["2026-11-15", "Acontecendo agora · último dia"],
     ["2026-11-16", "Edição encerrada"],
     ["2027-03-01", "Edição encerrada"],
-    ["2026-10-01", "Começa em 18 out"],
+    ["2026-10-01", "Em breve · começa em 17 dias"],
+    ["2026-10-16", "Em breve · começa em 2 dias"],
+    ["2026-10-17", "Em breve · começa amanhã"],
   ])("em %s: %s", (dia, rotulo) => {
     expect(rotuloDeStatus(EU_AMO_CAFE, meioDia(dia))).toBe(rotulo);
   });
@@ -274,5 +285,140 @@ describe("tituloDoCombo", () => {
 
   it("sem número, o nome do festival", () => {
     expect(tituloDoCombo(EU_AMO_CAFE, { numero: null })).toBe("Combo do Eu Amo Café");
+  });
+});
+
+describe("edicaoDaPagina", () => {
+  const edicoes = [EU_AMO_CAFE, RECIFE_COFFEE];
+
+  it("acha a edição pelo festival e pelo ano, ativa durante o período", () => {
+    expect(edicaoDaPagina(edicoes, "eu-amo-cafe", "2026", meioDia("2026-10-20"))).toMatchObject({
+      edicao: EU_AMO_CAFE,
+      estado: "ativa",
+    });
+  });
+
+  it("publicada e ainda por começar abre, como futura (decisão de 10/10/2026, #101)", () => {
+    expect(edicaoDaPagina(edicoes, "eu-amo-cafe", "2026", meioDia("2026-10-17"))?.estado).toBe("futura");
+  });
+
+  it("encerrada continua abrindo, com o estado", () => {
+    expect(edicaoDaPagina(edicoes, "eu-amo-cafe", "2026", meioDia("2026-11-16"))?.estado).toBe("encerrada");
+  });
+
+  it("na encerrada, aponta a edição no ar do mesmo festival — futura ou ativa", () => {
+    const ed2025 = { ...EU_AMO_CAFE, id: "e0", ano: 2025, inicio: "2025-10-18", fim: "2025-11-15" };
+    const todas = [ed2025, EU_AMO_CAFE, RECIFE_COFFEE];
+    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-01"))?.noAr).toBe(EU_AMO_CAFE);
+    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBe(EU_AMO_CAFE);
+    // Depois de 2026 acabar, não há edição do Eu Amo Café no ar.
+    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-11-20"))?.noAr).toBeNull();
+    // Rascunho não conta.
+    const rascunho = { ...EU_AMO_CAFE, publicada: false };
+    expect(edicaoDaPagina([ed2025, rascunho], "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBeNull();
+  });
+
+  it.each([
+    ["de outro ano", "eu-amo-cafe", "2025", "2026-10-20"],
+    ["de festival desconhecido", "outro", "2026", "2026-10-20"],
+    ["com o ano malformado", "eu-amo-cafe", "2026abc", "2026-10-20"],
+    ["com o ano com zero à esquerda", "eu-amo-cafe", "02026", "2026-10-20"],
+  ])("edição %s → null (404)", (_, festival, ano, dia) => {
+    expect(edicaoDaPagina(edicoes, festival, ano, meioDia(dia))).toBeNull();
+  });
+
+  it("não publicada → null, mesmo dentro do período", () => {
+    const rascunho = { ...EU_AMO_CAFE, publicada: false };
+    expect(edicaoDaPagina([rascunho], "eu-amo-cafe", "2026", meioDia("2026-10-20"))).toBeNull();
+  });
+});
+
+describe("combosDaEdicao", () => {
+  const part = (cafe_id: string, numero: number | null): Participacao => ({
+    id: `p-${cafe_id}`,
+    cafe_id,
+    numero,
+    nome_combo: null,
+    alt: null,
+    instagram_url: null,
+    arte: null,
+  });
+
+  it("cada participação com o seu café, na ordem do número", () => {
+    const edicao = { ...EU_AMO_CAFE, participacoes: [part("b", 7), part("a", null), part("c", 2)] };
+    const combos = combosDaEdicao(edicao, [cafe("a"), cafe("b"), cafe("c")]);
+    expect(combos.map(({ cafe, participacao }) => [cafe.id, participacao.numero])).toEqual([
+      ["c", 2],
+      ["b", 7],
+      ["a", null],
+    ]);
+  });
+
+  it("participação de café que não está na lista (fora do ar) fica de fora", () => {
+    const edicao = { ...EU_AMO_CAFE, participacoes: [part("a", 1), part("sumiu", 2)] };
+    expect(combosDaEdicao(edicao, [cafe("a")]).map(({ cafe }) => cafe.id)).toEqual(["a"]);
+  });
+});
+
+describe("filtro de bairro", () => {
+  const combo = (id: string, bairro: string, bairro_slug: string) => ({
+    participacao: { id, cafe_id: id, numero: null, nome_combo: null, alt: null, instagram_url: null, arte: null },
+    cafe: cafe(id, { bairro, bairro_slug }),
+  });
+  const combos = [
+    combo("a", "Graças", "gracas"),
+    combo("b", "Boa Viagem", "boa-viagem"),
+    combo("c", "Graças", "gracas"),
+    combo("d", "Água Fria", "agua-fria"),
+  ];
+
+  it("os bairros dos participantes, sem repetir, em ordem alfabética sem acento", () => {
+    expect(bairrosDosCombos(combos)).toEqual([
+      { slug: "agua-fria", nome: "Água Fria" },
+      { slug: "boa-viagem", nome: "Boa Viagem" },
+      { slug: "gracas", nome: "Graças" },
+    ]);
+  });
+
+  it("param de um bairro dos participantes vale; desconhecido, vazio ou ausente é ignorado", () => {
+    const bairros = bairrosDosCombos(combos);
+    expect(bairroDoParam("gracas", bairros)).toBe("gracas");
+    expect(bairroDoParam("espinheiro", bairros)).toBeNull();
+    expect(bairroDoParam("", bairros)).toBeNull();
+    expect(bairroDoParam(null, bairros)).toBeNull();
+    expect(bairroDoParam(undefined, bairros)).toBeNull();
+  });
+});
+
+describe("contadores", () => {
+  it.each([
+    [1, "1 combo", "1 café participante"],
+    [0, "0 combos", "0 cafés participantes"],
+    [18, "18 combos", "18 cafés participantes"],
+  ])("%i → '%s' e '%s'", (n, combos, participantes) => {
+    expect(rotuloDeCombos(n)).toBe(combos);
+    expect(rotuloDeParticipantes(n)).toBe(participantes);
+  });
+});
+
+describe("fonteDaArte", () => {
+  const participacao: Participacao = {
+    id: "p",
+    cafe_id: "a",
+    numero: 1,
+    nome_combo: null,
+    alt: "Combo 1",
+    instagram_url: null,
+    arte: "https://x.supabase.co/storage/v1/object/public/festival-artes/e1/a.webp",
+  };
+
+  it("com arte, a URL dela", () => {
+    expect(fonteDaArte({ participacao, cafe: cafe("a") })).toEqual({ kind: "url", src: participacao.arte });
+  });
+
+  it("sem arte, o placeholder listrado do café — o mesmo do card dele", () => {
+    const fonte = fonteDaArte({ participacao: { ...participacao, arte: null }, cafe: cafe("a") });
+    const [doCard] = resolveCafePhotos(cafe("a"));
+    expect(fonte).toEqual(doCard);
   });
 });

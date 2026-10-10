@@ -14,7 +14,7 @@
  * `removerArte` tira a arte (linha antes do arquivo). Quem decide o acesso é a
  * RLS (`private.is_admin()`).
  */
-import { arteRegistrada, getEdicaoById, listArtesDaEdicao } from "@/lib/cafe-repository";
+import { arteRegistrada, getCafeById, getEdicaoById, listArtesDaEdicao } from "@/lib/cafe-repository";
 import { BUCKET_ARTES } from "@/lib/festival";
 import {
   donoDoNumero,
@@ -132,8 +132,10 @@ export async function registrarArte(
   const { edicao, participacao } = achado;
 
   const { numero } = dados.valores;
-  if (donoDoNumero(edicao.participacoes, participacao.id, numero)) {
-    return falhar(null, { numero: `O número ${numero} já é de outro café nesta edição.` });
+  const dono = donoDoNumero(edicao.participacoes, participacao.id, numero);
+  if (dono) {
+    const cafe = await getCafeById(dono.cafe_id);
+    return falhar(null, { numero: `O número ${numero} já é de ${cafe?.nome ?? "outro café"}.` });
   }
 
   // O upload pode ter falhado sem o navegador perceber: sem arquivo, sem linha.
@@ -152,7 +154,7 @@ export async function registrarArte(
     .eq("id", participacao.id);
   // Outra aba gravou o mesmo número entre a leitura e a escrita.
   if (error?.code === "23505" && error.message.includes("numero")) {
-    return falhar(null, { numero: `O número ${numero} já é de outro café nesta edição.` });
+    return falhar(null, { numero: `O número ${numero} já é de outro café.` });
   }
   if (error) return falhar(falhaDoPostgres(error));
   // A RLS não dá erro, só não grava.

@@ -17,6 +17,7 @@ vi.mock("./require-admin", () => sessao);
 
 const repo = vi.hoisted(() => ({
   getEdicaoById: vi.fn(),
+  getCafeById: vi.fn(),
   listArtesDaEdicao: vi.fn(),
   arteRegistrada: vi.fn(),
   CAFES_TAG: "cafes",
@@ -211,13 +212,14 @@ describe("registrarArte", () => {
     expect(banco.storage.remove).toHaveBeenCalledWith([CAMINHO]);
   });
 
-  it("número de outro café: erro no campo, e o arquivo novo sai", async () => {
+  it("número de outro café: erro no campo dizendo de quem é, e o arquivo novo sai", async () => {
+    repo.getCafeById.mockResolvedValue({ id: "c-dono", nome: "Castigliani" });
     repo.getEdicaoById.mockResolvedValue(
       edicao([participacao(), participacao({ id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", numero: 13 })]),
     );
     expect(await registrarArte(EDICAO_ID, PART_ID, CAMINHO, CAMPOS)).toMatchObject({
       ok: false,
-      erros: { numero: expect.stringMatching(/13/) },
+      erros: { numero: "O número 13 já é de Castigliani." },
     });
     expect(banco.update).not.toHaveBeenCalled();
     expect(banco.storage.remove).toHaveBeenCalledWith([CAMINHO]);

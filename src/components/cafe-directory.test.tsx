@@ -59,3 +59,18 @@ describe("CafeDirectory — festival", () => {
     expect(screen.queryByRole("button", { name: "Limpar filtros" })).toBeNull();
   });
 });
+
+describe("CafeDirectory — Me paga um café?", () => {
+  const vitrines = { edicoes: [], agora: new Date() };
+
+  it("sem o Pix configurado, o botão não aparece", () => {
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={vitrines} pix={null} />);
+    expect(screen.queryByRole("button", { name: "Me paga um café?" })).toBeNull();
+  });
+
+  it("com o Pix, o botão entra no header (o do desktop e o do mobile)", () => {
+    const pix = { chave: "chave-aleatoria", nome: "Fulana", cidade: "Recife" };
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={vitrines} pix={pix} />);
+    expect(screen.getAllByRole("button", { name: "Me paga um café?" })).toHaveLength(2);
+  });
+});

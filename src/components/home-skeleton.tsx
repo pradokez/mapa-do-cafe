@@ -1,6 +1,8 @@
 import { CafeCardSkeleton } from "@/components/cafe-card-skeleton";
 import { SearchIcon } from "@/components/icons";
 import {
+  APOIO_BOTAO_DESKTOP,
+  APOIO_BOTAO_MOBILE,
   BARRA_FILTROS,
   BUSCA_MOLDURA,
   CHIP_FORMA,
@@ -22,13 +24,22 @@ const CARDS = 6;
 /**
  * Home enquanto os cafés não chegam (sobretudo com o Supabase acordando da
  * hibernação): o logo de verdade e o resto em blocos com as medidas do
- * `CafeDirectory` — busca, barra de filtros, contador, cards e mapa.
+ * `CafeDirectory` — busca, barra de filtros, contador, cards e mapa — e,
+ * com o Pix configurado, o botão "Me paga um café?".
  */
-export function HomeSkeleton() {
+export function HomeSkeleton({ comApoio = false }: { comApoio?: boolean }) {
   return (
     <>
       <CarregandoStatus>Carregando cafés…</CarregandoStatus>
-      <SiteHeader actions={<Bloco tom="creme" className="size-11 rounded-full" />}>
+      <SiteHeader
+        actions={
+          <>
+            {comApoio && <Bloco tom="creme" className={APOIO_BOTAO_MOBILE} />}
+            <Bloco tom="creme" className="size-11 rounded-full" />
+          </>
+        }
+        extra={comApoio && <Bloco tom="creme" className={APOIO_BOTAO_DESKTOP} />}
+      >
         <div aria-hidden="true" className={BUSCA_MOLDURA}>
           <SearchIcon size={16} strokeWidth={2} />
         </div>

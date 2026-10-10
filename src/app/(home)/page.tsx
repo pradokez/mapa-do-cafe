@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CafeDirectory } from "@/components/cafe-directory";
 import { listCafesAtivos, listFestivais } from "@/lib/cafe-repository";
 import { edicoesEmVitrine, participantesNoAr } from "@/lib/festival";
+import { configDoPix } from "@/lib/pix";
 
 // Dinâmica: o HTML já sai filtrado pelos params da URL (`?pets=true`), sem
 // piscar a lista completa até a hidratação. Cafés e festivais vêm do cache de
@@ -21,7 +22,7 @@ export default async function Home() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <CafeDirectory cafes={cafes} festivais={festivais} vitrines={vitrines} />
+      <CafeDirectory cafes={cafes} festivais={festivais} vitrines={vitrines} pix={configDoPix(process.env)} />
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function ComboDoFestival({ cafe, edicao, participacao }: Props) {
     >
       <div className="flex items-center justify-between gap-2.5 lg:col-start-2 lg:row-start-1 lg:pt-2.5">
         <p className="inline-flex h-7 items-center gap-[7px] rounded-full bg-espresso px-3 text-[12.5px] font-semibold text-cream">
-          <span aria-hidden="true" className="size-[7px] rounded-full bg-festival-ponto" />
+          <span aria-hidden="true" className="size-[7px] rounded-full bg-brasa" />
           <span>
             <span className="lg:hidden">Combo do </span>
             {festival}

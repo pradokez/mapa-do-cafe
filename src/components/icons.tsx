@@ -363,3 +363,23 @@ export function ExpandIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M3 10h18" />
+    </Icon>
+  );
+}
+
+export function DollarSignIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 2v20" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </Icon>
+  );
+}

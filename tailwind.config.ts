@@ -25,12 +25,14 @@ const config: Config = {
         erro: "#B23A1E",
         // Caixa de aviso (limite de envios das sugestões): texto 8,1:1 sobre o fundo.
         aviso: { bg: "#FBEFE8", line: "#EBC9B8", fg: "#7A3216" },
+        // Festival (#104): textos claros sobre `espresso` — 11,73:1 e 9,24:1.
+        "sobre-espresso": { DEFAULT: "#E2D7C9", 2: "#CDBFAE" },
         "map-bg": "#1E1B19",
         "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
         "map-pin": "#F1E6D8",
         "map-voce": "#4C8DF6",
-        // Ponto da pílula do festival (#103), sobre `espresso`. Decorativo: o texto ao lado diz o festival.
-        "festival-ponto": "#E58A5F",
+        // Acento do festival sobre `espresso`: o ano no título (#104, 6,45:1) e o ponto da pílula (#103, decorativo).
+        brasa: "#E58A5F",
         // Fundo da arte ampliada (#103): opaco no mobile, translúcido no desktop (design 4a/4c).
         lightbox: "#120B06",
       },

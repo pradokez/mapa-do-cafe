@@ -68,3 +68,8 @@ export const ASIDE_CTA = "flex h-[46px] items-center justify-center gap-2 rounde
 /** Tag de "Comodidades" (38 px). */
 export const DETALHE_TAG =
   "inline-flex h-[38px] items-center gap-2 rounded-full border border-line-strong bg-white px-[15px] text-sm text-espresso";
+
+// Página do festival (#104)
+
+/** Coluna de conteúdo da página: 1200 px no desktop, com respiro até lá. */
+export const FESTIVAL_CONTEUDO = "mx-auto w-full max-w-[1256px] px-4 lg:px-7";

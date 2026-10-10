@@ -10,11 +10,8 @@ import type { ArteDoParticipante } from "@/lib/cafe-repository";
 import { MAX_AUTORIZADO_POR, TIPOS_ENTRADA, type AutorizacaoDaArte } from "@/lib/foto-upload";
 
 import { tamanho, type Convertida } from "./envio-de-imagem";
-import { Erro, botaoCtaClass, botaoNeutroClass, inputClass, labelClass } from "./form";
+import { botaoCtaClass, botaoNeutroClass, dataBr, Erro, ERRO_REDE, inputClass, invalidoClass, labelClass } from "./form";
 
-const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
-const invalidoClass = "aria-[invalid=true]:border-terracotta";
-const dataBr = (iso: string) => iso.split("-").reverse().join("/");
 /** A arte é 4:5 e vai inteira (o texto do combo está nela): sem corte também aqui. */
 const MOLDURA = "h-[120px] w-[96px] flex-none rounded-lg border border-card-line bg-hover-soft object-contain";
 

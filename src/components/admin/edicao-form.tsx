@@ -9,7 +9,7 @@ import type { FestivalCadastrado } from "@/lib/cafe-repository";
 import { urlDaEdicao, type Edicao, type FestivalSlug } from "@/lib/festival";
 import { MAX_DESCRICAO, validarEdicao, type CampoEdicao, type ErrosEdicao } from "@/lib/festival-dados";
 
-import { Erro, botaoCtaClass, inputClass, labelClass } from "./form";
+import { botaoCtaClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
 
 type Estado = { inicio: string; fim: string; preco: string; descricao: string };
 
@@ -25,7 +25,6 @@ const estadoDe = (edicao: Edicao): Estado => ({
 
 const ESTADO_NOVO: Estado = { inicio: "", fim: "", preco: "", descricao: "" };
 
-const invalidoClass = "aria-[invalid=true]:border-terracotta";
 const dicaClass = "mt-1.5 text-[13px] text-ink-3";
 
 type Props =

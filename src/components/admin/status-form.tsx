@@ -5,9 +5,8 @@ import { useState } from "react";
 
 import { definirStatus } from "@/lib/admin/status-actions";
 
-import { botaoCtaClass, botaoNeutroClass, Erro } from "./form";
+import { botaoCtaClass, botaoNeutroClass, Erro, ERRO_REDE } from "./form";
 
-const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
 
 const TEXTO = {
   noAr: {

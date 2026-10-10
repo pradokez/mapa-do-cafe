@@ -6,9 +6,8 @@ import { useState } from "react";
 import { definirPublicacao } from "@/lib/admin/festivais-actions";
 import { erroDePublicacao } from "@/lib/festival-dados";
 
-import { botaoCtaClass, botaoNeutroClass, Erro } from "./form";
+import { botaoCtaClass, botaoNeutroClass, Erro, ERRO_REDE } from "./form";
 
-const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
 
 type Props = {
   edicaoId: string;

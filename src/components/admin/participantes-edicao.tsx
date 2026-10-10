@@ -25,16 +25,14 @@ import { localLabel } from "@/lib/format";
 import { CampoDaArte } from "./arte-do-participante";
 import { ErroDoEnvio, subirParaOStorage, useImagemConvertida } from "./envio-de-imagem";
 
-import { Erro, botaoCtaClass, botaoNeutroClass, inputClass, labelClass } from "./form";
+import { botaoCtaClass, botaoNeutroClass, Erro, ERRO_REDE, inputClass, invalidoClass, labelClass } from "./form";
 import { ETIQUETA } from "./status-cafe";
 
-const ERRO_REDE = "Não deu para falar com o servidor. Confira a conexão e tente de novo.";
 /** Resultados à vista na busca: o suficiente para achar, sem virar a lista inteira. */
 const MAX_RESULTADOS = 8;
 
 const etiquetaPendente = `${ETIQUETA} bg-seal-bg text-seal-fg`;
 const etiquetaNeutra = `${ETIQUETA} bg-hover-soft text-ink-2`;
-const invalidoClass = "aria-[invalid=true]:border-terracotta";
 
 type Props = {
   edicaoId: string;

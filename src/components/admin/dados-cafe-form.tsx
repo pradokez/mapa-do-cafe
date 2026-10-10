@@ -28,7 +28,7 @@ import {
 import { DIAS_DA_SEMANA } from "@/lib/cafe-hours";
 import { faixaPrecoNome } from "@/lib/format";
 
-import { Erro, botaoCtaClass, inputClass, labelClass } from "./form";
+import { botaoCtaClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
 import { MapaDePosicao } from "./mapa-de-posicao";
 
@@ -109,7 +109,6 @@ function semErros(erros: ErrosDados, tirar: (campo: string) => boolean): ErrosDa
 const legendClass = "mb-3 text-[15px] font-semibold text-espresso";
 const opcaoClass = "flex min-h-11 cursor-pointer items-center gap-2 text-[15px] text-espresso";
 const marcaClass = "size-[18px] shrink-0 accent-terracotta";
-const invalidoClass = "aria-[invalid=true]:border-terracotta";
 
 type Edicao = {
   cafe: DadosCafe;

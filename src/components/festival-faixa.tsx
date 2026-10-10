@@ -1,7 +1,6 @@
-import Link from "next/link";
-
-import { ArrowLeftIcon, CalendarIcon, CoffeeIcon, DollarSignIcon } from "@/components/icons";
+import { CalendarIcon, CoffeeIcon, DollarSignIcon } from "@/components/icons";
 import { FESTIVAL_CONTEUDO } from "@/components/medidas";
+import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import {
   formatarPreco,
   periodoDaEdicao,
@@ -35,13 +34,7 @@ export function FestivalFaixa({ edicao, estado, participantes, agora }: Props) {
   return (
     <div className="bg-espresso text-cream">
       <div className={`${FESTIVAL_CONTEUDO} flex flex-col gap-3 pb-6 pt-2.5 lg:gap-[18px] lg:pb-10 lg:pt-[22px]`}>
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-medium text-sobre-espresso-2 hover:text-cream lg:min-h-0 lg:text-[13.5px]"
-        >
-          <ArrowLeftIcon size={15} strokeWidth={2} />
-          Voltar ao mapa
-        </Link>
+        <VoltarAoMapa className="min-h-11 self-start text-sm font-medium text-sobre-espresso-2 hover:text-cream lg:min-h-0 lg:text-[13.5px]" />
         <div className="flex max-w-[720px] flex-col gap-3 lg:gap-3.5">
           <p
             className={`inline-flex h-[26px] items-center gap-[7px] self-start rounded-full px-[11px] text-xs font-semibold lg:h-7 lg:px-3 lg:text-[12.5px] ${STATUS[estado].pilula}`}

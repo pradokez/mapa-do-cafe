@@ -36,8 +36,13 @@ const participacao = (mais: Partial<Participacao> = {}): Participacao => ({
   ...mais,
 });
 
-function renderCombo(mais: Partial<Participacao> = {}) {
-  return render(<ComboDoFestival cafe={cafe("kaffe")} edicao={edicao} participacao={participacao(mais)} />);
+/** Meio-dia em Recife; padrão: durante a edição. */
+const DURANTE = new Date("2026-10-20T15:00:00Z");
+
+function renderCombo(mais: Partial<Participacao> = {}, agora = DURANTE) {
+  return render(
+    <ComboDoFestival cafe={cafe("kaffe")} edicao={edicao} participacao={participacao(mais)} agora={agora} />,
+  );
 }
 
 describe("ComboDoFestival", () => {
@@ -50,6 +55,17 @@ describe("ComboDoFestival", () => {
     expect(within(bloco).getByText("Disponível enquanto durar o festival, no horário normal da casa.")).toBeTruthy();
     expect(bloco.textContent).toContain("Eu Amo Café");
     expect(bloco.textContent).toContain("até 15 nov");
+  });
+
+  it("antes do início, a pílula conta os dias e a nota diz de quando a quando", () => {
+    renderCombo({}, new Date("2026-10-13T15:00:00Z"));
+    const bloco = screen.getByRole("region", { name: "Combo 13" });
+    expect(bloco.textContent).toContain("Eu Amo Café · começa em 5 dias");
+    expect(bloco.textContent).not.toContain("Eu Amo Café · até");
+    expect(
+      within(bloco).getByText("Disponível a partir de 18 out (em 5 dias), até 15 nov, no horário normal da casa."),
+    ).toBeTruthy();
+    expect(within(bloco).queryByText("Disponível enquanto durar o festival, no horário normal da casa.")).toBeNull();
   });
 
   it("sem número, o título é o do festival", () => {

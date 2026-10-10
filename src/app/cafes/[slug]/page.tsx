@@ -142,7 +142,13 @@ export default async function CafePage({ params }: Props) {
             </ul>
 
             {combos.map(({ edicao, participacao }) => (
-              <ComboDoFestival key={edicao.id} cafe={cafe} edicao={edicao} participacao={participacao} />
+              <ComboDoFestival
+                key={edicao.id}
+                cafe={cafe}
+                edicao={edicao}
+                participacao={participacao}
+                agora={agora}
+              />
             ))}
 
             <hr className="mb-2 mt-[30px] border-line" />

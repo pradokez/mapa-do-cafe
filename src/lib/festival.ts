@@ -126,12 +126,8 @@ function partes(data: string): { dia: number; mes: string; ano: string } {
 export function rotuloDeStatus(edicao: Periodo, agora: Date): string {
   const estado = estadoDaEdicao(edicao, agora);
   if (estado === "encerrada") return "Edição encerrada";
-  const hoje = hojeEmRecife(agora);
-  if (estado === "futura") {
-    const faltam = diasEntre(hoje, edicao.inicio);
-    return `Em breve · ${faltam === 1 ? "começa amanhã" : `começa em ${faltam} dias`}`;
-  }
-  const faltam = diasEntre(hoje, edicao.fim);
+  if (estado === "futura") return `Em breve · ${prazoDoCombo(edicao, agora)}`;
+  const faltam = diasEntre(hojeEmRecife(agora), edicao.fim);
   const quando = faltam === 0 ? "último dia" : faltam === 1 ? "termina amanhã" : `termina em ${faltam} dias`;
   return `Acontecendo agora · ${quando}`;
 }

@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type
 
 import { CHIP_OFF, CHIP_ON } from "@/components/filter-chip";
 import { CoffeeIcon, CopyIcon, XIcon } from "@/components/icons";
-import { APOIO_BOTAO_DESKTOP, BOTAO_HEADER_MOBILE } from "@/components/medidas";
+import { APOIO_BOTAO_DESKTOP, APOIO_BOTAO_DESKTOP_FORMA, BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { brCodePix, rotuloDoValor, VALOR_PADRAO, VALORES_DE_APOIO, type ConfigDoPix, type ValorDeApoio } from "@/lib/pix";
 import { qrSvg } from "@/lib/qr-svg";
@@ -70,7 +70,7 @@ export function ApoioPix({ config, variante }: Props) {
       <DialogPrimitive.Trigger asChild>
         <button
           type="button"
-          className={`${APOIO_BOTAO_DESKTOP} inline-flex flex-none items-center justify-center gap-2 whitespace-nowrap border border-line-strong bg-white pl-3.5 pr-4 text-[13.5px] font-semibold text-espresso transition-colors hover:bg-hover-soft`}
+          className={`${APOIO_BOTAO_DESKTOP_FORMA} inline-flex flex-none items-center justify-center gap-2 whitespace-nowrap border border-line-strong bg-white pl-3.5 pr-4 text-[13.5px] font-semibold text-espresso transition-colors hover:bg-hover-soft`}
         >
           <CoffeeIcon size={16} strokeWidth={2} className="text-terracotta" />
           {TITULO}

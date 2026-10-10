@@ -16,8 +16,10 @@ export const BUSCA_MOLDURA =
 
 /** Botão redondo de 44 px do header mobile: filtros e "Me paga um café?". */
 export const BOTAO_HEADER_MOBILE = "size-11 rounded-full";
-/** "Me paga um café?" no desktop (#121): ícone e texto, 42 px. */
-export const APOIO_BOTAO_DESKTOP = "h-[42px] w-[176px] rounded-full";
+/** "Me paga um café?" no desktop (#121): ícone e texto, 42 px. O botão cresce com o texto. */
+export const APOIO_BOTAO_DESKTOP_FORMA = "h-[42px] rounded-full";
+/** Lugar do botão antes de hidratar e no skeleton: a largura que ele tem com a DM Sans. */
+export const APOIO_BOTAO_DESKTOP = `${APOIO_BOTAO_DESKTOP_FORMA} w-[174px]`;
 
 /** Faixa da barra de filtros (64 px no desktop). */
 export const BARRA_FILTROS =

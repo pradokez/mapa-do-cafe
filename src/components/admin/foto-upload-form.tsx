@@ -2,116 +2,34 @@
 
 // Client pela conversão no navegador (canvas → WebP), pelo upload direto ao
 // Storage e pelos estados do envio.
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
-import { urlDoLogin } from "@/lib/admin-auth";
 import { descartarUpload, prepararUpload, registrarFoto } from "@/lib/admin/fotos-actions";
 import {
   MAX_AUTORIZADO_POR,
   MAX_OBSERVACAO,
   ROTULO_ORIGEM,
   TIPOS_ENTRADA,
-  checarArquivo,
-  checarWebp,
-  dimensoesDestino,
   validarAutorizacao,
   type CampoAutorizacao,
 } from "@/lib/foto-upload";
-import { falhaDeRede, falhaDoPut, mensagemDaFalha, type Falha } from "@/lib/foto-upload-erro";
+import { falhaDeRede, type Falha } from "@/lib/foto-upload-erro";
 
+import { ErroDoEnvio, subirParaOStorage, tamanho, useImagemConvertida } from "./envio-de-imagem";
 import { botaoCtaClass, Erro, inputClass, labelClass } from "./form";
 
-const QUALIDADE_WEBP = 0.82;
-/** Upload de até 2 MB: passou disso sem terminar, a conexão não está dando conta. */
-const TIMEOUT_ENVIO = 60_000;
-const ERRO_LEITURA = "Não deu para abrir esta foto. O arquivo pode estar corrompido. Tente outra.";
-const ERRO_MEMORIA =
-  "O navegador não conseguiu converter esta foto. Ela pode ser grande demais para a memória dele. Feche outras abas ou use uma foto menor.";
-
-/** O navegador abriu a foto, mas não conseguiu desenhá-la ou gerar o WebP (memória, quase sempre). */
-class SemMemoria extends Error {}
-
-type Convertida = { blob: Blob; previa: string; largura: number; altura: number };
 type ErrosCampos = Partial<Record<CampoAutorizacao | "foto", string>>;
-
-/** Redimensiona (lado maior ~1600 px, respeitando a orientação do EXIF) e converte para WebP. */
-async function converter(arquivo: File): Promise<Convertida> {
-  // Falhar aqui é não decodificar (arquivo corrompido, formato que o navegador não lê).
-  const bitmap = await createImageBitmap(arquivo);
-  try {
-    const { largura, altura } = dimensoesDestino(bitmap.width, bitmap.height);
-    const canvas = document.createElement("canvas");
-    canvas.width = largura;
-    canvas.height = altura;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new SemMemoria();
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bitmap, 0, 0, largura, altura);
-
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", QUALIDADE_WEBP));
-    if (!blob) throw new SemMemoria();
-    return { blob, previa: URL.createObjectURL(blob), largura, altura };
-  } catch {
-    // `drawImage` e `toBlob` também lançam quando falta memória para o canvas.
-    throw new SemMemoria();
-  } finally {
-    bitmap.close();
-  }
-}
-
-const tamanho = (bytes: number) =>
-  `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(bytes / 1024)} KB`;
 
 type Props = { cafeId: string; hoje: string };
 
 export function FotoUploadForm({ cafeId, hoje }: Props) {
   const form = useRef<HTMLFormElement>(null);
-  const [foto, setFoto] = useState<Convertida | null>(null);
-  const [convertendo, setConvertendo] = useState(false);
+  const { imagem: foto, convertendo, erro: erroFoto, setErro: setErroFoto, escolher, limpar } = useImagemConvertida();
   const [enviando, setEnviando] = useState(false);
-  const [erros, setErros] = useState<ErrosCampos>({});
+  const [errosAutorizacao, setErros] = useState<Partial<Record<CampoAutorizacao, string>>>({});
   const [falha, setFalha] = useState<Falha | null>(null);
   const [sucesso, setSucesso] = useState(false);
-
-  // A prévia é um object URL: solto quando troca a foto ou a seção sai da tela.
-  useEffect(() => {
-    if (!foto) return;
-    return () => URL.revokeObjectURL(foto.previa);
-  }, [foto]);
-
-  async function escolher(evento: React.ChangeEvent<HTMLInputElement>) {
-    const arquivo = evento.target.files?.[0];
-    setFoto(null);
-    setSucesso(false);
-    setFalha(null);
-    if (!arquivo) return;
-
-    const erro = checarArquivo(arquivo);
-    if (erro) {
-      setErros((e) => ({ ...e, foto: erro }));
-      evento.target.value = "";
-      return;
-    }
-
-    setConvertendo(true);
-    try {
-      const convertida = await converter(arquivo);
-      const erroWebp = checarWebp(convertida.blob);
-      if (erroWebp) {
-        URL.revokeObjectURL(convertida.previa);
-        setErros((e) => ({ ...e, foto: erroWebp }));
-        evento.target.value = "";
-        return;
-      }
-      setFoto(convertida);
-      setErros((e) => ({ ...e, foto: undefined }));
-    } catch (erro) {
-      setErros((e) => ({ ...e, foto: erro instanceof SemMemoria ? ERRO_MEMORIA : ERRO_LEITURA }));
-      evento.target.value = "";
-    } finally {
-      setConvertendo(false);
-    }
-  }
+  const erros: ErrosCampos = { ...errosAutorizacao, foto: erroFoto ?? undefined };
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -127,9 +45,8 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
     };
     const temporaria = dados.get("temporaria") === "on";
     const validacao = validarAutorizacao(campos, hoje);
-    const novosErros: ErrosCampos = validacao.ok ? {} : { ...validacao.erros };
-    if (!foto) novosErros.foto = erros.foto ?? "Escolha uma foto.";
-    setErros(novosErros);
+    setErros(validacao.ok ? {} : validacao.erros);
+    if (!foto) setErroFoto(erroFoto ?? "Escolha uma foto.");
     if (!foto || !validacao.ok) return;
     if (!navigator.onLine) {
       setFalha({ etapa: "preparar", codigo: "offline" });
@@ -152,21 +69,9 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
         return;
       }
 
-      let resposta;
-      try {
-        resposta = await fetch(preparo.url, {
-          method: "PUT",
-          // Caminho novo a cada foto: o arquivo nunca muda, pode ficar em cache por 1 ano.
-          headers: { "content-type": foto.blob.type, "cache-control": "max-age=31536000" },
-          body: foto.blob,
-          signal: AbortSignal.timeout(TIMEOUT_ENVIO),
-        });
-      } catch (erro) {
-        setFalha(falhaDeRede("enviar", erro));
-        return;
-      }
-      if (!resposta.ok) {
-        setFalha(falhaDoPut(resposta.status, await resposta.json().catch(() => null)));
+      const falhaDoEnvio = await subirParaOStorage(preparo.url, foto.blob);
+      if (falhaDoEnvio) {
+        setFalha(falhaDoEnvio);
         return;
       }
 
@@ -186,7 +91,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
       }
 
       form.current?.reset();
-      setFoto(null);
+      limpar();
       setSucesso(true);
     } finally {
       setEnviando(false);
@@ -208,7 +113,11 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
             name="foto"
             type="file"
             accept={TIPOS_ENTRADA.join(",")}
-            onChange={escolher}
+            onChange={(evento) => {
+              setSucesso(false);
+              setFalha(null);
+              escolher(evento);
+            }}
             aria-describedby={["dica-foto", descricao("foto")].filter(Boolean).join(" ")}
             aria-invalid={invalido("foto")}
             className="block w-full text-[14px] text-ink-2 file:mr-3 file:h-10 file:cursor-pointer file:rounded-full file:border file:border-line-strong file:bg-white file:px-4 file:text-[13.5px] file:font-semibold file:text-espresso hover:file:bg-hover-soft"
@@ -314,7 +223,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
         </div>
       </fieldset>
 
-      <ErroDoEnvio falha={falha} cafeId={cafeId} />
+      <ErroDoEnvio falha={falha} voltarPara={`/admin/cafes/${cafeId}`} />
       {sucesso && (
         <p role="status" className="text-[14px] font-medium text-open">
           Foto enviada. Já está no site.
@@ -338,52 +247,5 @@ function Opcao({ valor, children }: { valor: string; children: React.ReactNode }
       <input type="radio" name="origem" value={valor} required className="size-[18px] accent-terracotta" />
       {children}
     </label>
-  );
-}
-
-/**
- * Falha do envio (#74): a frase (o que houve e o que fazer) e, recolhidos, os
- * detalhes técnicos para investigar. Sempre no DOM, como o `Erro`, para o
- * leitor de tela conhecer a região; o foco vem para cá quando a falha aparece
- * — o botão estava desabilitado durante o envio e o foco teria se perdido.
- */
-function ErroDoEnvio({ falha, cafeId }: { falha: Falha | null; cafeId: string }) {
-  const regiao = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (falha) regiao.current?.focus();
-  }, [falha]);
-
-  const traduzida = falha && mensagemDaFalha(falha);
-  return (
-    <div ref={regiao} role="alert" tabIndex={-1} className="flex flex-col gap-2 empty:hidden focus:outline-none">
-      {traduzida && (
-        <>
-          <p className="text-[14px] font-medium text-terracotta">
-            {traduzida.mensagem}
-            {falha.codigo === "sessao" && (
-              <>
-                {" "}
-                <a
-                  href={urlDoLogin(`/admin/cafes/${cafeId}`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-espresso underline underline-offset-2"
-                >
-                  Entrar de novo (abre em outra aba)
-                </a>
-              </>
-            )}
-          </p>
-          <details className="text-[12.5px] text-ink-3">
-            <summary className="w-fit cursor-pointer font-semibold text-ink-2">Detalhes técnicos</summary>
-            <ul className="mt-1.5 select-all break-words rounded-lg bg-hover-soft px-3 py-2 font-mono">
-              {traduzida.detalhes.map((linha) => (
-                <li key={linha}>{linha}</li>
-              ))}
-            </ul>
-          </details>
-        </>
-      )}
-    </div>
   );
 }

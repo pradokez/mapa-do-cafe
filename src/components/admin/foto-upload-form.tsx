@@ -125,6 +125,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
       autorizado_em: dados.get("autorizado_em"),
       observacao: dados.get("observacao"),
     };
+    const temporaria = dados.get("temporaria") === "on";
     const validacao = validarAutorizacao(campos, hoje);
     const novosErros: ErrosCampos = validacao.ok ? {} : { ...validacao.erros };
     if (!foto) novosErros.foto = erros.foto ?? "Escolha uma foto.";
@@ -171,7 +172,7 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
 
       let registro;
       try {
-        registro = await registrarFoto(cafeId, preparo.caminho, validacao.valores);
+        registro = await registrarFoto(cafeId, preparo.caminho, validacao.valores, temporaria);
       } catch (erro) {
         // O registro não respondeu: o arquivo não pode ficar no bucket sem autorização.
         await descartarUpload(cafeId, preparo.caminho).catch(() => {});
@@ -295,6 +296,21 @@ export function FotoUploadForm({ cafeId, hoje }: Props) {
             className={`${inputClass} h-auto py-2.5`}
           />
           <Erro id="erro-observacao" erro={erros.observacao} className="mt-1.5" />
+        </div>
+
+        <div>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-[15px] text-espresso">
+            <input
+              type="checkbox"
+              name="temporaria"
+              aria-describedby="dica-temporaria"
+              className="size-[18px] accent-terracotta"
+            />
+            Foto temporária
+          </label>
+          <p id="dica-temporaria" className="text-[12.5px] text-ink-3">
+            Vai ao ar normalmente e fica marcada aqui para trocar depois.
+          </p>
         </div>
       </fieldset>
 

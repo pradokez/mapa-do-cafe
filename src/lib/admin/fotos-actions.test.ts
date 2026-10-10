@@ -26,16 +26,20 @@ const storage = {
   remove: vi.fn(),
 };
 const insert = vi.fn();
+/** `update(...).eq(...).eq(...)`: o resultado sai do último `eq`. */
+const resultadoUpdate = vi.fn();
+const update = vi.fn(() => ({ eq: () => ({ eq: resultadoUpdate }) }));
 vi.mock("@/lib/supabase-server", () => ({
   createSessionClient: () => ({
     storage: { from: () => storage },
-    from: () => ({ insert }),
+    from: () => ({ insert, update }),
   }),
 }));
 
-import { prepararUpload, registrarFoto } from "./fotos-actions";
+import { marcarTemporaria, prepararUpload, registrarFoto } from "./fotos-actions";
 
 const AUTORIZACAO = { origem: "cedida", autorizado_por: "Ana", autorizado_em: "2026-01-02", observacao: "" };
+const FOTO = "0b6f3a52-7d1e-4c8a-9f2b-5e4d3c2b1a09";
 const WEBP = { type: "image/webp", size: 1000 };
 
 let log: ReturnType<typeof vi.spyOn>;
@@ -51,6 +55,8 @@ beforeEach(() => {
   storage.exists.mockResolvedValue({ data: true, error: null });
   storage.remove.mockResolvedValue({ data: [], error: null });
   insert.mockResolvedValue({ error: null });
+  resultadoUpdate.mockResolvedValue({ error: null, count: 1 });
+  repo.listFotosDoCafe.mockResolvedValue([{ id: FOTO, storage_path: CAMINHO, ordem: 0 }]);
 });
 
 afterEach(() => {
@@ -159,5 +165,50 @@ describe("registrarFoto", () => {
     await registrarFoto(CAFE, CAMINHO, AUTORIZACAO);
     expect(log).toHaveBeenCalled();
     expect(textoDoLog()).not.toMatch(/token|eyJ|https:/);
+  });
+});
+
+describe("registrarFoto — foto temporária (#92)", () => {
+  it("marcada no envio: a linha nasce temporária", async () => {
+    expect(await registrarFoto(CAFE, CAMINHO, AUTORIZACAO, true)).toEqual({ ok: true });
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ temporaria: true }));
+  });
+
+  it("sem marcar (ou com qualquer valor que não seja true): definitiva", async () => {
+    await registrarFoto(CAFE, CAMINHO, AUTORIZACAO, false);
+    await registrarFoto(CAFE, CAMINHO, AUTORIZACAO, "true" as unknown as boolean);
+    expect(insert.mock.calls.map(([linha]) => linha.temporaria)).toEqual([false, false]);
+  });
+});
+
+describe("marcarTemporaria (#92)", () => {
+  it("grava só a marca, no estado pedido", async () => {
+    expect(await marcarTemporaria(CAFE, FOTO, true)).toEqual({ ok: true });
+    expect(update).toHaveBeenCalledWith({ temporaria: true }, { count: "exact" });
+    await marcarTemporaria(CAFE, FOTO, false);
+    expect(update).toHaveBeenLastCalledWith({ temporaria: false }, { count: "exact" });
+  });
+
+  it("começa pela checagem de admin", async () => {
+    sessao.requireAdmin.mockRejectedValue(new Error("NEXT_REDIRECT"));
+    await expect(marcarTemporaria(CAFE, FOTO, true)).rejects.toThrow();
+    expect(update).not.toHaveBeenCalled();
+    sessao.requireAdmin.mockReset();
+  });
+
+  it("modo leitura: recusa sem gravar", async () => {
+    vi.stubEnv("ADMIN_ESCRITA_LIBERADA", "");
+    expect(await marcarTemporaria(CAFE, FOTO, true)).toMatchObject({ ok: false });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("foto que não é deste café: erro, nada gravado", async () => {
+    expect(await marcarTemporaria(CAFE, "outra", true)).toMatchObject({ ok: false });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("a RLS não deixou gravar (nenhuma linha): erro", async () => {
+    resultadoUpdate.mockResolvedValue({ error: null, count: 0 });
+    expect(await marcarTemporaria(CAFE, FOTO, true)).toMatchObject({ ok: false });
   });
 });

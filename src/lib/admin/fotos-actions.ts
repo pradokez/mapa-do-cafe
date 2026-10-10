@@ -13,7 +13,9 @@
  *
  * Se o passo 3 nem chega ao servidor, o formulário chama `descartarUpload`.
  * Depois de no ar, a foto muda de posição (`reordenarFoto`) ou sai
- * (`removerFoto`) — #51. Quem decide o acesso, em cada passo, é a RLS (`private.is_admin()`).
+ * (`removerFoto`) — #51 —, e é marcada ou desmarcada como temporária
+ * (`marcarTemporaria`, #92). Quem decide o acesso, em cada passo, é a RLS
+ * (`private.is_admin()`).
  */
 import { revalidatePath } from "next/cache";
 
@@ -100,11 +102,15 @@ export async function prepararUpload(
   return { ok: true, caminho, url: data.signedUrl };
 }
 
-/** Passo 3: registra a foto já no bucket. Qualquer falha apaga o arquivo. */
+/**
+ * Passo 3: registra a foto já no bucket. Qualquer falha apaga o arquivo.
+ * `temporaria` (#92) só vale com `true` exato: o resto é foto definitiva.
+ */
 export async function registrarFoto(
   cafeId: string,
   caminho: string,
   campos: CamposAutorizacao,
+  temporaria = false,
 ): Promise<ResultadoFoto> {
   if (!(await sessaoDeAdmin())) return sessaoExpirada("registrar");
   if (bloqueioDeEscrita()) return modoLeitura("registrar");
@@ -138,7 +144,7 @@ export async function registrarFoto(
 
   const { error } = await supabase
     .from("cafe_fotos")
-    .insert({ cafe_id: cafe.id, storage_path: caminho, ...validacao.valores });
+    .insert({ cafe_id: cafe.id, storage_path: caminho, ...validacao.valores, temporaria: temporaria === true });
   if (error) return falhar(falhaDoPostgres(error));
 
   revalidarFotos(cafe.slug);
@@ -170,6 +176,7 @@ export type ResultadoAcaoFoto = { ok: true } | { ok: false; erro: string };
 const ERRO_FOTO = "Esta foto não foi encontrada. Recarregue a página.";
 const ERRO_ORDEM = "Não deu para mudar a ordem agora. Tente de novo em instantes.";
 const ERRO_REMOCAO = "Não deu para remover a foto agora. Tente de novo em instantes.";
+const ERRO_MARCA = "Não deu para mudar a marca da foto agora. Tente de novo em instantes.";
 
 /** Café e foto conferidos no servidor: o id vindo do cliente precisa ser de uma foto deste café. */
 async function fotoDoCafe(cafeId: string, fotoId: string) {
@@ -245,5 +252,31 @@ export async function removerFoto(cafeId: string, fotoId: string): Promise<Resul
 
   await supabase.storage.from(BUCKET_FOTOS).remove([foto.storage_path]);
   revalidarFotos(cafe.slug);
+  return { ok: true };
+}
+
+/**
+ * Marca a foto como temporária ("trocar depois") ou definitiva (#92) —
+ * estado-alvo, idempotente. Só o admin vê a marca: o site não muda, então só
+ * o painel é revalidado.
+ */
+export async function marcarTemporaria(cafeId: string, fotoId: string, temporaria: boolean): Promise<ResultadoAcaoFoto> {
+  await requireAdmin();
+  const bloqueio = bloqueioDeEscrita();
+  if (bloqueio) return { ok: false, erro: bloqueio };
+
+  const achado = await fotoDoCafe(cafeId, fotoId);
+  if (!achado) return { ok: false, erro: ERRO_FOTO };
+  const { cafe, foto } = achado;
+
+  const { error, count } = await createSessionClient()
+    .from("cafe_fotos")
+    .update({ temporaria: temporaria === true }, { count: "exact" })
+    .eq("id", foto.id)
+    .eq("cafe_id", cafe.id);
+  // A RLS não dá erro, só não grava: sem a linha afetada, não houve mudança.
+  if (error || count !== 1) return { ok: false, erro: ERRO_MARCA };
+
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }

@@ -122,8 +122,25 @@ describe("FotoUploadForm — envio", () => {
     };
     expect(actions.prepararUpload).toHaveBeenCalledWith(CAFE, autorizacao, { type: "image/webp", size: 4 });
     expect(fetch).toHaveBeenCalledWith(URL_ASSINADA, expect.objectContaining({ method: "PUT" }));
-    expect(actions.registrarFoto).toHaveBeenCalledWith(CAFE, CAMINHO, autorizacao);
+    // Sem marcar "Foto temporária", a foto é definitiva (#92).
+    expect(actions.registrarFoto).toHaveBeenCalledWith(CAFE, CAMINHO, autorizacao, false);
     expect(screen.queryByAltText("Prévia da foto que vai ser enviada")).toBeNull();
+  });
+
+  it("foto temporária (#92): começa desmarcada; marcada, vai ao registro e desmarca depois do envio", async () => {
+    navegador();
+    actions.prepararUpload.mockResolvedValue({ ok: true, caminho: CAMINHO, url: URL_ASSINADA });
+    actions.registrarFoto.mockResolvedValue({ ok: true });
+    render(<FotoUploadForm cafeId={CAFE} hoje="2026-10-04" />);
+
+    const temporaria = screen.getByRole("checkbox", { name: "Foto temporária" });
+    expect(temporaria).toHaveProperty("checked", false);
+    await userEvent.click(temporaria);
+    await preencherEEnviar();
+
+    await screen.findByText("Foto enviada. Já está no site.");
+    expect(actions.registrarFoto).toHaveBeenCalledWith(CAFE, CAMINHO, expect.anything(), true);
+    expect(temporaria).toHaveProperty("checked", false);
   });
 
   it("navegador que não gera WebP: recusa ao escolher, pedindo outro navegador", async () => {

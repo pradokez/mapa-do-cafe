@@ -116,7 +116,14 @@ export async function fotoRegistrada(storagePath: string): Promise<boolean> {
 }
 
 /** Foto de um café no admin: URL pública, posição e a autorização registrada. */
-export type FotoDoCafe = Autorizacao & { id: string; storage_path: string; ordem: number; url: string };
+/** `temporaria` (#92): no ar como qualquer outra, marcada no admin para trocar depois. */
+export type FotoDoCafe = Autorizacao & {
+  id: string;
+  storage_path: string;
+  ordem: number;
+  temporaria: boolean;
+  url: string;
+};
 
 /**
  * Admin: fotos do café em `cafe_fotos`, na ordem do site (o mesmo desempate do
@@ -127,7 +134,7 @@ export async function listFotosDoCafe(cafeId: string): Promise<FotoDoCafe[]> {
 
   const { data, error } = await createSessionClient()
     .from("cafe_fotos")
-    .select("id, storage_path, ordem, origem, autorizado_por, autorizado_em, observacao")
+    .select("id, storage_path, ordem, temporaria, origem, autorizado_por, autorizado_em, observacao")
     .eq("cafe_id", cafeId)
     .order("ordem")
     .order("criado_em")

@@ -4,14 +4,12 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import Link from "next/link";
 import { useRef } from "react";
 
-import { FotoDoStorage } from "@/components/foto-do-storage";
+import { passoDoArraste } from "@/components/arraste";
+import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { ChevronLeftIcon, ChevronRightIcon, NavigationIcon, XIcon } from "@/components/icons";
 import { caminhoDoCafe } from "@/lib/cafe";
 import { fonteDaArte, type Combo } from "@/lib/festival";
 import { googleMapsUrl } from "@/lib/format";
-
-// Deslocamento horizontal mínimo para um arraste contar (o mesmo do carrossel).
-const SWIPE_PX = 40;
 
 const SETA =
   "flex size-12 flex-none items-center justify-center rounded-full bg-cream/[.14] text-cream transition-colors hover:bg-cream/[.24] focus-visible:outline-cream max-lg:sr-only";
@@ -35,18 +33,23 @@ type Props = {
  * ficam só para leitor de tela (`sr-only`).
  */
 export function FestivalArteAmpliada({ combos, indice, onIndice, onFechado, festival, ano, encerrada }: Props) {
-  const ultimo = useRef(0);
+  // O combo à vista quando o diálogo fechou: o foco volta ao card dele.
+  const fechouEm = useRef(0);
   const inicio = useRef<{ x: number; y: number } | null>(null);
   const total = combos.length;
   const combo = indice !== null ? combos[indice] : undefined;
-  if (indice !== null) ultimo.current = indice;
+  const posicao = `${(indice ?? 0) + 1} de ${total}`;
 
   const ir = (passo: number) => {
     if (indice !== null) onIndice((indice + passo + total) % total);
   };
+  const fechar = () => {
+    fechouEm.current = indice ?? 0;
+    onIndice(null);
+  };
 
   return (
-    <DialogPrimitive.Root open={combo !== undefined} onOpenChange={(aberto) => !aberto && onIndice(null)}>
+    <DialogPrimitive.Root open={combo !== undefined} onOpenChange={(aberto) => !aberto && fechar()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-lightbox lg:bg-lightbox/90" />
         {combo && (
@@ -54,21 +57,21 @@ export function FestivalArteAmpliada({ combos, indice, onIndice, onFechado, fest
             aria-describedby={undefined}
             onCloseAutoFocus={(e) => {
               e.preventDefault();
-              onFechado(ultimo.current);
+              onFechado(fechouEm.current);
             }}
             onKeyDown={(e) => {
               if (e.key === "ArrowLeft") ir(-1);
               else if (e.key === "ArrowRight") ir(1);
             }}
             // O conteúdo cobre a tela (no desktop, transparente): clique fora do cartão fecha.
-            onClick={(e) => e.target === e.currentTarget && onIndice(null)}
+            onClick={(e) => e.target === e.currentTarget && fechar()}
             className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-lightbox text-cream outline-none lg:flex-row lg:items-center lg:justify-center lg:gap-5 lg:overflow-hidden lg:bg-transparent lg:p-6"
           >
             <DialogPrimitive.Title className="sr-only">
-              {combo.cafe.nome}, combo {indice! + 1} de {total}
+              {combo.cafe.nome}, combo {posicao}
             </DialogPrimitive.Title>
             <p aria-hidden="true" className="flex h-[68px] flex-none items-end px-[18px] pb-3 text-[13px] text-sobre-espresso-2 lg:hidden">
-              {indice! + 1} de {total}
+              {posicao}
             </p>
 
             <button type="button" onClick={() => ir(-1)} aria-label="Combo anterior" className={SETA}>
@@ -84,8 +87,8 @@ export function FestivalArteAmpliada({ combos, indice, onIndice, onFechado, fest
                   const de = inicio.current;
                   inicio.current = null;
                   if (!de) return;
-                  const dx = e.clientX - de.x;
-                  if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(e.clientY - de.y)) ir(dx < 0 ? 1 : -1);
+                  const passo = passoDoArraste(de, { x: e.clientX, y: e.clientY });
+                  if (passo !== 0) ir(passo);
                 }}
               />
               <div aria-hidden="true" className="flex flex-wrap justify-center gap-1.5 px-[18px] pt-3 lg:hidden">
@@ -99,7 +102,7 @@ export function FestivalArteAmpliada({ combos, indice, onIndice, onFechado, fest
 
               <div className="flex flex-1 flex-col gap-1 px-[18px] pb-[30px] pt-3.5 lg:w-[300px] lg:flex-none lg:gap-2.5 lg:px-[26px] lg:py-7">
                 <p aria-hidden="true" className="hidden text-[12.5px] text-ink-3 lg:block">
-                  {indice! + 1} de {total}
+                  {posicao}
                 </p>
                 <p className="font-display text-[22px] leading-[1.1] lg:text-[28px]">{combo.cafe.nome}</p>
                 <p className="text-[13.5px] leading-normal text-sobre-espresso-2 lg:text-sm lg:text-ink-2">
@@ -159,23 +162,14 @@ function Arte({
   React.HTMLAttributes<HTMLDivElement>,
   "onPointerDown" | "onPointerUp"
 >) {
-  const fonte = fonteDaArte(combo);
   return (
-    <div
+    <CafePhotoFrame
       {...gesto}
-      className={`relative aspect-[4/5] w-full flex-none touch-pan-y select-none lg:h-[min(650px,calc(100dvh-48px))] lg:w-auto ${encerrada ? "grayscale-[.6]" : ""}`}
-      style={fonte.kind === "placeholder" ? { background: fonte.background } : undefined}
-    >
-      {fonte.kind === "url" && (
-        <FotoDoStorage
-          src={fonte.src}
-          alt={combo.participacao.alt ?? ""}
-          fill
-          sizes="(min-width: 1024px) 520px, 100vw"
-          draggable={false}
-          className="object-contain"
-        />
-      )}
-    </div>
+      photo={fonteDaArte(combo)}
+      alt={combo.participacao.alt ?? ""}
+      encaixe="contain"
+      carregamento="eager"
+      className={`aspect-[4/5] w-full flex-none touch-pan-y select-none lg:h-[min(650px,calc(100dvh-48px))] lg:w-auto ${encerrada ? "grayscale-[.6]" : ""}`}
+    />
   );
 }

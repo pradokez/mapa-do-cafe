@@ -82,6 +82,13 @@ describe("seed do Supabase", () => {
     }
   });
 
+  it("reaplicar o seed nunca altera café existente: só insere os que faltam (a produção é a fonte da verdade)", () => {
+    const sql = buildSeedSql("[]");
+
+    expect(sql).toContain("on conflict (id) do nothing");
+    expect(sql).not.toMatch(/do update/i);
+  });
+
   it("recusa JSON que fecharia o literal do SQL antes da hora", () => {
     expect(() => buildSeedSql('[{"nome": "$seed$; drop table cafes; --"}]')).toThrow();
   });

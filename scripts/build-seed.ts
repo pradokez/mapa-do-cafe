@@ -4,7 +4,11 @@
  * O JSON entra no SQL como literal, sem passar por transformação: quem
  * converte para colunas é o próprio Postgres (`jsonb_to_recordset`). Assim
  * os registros — inclusive os `id`s — chegam ao banco exatamente como estão
- * no arquivo. Rodar o seed de novo atualiza os registros (upsert por `id`).
+ * no arquivo.
+ *
+ * O seed só insere (`on conflict (id) do nothing`): a produção é a fonte da
+ * verdade, e reaplicá-lo nunca desfaz edição feita pelo admin. O JSON é um
+ * retrato dela, trazido por `pnpm seed:pull`.
  *
  * Uso: pnpm seed:build
  */
@@ -48,13 +52,10 @@ export function buildSeedSql(cafesJson: string): string {
   }
   const list = CAFE_COLUMNS.join(",\n  ");
   const recordset = CAFE_COLUMNS.map((name) => `${name} ${SQL_TYPES[name]}`).join(",\n  ");
-  const updates = CAFE_COLUMNS
-    .filter((name) => name !== "id")
-    .map((name) => `${name} = excluded.${name}`)
-    .join(",\n  ");
 
   return `-- Gerado por scripts/build-seed.ts a partir de supabase/seed/cafes.json.
--- Não edite à mão: altere o JSON e rode \`pnpm seed:build\`.
+-- Não edite à mão: o JSON é um retrato da produção (\`pnpm seed:pull\`).
+-- Só insere café que falta; café que já existe fica como está.
 
 insert into public.cafes (
   ${list}
@@ -64,9 +65,7 @@ select
 from jsonb_to_recordset(${TAG}${cafesJson}${TAG}::jsonb) as c (
   ${recordset}
 )
-on conflict (id) do update set
-  ${updates},
-  atualizado_em = now();
+on conflict (id) do nothing;
 `;
 }
 

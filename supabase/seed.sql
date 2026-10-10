@@ -1,5 +1,6 @@
 -- Gerado por scripts/build-seed.ts a partir de supabase/seed/cafes.json.
--- Não edite à mão: altere o JSON e rode `pnpm seed:build`.
+-- Não edite à mão: o JSON é um retrato da produção (`pnpm seed:pull`).
+-- Só insere café que falta; café que já existe fica como está.
 
 insert into public.cafes (
   id,
@@ -1925,27 +1926,4 @@ $seed$::jsonb) as c (
   fotos text[],
   ativo boolean
 )
-on conflict (id) do update set
-  slug = excluded.slug,
-  nome = excluded.nome,
-  bairro = excluded.bairro,
-  bairro_slug = excluded.bairro_slug,
-  endereco = excluded.endereco,
-  cidade = excluded.cidade,
-  lat = excluded.lat,
-  lng = excluded.lng,
-  selo_ascape = excluded.selo_ascape,
-  selo_eu_amo_cafe = excluded.selo_eu_amo_cafe,
-  aceita_pets = excluded.aceita_pets,
-  tem_estacionamento = excluded.tem_estacionamento,
-  permite_coffee_office = excluded.permite_coffee_office,
-  acessivel_pcd = excluded.acessivel_pcd,
-  opcoes_vegetarianas = excluded.opcoes_vegetarianas,
-  tem_ar_condicionado = excluded.tem_ar_condicionado,
-  faixa_preco = excluded.faixa_preco,
-  horario_funcionamento = excluded.horario_funcionamento,
-  instagram = excluded.instagram,
-  telefone = excluded.telefone,
-  fotos = excluded.fotos,
-  ativo = excluded.ativo,
-  atualizado_em = now();
+on conflict (id) do nothing;

@@ -2,6 +2,7 @@ import { CalendarIcon, CoffeeIcon, DollarSignIcon } from "@/components/icons";
 import { FESTIVAL_CONTEUDO } from "@/components/medidas";
 import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import {
+  INSTAGRAM_DO_FESTIVAL,
   formatarPreco,
   periodoDaEdicao,
   rotuloDeParticipantes,
@@ -72,7 +73,19 @@ export function FestivalFaixa({ edicao, estado, participantes, agora }: Props) {
               </li>
             )}
           </ul>
-          <p className="text-xs text-sobre-espresso-2 lg:text-[12.5px]">Artes divulgadas pelo {nome}.</p>
+          <p className="text-xs text-sobre-espresso-2 lg:text-[12.5px]">
+            Artes divulgadas no Instagram do{" "}
+            <a
+              href={INSTAGRAM_DO_FESTIVAL[edicao.festival.slug]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-cream"
+            >
+              {nome}
+              <span className="sr-only"> (abre em nova aba)</span>
+            </a>
+            .
+          </p>
         </div>
       </div>
     </div>

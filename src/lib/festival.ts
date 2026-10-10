@@ -196,6 +196,12 @@ export function ordenarPorNumero<P extends Pick<Participacao, "numero">>(partici
   });
 }
 
+/** Perfil do festival no Instagram — o mesmo em toda edição. */
+export const INSTAGRAM_DO_FESTIVAL: Record<FestivalSlug, string> = {
+  "eu-amo-cafe": "https://www.instagram.com/euamocafefestival/",
+  "recife-coffee": "https://www.instagram.com/recifecoffeeoficial/",
+};
+
 /** Página da edição: `/festivais/eu-amo-cafe/2026`. */
 export function urlDaEdicao(edicao: Pick<Edicao, "festival" | "ano">): string {
   return `/festivais/${edicao.festival.slug}/${edicao.ano}`;

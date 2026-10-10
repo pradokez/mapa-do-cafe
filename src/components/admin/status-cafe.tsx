@@ -1,4 +1,4 @@
-const ETIQUETA = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold";
+export const ETIQUETA = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold";
 
 /** Etiqueta "No ar" / "Fora do ar" do admin. */
 export function StatusCafe({ ativo }: { ativo: boolean }) {

@@ -15,6 +15,7 @@ import {
   erroDePublicacao,
   validarEdicao,
   validarParticipante,
+  type DadosParticipante,
   type ErrosEdicao,
   type ErrosParticipante,
 } from "@/lib/festival-dados";
@@ -28,7 +29,7 @@ export type ResultadoFestival = { ok: true } | { ok: false; erro: string };
 export type ResultadoCadastroEdicao = { ok: true; id: string } | { ok: false; erro: string | null; erros?: ErrosEdicao };
 export type ResultadoSalvarEdicao = { ok: true } | { ok: false; erro: string | null; erros?: ErrosEdicao };
 export type ResultadoSalvarParticipante =
-  | { ok: true }
+  | { ok: true; valores: DadosParticipante }
   | { ok: false; erro: string | null; erros?: ErrosParticipante };
 
 const ERRO_GERAL = "Não deu para salvar agora. Tente de novo em instantes.";
@@ -197,7 +198,8 @@ export async function salvarParticipante(
   if (error || count !== 1) return { ok: false, erro: ERRO_GERAL };
 
   revalidarFestivais(edicao);
-  return { ok: true };
+  // O que foi gravado, já normalizado (link do post limpo): o formulário mostra isso.
+  return { ok: true, valores: validacao.valores };
 }
 
 /**

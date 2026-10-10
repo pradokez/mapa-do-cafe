@@ -272,7 +272,8 @@ describe("salvarParticipante", () => {
       arte_path: "outro/caminho.webp",
     });
 
-    expect(resultado).toEqual({ ok: true });
+    const valores = { numero: 13, nome_combo: "Espresso + bolo", alt: null, instagram_url: "https://www.instagram.com/p/DAbc/" };
+    expect(resultado).toEqual({ ok: true, valores });
     expect(banco.update).toHaveBeenCalledWith(
       { numero: 13, nome_combo: "Espresso + bolo", alt: null, instagram_url: "https://www.instagram.com/p/DAbc/" },
       { count: "exact" },

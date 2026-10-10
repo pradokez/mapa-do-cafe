@@ -27,7 +27,7 @@ afterEach(cleanup);
 
 describe("CafeDirectory — mobile", () => {
   it("abre na lista; o FAB alterna para o mapa e de volta, sem mexer nos filtros", async () => {
-    render(<CafeDirectory cafes={CAFES} festivais={{}} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} />);
 
     expect(screen.getByText("1 café encontrado")).toBeDefined();
     await userEvent.click(screen.getByRole("button", { name: "Ver mapa" }));
@@ -43,7 +43,7 @@ describe("CafeDirectory — mobile", () => {
 describe("CafeDirectory — festival", () => {
   it("o link com o filtro do festival filtra os participantes da edição no ar", () => {
     window.history.replaceState(null, "", "/?eu_amo_cafe=true");
-    render(<CafeDirectory cafes={CAFES} festivais={{ "eu-amo-cafe": ["b"] }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{ "eu-amo-cafe": ["b"] }} vitrines={[]} />);
 
     expect(screen.getByText("1 café encontrado")).toBeDefined();
     expect(screen.getByRole("link", { name: "Café B" })).toBeDefined();
@@ -51,7 +51,7 @@ describe("CafeDirectory — festival", () => {
 
   it("fora da edição, o mesmo link abre a home sem filtro, sem chip nem selo", () => {
     window.history.replaceState(null, "", "/?eu_amo_cafe=true&ascape=true");
-    render(<CafeDirectory cafes={CAFES} festivais={{}} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} />);
 
     expect(screen.getByText("2 cafés encontrados")).toBeDefined();
     expect(screen.queryByRole("button", { name: "Eu Amo Café" })).toBeNull();

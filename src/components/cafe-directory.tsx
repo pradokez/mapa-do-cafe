@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { CafeList, type Hovered } from "@/components/cafe-list";
+import { FestivalVitrine } from "@/components/festival-vitrine";
 import { FilterBar } from "@/components/filter-bar";
 import { FiltrosSheet } from "@/components/filtros-sheet";
 import { HomeMap } from "@/components/home-map";
@@ -15,16 +16,26 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import type { Cafe } from "@/lib/cafe";
 import { ordenarPorDistancia } from "@/lib/cafe-distance";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
-import type { FestivaisNoAr } from "@/lib/festival";
+import { combosDaEdicao, type Edicao, type FestivaisNoAr } from "@/lib/festival";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
  * recorte dos filtros e da busca (na URL, com os festivais no ar), a ordem por distância (com
  * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
- * sempre abre na lista. Tudo no cliente, sem round-trip.
+ * sempre abre na lista. Tudo no cliente, sem round-trip. As vitrines dos
+ * festivais ativos (#106) ficam no topo da lista só sem filtro nem busca.
  */
-export function CafeDirectory({ cafes, festivais }: { cafes: Cafe[]; festivais: FestivaisNoAr }) {
+export function CafeDirectory({
+  cafes,
+  festivais,
+  vitrines,
+}: {
+  cafes: Cafe[];
+  festivais: FestivaisNoAr;
+  /** Edições com vitrine hoje (`edicoesEmVitrine`), decididas no servidor. */
+  vitrines: Edicao[];
+}) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
   const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, aplicar, limpar } =
@@ -37,6 +48,16 @@ export function CafeDirectory({ cafes, festivais }: { cafes: Cafe[]; festivais: 
     () => ordenarPorDistancia(filtrarCafes(cafes, filters, festivais), coords),
     [cafes, filters, festivais, coords],
   );
+
+  // Os cafés dos combos saem da lista que já veio, sem repetir no payload.
+  const combosDasVitrines = useMemo(
+    () =>
+      vitrines
+        .map((edicao) => ({ edicao, combos: combosDaEdicao(edicao, cafes) }))
+        .filter(({ combos }) => combos.length > 0),
+    [vitrines, cafes],
+  );
+  const comFiltro = temFiltroAtivo(filters);
 
   const [hovered, setHovered] = useState<Hovered | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -87,7 +108,13 @@ export function CafeDirectory({ cafes, festivais }: { cafes: Cafe[]; festivais: 
               hovered={hoveredVisivel}
               selectedId={selectedId}
               onHover={hoverFrom("card")}
-              onLimpar={temFiltroAtivo(filters) ? limpar : undefined}
+              onLimpar={comFiltro ? limpar : undefined}
+              topo={
+                !comFiltro &&
+                combosDasVitrines.map(({ edicao, combos }) => (
+                  <FestivalVitrine key={edicao.id} edicao={edicao} combos={combos} />
+                ))
+              }
             />
           </div>
           {/* Fixo: só a coluna da lista rola. No mobile, o mapa em tela cheia da visão "mapa". */}

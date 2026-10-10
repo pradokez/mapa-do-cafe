@@ -1801,12 +1801,12 @@
     "tem_ar_condicionado": null,
     "faixa_preco": "$$",
     "horario_funcionamento": {
-      "segunda": "10:00 – 22:00",
-      "terca": "10:00 – 22:00",
-      "quarta": "10:00 – 22:00",
-      "quinta": "10:00 – 22:00",
-      "sexta": "10:00 – 22:00",
-      "sabado": "10:00 – 22:00",
+      "segunda": "09:00 – 22:00",
+      "terca": "09:00 – 22:00",
+      "quarta": "09:00 – 22:00",
+      "quinta": "09:00 – 22:00",
+      "sexta": "09:00 – 22:00",
+      "sabado": "09:00 – 22:00",
       "domingo": "12:00 – 21:00"
     },
     "instagram": "https://instagram.com/mutattocafe",

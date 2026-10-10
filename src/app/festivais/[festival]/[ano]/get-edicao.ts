@@ -14,5 +14,9 @@ export const getEdicao = cache(async (festival: string, ano: string) => {
   const [edicoes, cafes] = await Promise.all([listFestivais(), listCafesAtivos()]);
   const pagina = edicaoDaPagina(edicoes, festival, ano, agora);
   if (!pagina) return null;
-  return { ...pagina, combos: combosDaEdicao(pagina.edicao, cafes), agora };
+  const combos = combosDaEdicao(pagina.edicao, cafes);
+  // Os dois caches viram em horas diferentes: participante de café recém-saído
+  // do ar ainda pode vir na edição. Sem nenhum combo à mostra, também é 404.
+  if (combos.length === 0) return null;
+  return { ...pagina, combos, agora };
 });

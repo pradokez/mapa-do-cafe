@@ -10,6 +10,7 @@ import {
   combosDaEdicao,
   combosDoCafe,
   edicaoDaPagina,
+  edicaoTemPagina,
   edicoesNoAr,
   estadoDaEdicao,
   fonteDaArte,
@@ -289,11 +290,32 @@ describe("tituloDoCombo", () => {
 });
 
 describe("edicaoDaPagina", () => {
-  const edicoes = [EU_AMO_CAFE, RECIFE_COFFEE];
+  const participante: Participacao = {
+    id: "p",
+    cafe_id: "a",
+    numero: 1,
+    nome_combo: null,
+    alt: null,
+    instagram_url: null,
+    arte: null,
+  };
+  // A página só existe com participante; a regra de vazio tem teste próprio.
+  const EU_AMO_CAFE_P = { ...EU_AMO_CAFE, participacoes: [participante] };
+  const RECIFE_COFFEE_P = { ...RECIFE_COFFEE, participacoes: [participante] };
+  const edicoes = [EU_AMO_CAFE_P, RECIFE_COFFEE_P];
+
+  it("publicada sem nenhum participante não tem página (404), mesmo durante o período", () => {
+    expect(edicaoDaPagina([EU_AMO_CAFE], "eu-amo-cafe", "2026", meioDia("2026-10-20"))).toBeNull();
+  });
+
+  it("e não vira o 'Ver edição {ano}' da encerrada", () => {
+    const ed2025 = { ...EU_AMO_CAFE_P, id: "e0", ano: 2025, inicio: "2025-10-18", fim: "2025-11-15" };
+    expect(edicaoDaPagina([ed2025, EU_AMO_CAFE], "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBeNull();
+  });
 
   it("acha a edição pelo festival e pelo ano, ativa durante o período", () => {
     expect(edicaoDaPagina(edicoes, "eu-amo-cafe", "2026", meioDia("2026-10-20"))).toMatchObject({
-      edicao: EU_AMO_CAFE,
+      edicao: EU_AMO_CAFE_P,
       estado: "ativa",
     });
   });
@@ -307,14 +329,14 @@ describe("edicaoDaPagina", () => {
   });
 
   it("na encerrada, aponta a edição no ar do mesmo festival — futura ou ativa", () => {
-    const ed2025 = { ...EU_AMO_CAFE, id: "e0", ano: 2025, inicio: "2025-10-18", fim: "2025-11-15" };
-    const todas = [ed2025, EU_AMO_CAFE, RECIFE_COFFEE];
-    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-01"))?.noAr).toBe(EU_AMO_CAFE);
-    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBe(EU_AMO_CAFE);
+    const ed2025 = { ...EU_AMO_CAFE_P, id: "e0", ano: 2025, inicio: "2025-10-18", fim: "2025-11-15" };
+    const todas = [ed2025, EU_AMO_CAFE_P, RECIFE_COFFEE_P];
+    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-01"))?.noAr).toBe(EU_AMO_CAFE_P);
+    expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBe(EU_AMO_CAFE_P);
     // Depois de 2026 acabar, não há edição do Eu Amo Café no ar.
     expect(edicaoDaPagina(todas, "eu-amo-cafe", "2025", meioDia("2026-11-20"))?.noAr).toBeNull();
     // Rascunho não conta.
-    const rascunho = { ...EU_AMO_CAFE, publicada: false };
+    const rascunho = { ...EU_AMO_CAFE_P, publicada: false };
     expect(edicaoDaPagina([ed2025, rascunho], "eu-amo-cafe", "2025", meioDia("2026-10-20"))?.noAr).toBeNull();
   });
 
@@ -328,7 +350,7 @@ describe("edicaoDaPagina", () => {
   });
 
   it("não publicada → null, mesmo dentro do período", () => {
-    const rascunho = { ...EU_AMO_CAFE, publicada: false };
+    const rascunho = { ...EU_AMO_CAFE_P, publicada: false };
     expect(edicaoDaPagina([rascunho], "eu-amo-cafe", "2026", meioDia("2026-10-20"))).toBeNull();
   });
 });
@@ -420,5 +442,26 @@ describe("fonteDaArte", () => {
     const fonte = fonteDaArte({ participacao: { ...participacao, arte: null }, cafe: cafe("a") });
     const [doCard] = resolveCafePhotos(cafe("a"));
     expect(fonte).toEqual(doCard);
+  });
+});
+
+describe("edicaoTemPagina", () => {
+  const participante: Participacao = {
+    id: "p",
+    cafe_id: "a",
+    numero: null,
+    nome_combo: null,
+    alt: null,
+    instagram_url: null,
+    arte: null,
+  };
+
+  it("publicada e com participante: tem página (e entra no sitemap)", () => {
+    expect(edicaoTemPagina({ ...EU_AMO_CAFE, participacoes: [participante] })).toBe(true);
+  });
+
+  it("sem participante ou não publicada: não tem", () => {
+    expect(edicaoTemPagina(EU_AMO_CAFE)).toBe(false);
+    expect(edicaoTemPagina({ ...EU_AMO_CAFE, publicada: false, participacoes: [participante] })).toBe(false);
   });
 });

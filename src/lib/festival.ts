@@ -185,11 +185,19 @@ export function urlPublicaDaArte(caminho: string, supabaseUrl: string): string {
 }
 
 /**
+ * A edição tem página (e entra no sitemap): publicada e com pelo menos um
+ * participante — sem nenhum, a página seria uma faixa sobre uma grade vazia.
+ */
+export function edicaoTemPagina(edicao: Pick<Edicao, "publicada" | "participacoes">): boolean {
+  return edicao.publicada && edicao.participacoes.length > 0;
+}
+
+/**
  * A edição da página `/festivais/{festival}/{ano}`, com o estado de hoje, ou
- * `null` (→ 404) se não existe ou não está publicada. Publicada abre em
- * qualquer estado: futura (já está no ar, decisão de 10/10/2026), ativa ou
- * encerrada. `noAr` é a edição do mesmo festival no ar hoje (publicada e não
- * encerrada), para o "Ver edição {ano}" da encerrada.
+ * `null` (→ 404) se ela não tem página (`edicaoTemPagina`). Com página, abre
+ * em qualquer estado: futura (já está no ar, decisão de 10/10/2026), ativa ou
+ * encerrada. `noAr` é a edição do mesmo festival no ar hoje, também com
+ * página, para o "Ver edição {ano}" da encerrada.
  */
 export function edicaoDaPagina<E extends Edicao>(
   edicoes: readonly E[],
@@ -197,7 +205,7 @@ export function edicaoDaPagina<E extends Edicao>(
   ano: string,
   agora: Date,
 ): { edicao: E; estado: EstadoEdicao; noAr: E | null } | null {
-  const doFestival = edicoes.filter((e) => e.publicada && e.festival.slug === festival);
+  const doFestival = edicoes.filter((e) => edicaoTemPagina(e) && e.festival.slug === festival);
   const edicao = doFestival.find((e) => String(e.ano) === ano);
   if (!edicao) return null;
   const [noAr = null] = edicoesNoAr(doFestival, agora);

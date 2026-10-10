@@ -73,11 +73,7 @@ export default async function FestivalPage({ params }: Props) {
               )}
             </div>
           )}
-          {combos.length > 0 ? (
-            <FestivalGrade combos={combos} festival={edicao.festival.nome} ano={edicao.ano} encerrada={encerrada} />
-          ) : (
-            <p className="py-10 text-center text-[15px] text-ink-2">Os combos desta edição ainda vão aparecer aqui.</p>
-          )}
+          <FestivalGrade combos={combos} festival={edicao.festival.nome} ano={edicao.ano} encerrada={encerrada} />
         </div>
       </main>
     </div>

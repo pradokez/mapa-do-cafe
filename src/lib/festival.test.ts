@@ -5,6 +5,7 @@ import { cafe } from "./cafe.fixture";
 import { resolveCafePhotos } from "./cafe-photos";
 import {
   ateODia,
+  comecaEm,
   bairroDoParam,
   bairrosDosCombos,
   combosDaEdicao,
@@ -276,6 +277,12 @@ describe("combosDoCafe", () => {
 describe("ateODia", () => {
   it("último dia da edição, como na pílula do combo", () => {
     expect(ateODia(EU_AMO_CAFE)).toBe("até 15 nov");
+  });
+});
+
+describe("comecaEm", () => {
+  it("primeiro dia da edição, como na etiqueta do admin", () => {
+    expect(comecaEm(EU_AMO_CAFE)).toBe("começa em 18 out");
   });
 });
 

@@ -143,6 +143,12 @@ export function ateODia(edicao: Pick<Edicao, "fim">): string {
   return `até ${dia} ${mes}`;
 }
 
+/** "começa em 18 out": o primeiro dia, sem ano (a etiqueta da edição futura no admin). */
+export function comecaEm(edicao: Pick<Edicao, "inicio">): string {
+  const { dia, mes } = partes(edicao.inicio);
+  return `começa em ${dia} ${mes}`;
+}
+
 /** "18 out a 15 nov 2026", "3 a 28 mai 2026", "28 dez 2026 a 5 jan 2027", "18 out 2026". */
 export function periodoDaEdicao(edicao: Periodo): string {
   const i = partes(edicao.inicio);

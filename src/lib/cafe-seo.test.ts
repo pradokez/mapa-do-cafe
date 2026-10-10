@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import { cafe } from "./cafe.fixture";
-import { descricaoCafe, imagemCompartilhamento, jsonLdCafe, tituloCafe } from "./cafe-seo";
+import {
+  descricaoCafe,
+  descricaoEdicao,
+  imagemCompartilhamento,
+  jsonLdCafe,
+  jsonLdEdicao,
+  tituloCafe,
+  tituloEdicao,
+} from "./cafe-seo";
+import type { Edicao } from "./festival";
 
 describe("tituloCafe", () => {
   it("é o nome do café seguido do nome do site", () => {
@@ -168,5 +177,61 @@ describe("imagemCompartilhamento", () => {
     const olinda = cafe("b", { nome: "Café do Alto", bairro: "Carmo", cidade: "Olinda" });
     expect(imagemCompartilhamento(recife).alt).toBe("Borsoi Café · Pina");
     expect(imagemCompartilhamento(olinda).alt).toBe("Café do Alto · Carmo, Olinda");
+  });
+});
+
+describe("SEO da edição do festival", () => {
+  const edicao: Edicao = {
+    id: "e1",
+    festival: { slug: "eu-amo-cafe", nome: "Eu Amo Café" },
+    ano: 2026,
+    inicio: "2026-10-18",
+    fim: "2026-11-15",
+    descricao: "Cada café criou um combo exclusivo.",
+    preco: 3490,
+    publicada: true,
+    participacoes: [],
+  };
+
+  it("título: '{Festival} {ano} · Mapa do Café'", () => {
+    expect(tituloEdicao(edicao)).toBe("Eu Amo Café 2026 · Mapa do Café");
+  });
+
+  it("descrição com período, participantes e preço", () => {
+    expect(descricaoEdicao(edicao, 18)).toBe(
+      "Combos do Eu Amo Café 2026: 18 out a 15 nov 2026, 18 cafés participantes, combo a R$ 34,90.",
+    );
+  });
+
+  it("sem preço, a descrição não o inventa", () => {
+    expect(descricaoEdicao({ ...edicao, preco: null }, 1)).toBe(
+      "Combos do Eu Amo Café 2026: 18 out a 15 nov 2026, 1 café participante.",
+    );
+  });
+
+  it("JSON-LD Festival com as datas, o local e o preço", () => {
+    const url = "https://exemplo.com/festivais/eu-amo-cafe/2026";
+    expect(jsonLdEdicao(edicao, url)).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Festival",
+      name: "Eu Amo Café 2026",
+      url,
+      startDate: "2026-10-18",
+      endDate: "2026-11-15",
+      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+      description: "Cada café criou um combo exclusivo.",
+      location: {
+        "@type": "Place",
+        name: "Recife",
+        address: { "@type": "PostalAddress", addressLocality: "Recife", addressRegion: "PE", addressCountry: "BR" },
+      },
+      offers: { "@type": "Offer", price: "34.90", priceCurrency: "BRL", url },
+    });
+  });
+
+  it("JSON-LD sem descrição nem preço deixa os dois de fora", () => {
+    const ld = jsonLdEdicao({ ...edicao, descricao: null, preco: null }, "https://x");
+    expect(ld).not.toHaveProperty("description");
+    expect(ld).not.toHaveProperty("offers");
   });
 });

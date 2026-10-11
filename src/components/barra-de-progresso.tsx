@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BarraVisual } from "@/components/barra-visual";
 import { navegacaoInterna } from "@/lib/navegacao-interna";
@@ -22,11 +22,15 @@ export function BarraDeProgresso() {
   const [acesa, setAcesa] = useState(false);
   const timers = useRef<number[]>([]);
 
-  function apagar() {
+  const limparTimers = useCallback(() => {
     timers.current.forEach((t) => window.clearTimeout(t));
     timers.current = [];
+  }, []);
+
+  const apagar = useCallback(() => {
+    limparTimers();
     setAcesa(false);
-  }
+  }, [limparTimers]);
 
   useEffect(() => {
     // Em captura: o `<Link>` do Next cancela o clique para navegar sozinho, e
@@ -46,12 +50,12 @@ export function BarraDeProgresso() {
     document.addEventListener("click", aoClicar, true);
     return () => {
       document.removeEventListener("click", aoClicar, true);
-      timers.current.forEach((t) => window.clearTimeout(t));
+      limparTimers();
     };
-  }, []);
+  }, [apagar, limparTimers]);
 
   // A página nova chegou.
-  useEffect(apagar, [pathname, busca]);
+  useEffect(apagar, [apagar, pathname, busca]);
 
   return acesa ? <BarraVisual origem="navegacao" /> : null;
 }

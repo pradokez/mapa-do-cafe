@@ -7,6 +7,7 @@ import { cafe } from "@/lib/cafe.fixture";
 import { FILTROS_VAZIOS, type CafeFilters } from "@/lib/cafe-filter";
 
 import { BairroSheet } from "./bairro-sheet";
+import { arrastar } from "./ui/arrastar-sheet";
 
 afterEach(() => {
   cleanup();
@@ -28,30 +29,6 @@ function renderSheet(filters: CafeFilters = FILTROS_VAZIOS) {
   const onAplicar = vi.fn();
   render(<BairroSheet cafes={CAFES} festivais={{}} bairros={BAIRROS} filters={filters} onAplicar={onAplicar} />);
   return onAplicar;
-}
-
-/**
- * Arrasta de `de` até `ate` (clientY) em `ms` milissegundos. O jsdom não tem
- * layout: o sheet é simulado com 600 px de altura.
- */
-function arrastar(
-  el: Element,
-  de: number,
-  ate: number,
-  ms: number,
-  { pausa = 0, fim = "pointerUp" }: { pausa?: number; fim?: "pointerUp" | "pointerCancel" } = {},
-) {
-  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ height: 600 } as DOMRect);
-  vi.useFakeTimers({ toFake: ["performance"] });
-  fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientY: de });
-  vi.advanceTimersByTime(ms / 2);
-  fireEvent.pointerMove(el, { pointerId: 1, clientY: (de + ate) / 2 });
-  vi.advanceTimersByTime(ms / 2);
-  fireEvent.pointerMove(el, { pointerId: 1, clientY: ate });
-  // Dedo parado antes de soltar.
-  vi.advanceTimersByTime(pausa);
-  fireEvent[fim](el, { pointerId: 1, clientY: ate });
-  vi.useRealTimers();
 }
 
 describe("BairroSheet", () => {

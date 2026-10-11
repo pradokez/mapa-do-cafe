@@ -25,10 +25,25 @@ import {
  */
 const FecharContext = createContext<() => void>(() => {});
 
-export function Sheet({ onOpenChange, ...props }: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
+/**
+ * Controlado (`open` + `onOpenChange`) ou não: sem `open`, o próprio `Sheet`
+ * guarda o estado, para o arrasto também conseguir fechar.
+ */
+export function Sheet({
+  open,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}: ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
+  const [abertoInterno, setAbertoInterno] = useState(defaultOpen);
+  const controlado = open !== undefined;
+  const mudar = (aberto: boolean) => {
+    if (!controlado) setAbertoInterno(aberto);
+    onOpenChange?.(aberto);
+  };
   return (
-    <FecharContext.Provider value={() => onOpenChange?.(false)}>
-      <DialogPrimitive.Root onOpenChange={onOpenChange} {...props} />
+    <FecharContext.Provider value={() => mudar(false)}>
+      <DialogPrimitive.Root open={controlado ? open : abertoInterno} onOpenChange={mudar} {...props} />
     </FecharContext.Provider>
   );
 }

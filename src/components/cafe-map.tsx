@@ -8,6 +8,7 @@ import type { Map as MapboxMap, Marker } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 
 import { CafeMapPreview } from "@/components/cafe-map-preview";
+import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
 import { placePreview } from "@/lib/map-preview-placement";
@@ -46,6 +47,9 @@ type Props = (
   previewPlacement?: "pin" | "bottom";
   className?: string;
 };
+
+/** `pronto` no `load` do Mapbox; `indisponivel` sem token, sem WebGL, com o import ou o estilo falhando. */
+type Estado = "carregando" | "pronto" | "indisponivel";
 
 type PreviewAnchor = { pin: { x: number; y: number }; size: { width: number; height: number } };
 
@@ -114,8 +118,9 @@ const ZOOM_BUTTON =
 
 /**
  * Mapa Mapbox com um pin por café. Só roda no cliente: a lib é carregada no
- * `useEffect`, então o servidor renderiza apenas o fundo. Sem token ou sem
- * WebGL, o fundo `map-bg` é tudo que aparece — a página segue funcionando.
+ * `useEffect`, então o servidor renderiza o fundo com "Carregando mapa…". O
+ * mapa entra com fade no `load`; se não vier (sem token, sem WebGL, import ou
+ * estilo falhando), fica "Mapa indisponível" — a página segue funcionando.
  */
 export function CafeMap({
   cafes,
@@ -132,6 +137,7 @@ export function CafeMap({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
+  const [estado, setEstado] = useState<Estado>(TOKEN ? "carregando" : "indisponivel");
   const markers = useRef(new Map<string, Marker>());
   const mapboxRef = useRef<typeof import("mapbox-gl").default | null>(null);
 
@@ -153,6 +159,7 @@ export function CafeMap({
     if (!TOKEN || !container) return;
     let cancelled = false;
     let instance: MapboxMap | undefined;
+    setEstado("carregando");
 
     import("mapbox-gl").then(({ default: mapboxgl }) => {
       if (cancelled) return;
@@ -184,9 +191,23 @@ export function CafeMap({
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
         });
       } catch {
-        // WebGL indisponível: fica o fundo.
+        // WebGL indisponível (o Mapbox v3 lança no construtor).
+        setEstado("indisponivel");
         return;
       }
+
+      // Erro antes do `load` (token, estilo, `api.mapbox.com` fora) derruba o mapa;
+      // depois dele (um tile que falhou), o mapa já está na tela e fica.
+      let carregou = false;
+      instance.once("load", () => {
+        carregou = true;
+        setEstado("pronto");
+      });
+      instance.on("error", (e) => {
+        // Com um ouvinte, o Mapbox deixa de mandar o erro ao console: mantém o diagnóstico.
+        console.error(e.error);
+        if (!carregou) setEstado("indisponivel");
+      });
 
       instance.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-left");
       // Gesto, teclado e os botões +/− (que repassam o clique) trazem `originalEvent`;
@@ -207,6 +228,9 @@ export function CafeMap({
         if (instance.getLayer("poi-label")) instance.setLayoutProperty("poi-label", "visibility", "none");
       });
       setMap(instance);
+    }).catch(() => {
+      // Chunk do `mapbox-gl` que não chegou (rede caiu, bloqueio).
+      if (!cancelled) setEstado("indisponivel");
     });
 
     const current = markers.current;
@@ -356,8 +380,23 @@ export function CafeMap({
         if (e.key === "Escape") closePreview();
       }}
     >
-      {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
-      <div ref={containerRef} className="size-full" />
+      {/* `invisible` até o `load`: canvas e pins fora do Tab enquanto o estilo não chega.
+          No invólucro: o `className` do contêiner é do Mapbox (`mapboxgl-map`), e o React o apagaria. */}
+      <div
+        className={`size-full motion-safe:transition-opacity motion-safe:duration-500 ${
+          estado === "pronto" ? "" : "invisible opacity-0"
+        }`}
+      >
+        {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
+        <div ref={containerRef} className="size-full" />
+      </div>
+      {estado === "carregando" && (
+        // O carregamento não se anuncia: a lista já está usável. A falha fica legível, sem interromper.
+        <span aria-hidden="true">
+          <PilulaDoMapa estado="carregando" />
+        </span>
+      )}
+      {estado === "indisponivel" && <PilulaDoMapa estado="indisponivel" />}
       {previewCafe && !acompanhaPin && (
         // Card do pin no mobile, acima do FAB (o design o põe a 92 px do pé).
         <CafeMapPreview
@@ -379,7 +418,7 @@ export function CafeMap({
           }}
         />
       )}
-      {variant === "full" && map && (
+      {variant === "full" && map && estado === "pronto" && (
         <div className="absolute right-[18px] top-[18px] flex flex-col overflow-hidden rounded-[10px] border border-map-control-line bg-map-control">
           <button
             type="button"

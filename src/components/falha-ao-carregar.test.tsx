@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import HomeError from "@/app/(home)/error";
+import CafeError from "@/app/cafes/error";
+import FestivalError from "@/app/festivais/error";
 
 import { FalhaAoCarregar } from "./falha-ao-carregar";
 
@@ -14,6 +16,8 @@ beforeEach(() => refresh.mockClear());
 afterEach(cleanup);
 
 const CORPO_HOME = "Não conseguimos carregar os cafés agora. Confira sua conexão e tente de novo.";
+const CORPO_DETALHE = "Não conseguimos carregar este café agora. Confira sua conexão e tente de novo.";
+const CORPO_FESTIVAL = "Não conseguimos carregar os combos agora. Confira sua conexão e tente de novo.";
 
 describe("FalhaAoCarregar", () => {
   it("anuncia a falha e leva o foco ao título", () => {
@@ -50,5 +54,29 @@ describe("falha da home", () => {
   it("o mapa diz que está indisponível, sem repetir o alerta", () => {
     render(<HomeError error={new Error("x")} reset={() => {}} />);
     expect(screen.getByText("Mapa indisponível").closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+});
+
+describe.each([
+  { rota: "detalhe", Erro: CafeError, corpo: CORPO_DETALHE },
+  { rota: "festival", Erro: FestivalError, corpo: CORPO_FESTIVAL },
+])("falha do $rota", ({ Erro, corpo }) => {
+  it("diz o que não carregou, com o foco no título", () => {
+    render(<Erro error={new Error("x")} reset={() => {}} />);
+    expect(screen.getByRole("alert").textContent).toContain(corpo);
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "O café não passou" }));
+  });
+
+  it("dá saída: \"Voltar ao mapa\" leva à home", () => {
+    render(<Erro error={new Error("x")} reset={() => {}} />);
+    expect(screen.getByRole("link", { name: "Voltar ao mapa" }).getAttribute("href")).toBe("/");
+  });
+
+  it("\"Tentar de novo\" busca a página de novo", async () => {
+    const reset = vi.fn();
+    render(<Erro error={new Error("x")} reset={reset} />);
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(reset).toHaveBeenCalledTimes(1);
   });
 });

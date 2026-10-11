@@ -5,11 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { BarraVisual } from "@/components/barra-visual";
 import { navegacaoInterna } from "@/lib/navegacao-interna";
+import { PRAZO_DO_SERVIDOR_MS } from "@/lib/prazo";
 
 /** Navegação mais rápida que isso (prefetch pronto) não acende a barra. */
 const ATRASO_MS = 100;
-/** Trava: navegação cancelada não deixa a barra acesa. É o prazo do servidor. */
-const TRAVA_MS = 20_000;
 
 /**
  * Barra no topo em toda navegação que demora (#137): liga no clique num link
@@ -40,7 +39,8 @@ export function BarraDeProgresso() {
       apagar();
       timers.current = [
         window.setTimeout(() => setAcesa(true), ATRASO_MS),
-        window.setTimeout(apagar, TRAVA_MS),
+        // Trava: navegação cancelada não deixa a barra acesa.
+        window.setTimeout(apagar, PRAZO_DO_SERVIDOR_MS),
       ];
     }
     document.addEventListener("click", aoClicar, true);

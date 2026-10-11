@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Caprasimo, DM_Sans } from "next/font/google";
+import { Suspense } from "react";
+
+import { BarraDeProgresso } from "@/components/barra-de-progresso";
 import { OPEN_GRAPH_BASE, SITE_DESCRICAO, SITE_NOME } from "@/lib/cafe-seo";
 import { siteUrl } from "@/lib/site-url.mjs";
 
@@ -31,7 +34,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`${caprasimo.variable} ${dmSans.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* `useSearchParams` pede Suspense: sem ele, as páginas estáticas sairiam do prerender. */}
+        <Suspense fallback={null}>
+          <BarraDeProgresso />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

@@ -9,6 +9,7 @@ import { CAFE_COLUMNS, compararPorNome, type Cafe } from "./cafe";
 import { urlsPublicasDasFotos } from "./cafe-photos";
 import { urlPublicaDaArte, type Edicao, type FestivalSlug, type Participacao } from "./festival";
 import type { Autorizacao, AutorizacaoDaArte } from "./foto-upload";
+import { PRAZO_DO_SERVIDOR_MS, PrazoEsgotado } from "./prazo";
 import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
@@ -18,6 +19,42 @@ const SELECT_CAFE = CAFE_COLUMNS.join(", ");
 /** `cafes.fotos` guarda caminhos no bucket; quem lê o café recebe URLs públicas. */
 function comFotosPublicas(cafe: Cafe): Cafe {
   return { ...cafe, fotos: urlsPublicasDasFotos(cafe.fotos, supabaseEnv().url) };
+}
+
+type Resposta<T> = { data: T | null; error: { code: string; message: string } | null };
+
+/**
+ * Leitura pública com prazo (#138): desiste aos `PRAZO_DO_SERVIDOR_MS` pelo
+ * `abortSignal` e lança `PrazoEsgotado`; erro do banco lança `Error`. Os dois
+ * sobem até a página, e o `unstable_cache` não guarda o que lançou: a próxima
+ * visita tenta de novo. O postgrest-js não lança no abort (devolve um
+ * `AbortError` em `error`), então quem decide é o `signal.aborted`.
+ *
+ * O log leva só a leitura, a etapa, o tempo e o código — nunca URL, chave,
+ * cookie nem a mensagem do Postgres.
+ */
+async function lerComPrazo<T>(
+  leitura: string,
+  consulta: (signal: AbortSignal) => PromiseLike<Resposta<T>>,
+): Promise<T | null> {
+  const controle = new AbortController();
+  const inicio = Date.now();
+  const timer = setTimeout(() => controle.abort(), PRAZO_DO_SERVIDOR_MS);
+  try {
+    const { data, error } = await consulta(controle.signal);
+    const ms = Date.now() - inicio;
+    if (controle.signal.aborted) {
+      console.error(`[carregamento] ${leitura} falhou`, { etapa: "prazo", ms, codigo: "prazo" });
+      throw new PrazoEsgotado(leitura, PRAZO_DO_SERVIDOR_MS);
+    }
+    if (error) {
+      console.error(`[carregamento] ${leitura} falhou`, { etapa: "consulta", ms, codigo: error.code });
+      throw new Error(`Falha em ${leitura}: ${error.message}`);
+    }
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Tag do cache da listagem pública — o admin a invalida (`revalidarCafe`). */
@@ -38,31 +75,29 @@ export const listCafesAtivos = unstable_cache(
 );
 
 async function fetchCafesAtivos(): Promise<Cafe[]> {
-  const { data, error } = await createAnonClient()
-    .from("cafes")
-    .select(SELECT_CAFE)
-    .eq("ativo", true)
-    .overrideTypes<Cafe[], { merge: false }>();
-
-  if (error) {
-    throw new Error(`Falha ao listar cafés: ${error.message}`);
-  }
-  return data.map(comFotosPublicas).sort(compararPorNome);
+  const data = await lerComPrazo("listCafesAtivos", (signal) =>
+    createAnonClient()
+      .from("cafes")
+      .select(SELECT_CAFE)
+      .eq("ativo", true)
+      .abortSignal(signal)
+      .overrideTypes<Cafe[], { merge: false }>(),
+  );
+  return (data ?? []).map(comFotosPublicas).sort(compararPorNome);
 }
 
 /** Café ativo pelo slug, ou `null` se não existe ou está inativo (→ 404). */
 export async function getCafeBySlug(slug: string): Promise<Cafe | null> {
-  const { data, error } = await createAnonClient()
-    .from("cafes")
-    .select(SELECT_CAFE)
-    .eq("slug", slug)
-    .eq("ativo", true)
-    .maybeSingle()
-    .overrideTypes<Cafe, { merge: false }>();
-
-  if (error) {
-    throw new Error(`Falha ao buscar o café "${slug}": ${error.message}`);
-  }
+  const data = await lerComPrazo("getCafeBySlug", (signal) =>
+    createAnonClient()
+      .from("cafes")
+      .select(SELECT_CAFE)
+      .eq("slug", slug)
+      .eq("ativo", true)
+      .abortSignal(signal)
+      .maybeSingle()
+      .overrideTypes<Cafe, { merge: false }>(),
+  );
   return data && comFotosPublicas(data);
 }
 
@@ -249,17 +284,16 @@ export const listFestivais = unstable_cache(
 );
 
 async function fetchFestivais(): Promise<Edicao[]> {
-  const { data, error } = await createAnonClient()
-    .from("festival_edicoes")
-    .select(SELECT_EDICAO)
-    .eq("publicada", true)
-    .order("inicio")
-    .overrideTypes<LinhaEdicao[], { merge: false }>();
-
-  if (error) {
-    throw new Error(`Falha ao listar os festivais: ${error.message}`);
-  }
-  return data.map(comArtesPublicas);
+  const data = await lerComPrazo("listFestivais", (signal) =>
+    createAnonClient()
+      .from("festival_edicoes")
+      .select(SELECT_EDICAO)
+      .eq("publicada", true)
+      .order("inicio")
+      .abortSignal(signal)
+      .overrideTypes<LinhaEdicao[], { merge: false }>(),
+  );
+  return (data ?? []).map(comArtesPublicas);
 }
 
 /**

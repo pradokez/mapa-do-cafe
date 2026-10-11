@@ -40,6 +40,10 @@ import { getCafe } from "./get-cafe";
 // Dinâmico: "hoje" no horário precisa ser o dia da visita. Com ISR, a página
 // gerada às 23h50 seria servida depois da meia-noite com o dia anterior.
 export const dynamic = "force-dynamic";
+// Acima do prazo das leituras (`PRAZO_DO_SERVIDOR_MS`, 20 s), para a página
+// desistir antes da Vercel: sem o Fluid Compute, o Hobby corta aos 10 s. Literal
+// porque o Next lê o config sem executar o módulo.
+export const maxDuration = 60;
 
 type Props = { params: { slug: string } };
 

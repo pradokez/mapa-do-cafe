@@ -16,6 +16,10 @@ import { getEdicao } from "./get-edicao";
 // Dinâmica, como o detalhe do café: status e contagem de dias são do dia da
 // visita em Recife, e uma página em cache atravessaria a meia-noite.
 export const dynamic = "force-dynamic";
+// Acima do prazo das leituras (`PRAZO_DO_SERVIDOR_MS`, 20 s), para a página
+// desistir antes da Vercel: sem o Fluid Compute, o Hobby corta aos 10 s. Literal
+// porque o Next lê o config sem executar o módulo.
+export const maxDuration = 60;
 
 type Props = { params: { festival: string; ano: string } };
 

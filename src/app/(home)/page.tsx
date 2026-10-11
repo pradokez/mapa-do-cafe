@@ -10,6 +10,10 @@ import { configDoPix } from "@/lib/pix";
 // 1 h do `cafe-repository`, então isso não custa uma query por visita; o que
 // está no ar hoje se decide aqui, fora do cache.
 export const dynamic = "force-dynamic";
+// Acima do prazo das leituras (`PRAZO_DO_SERVIDOR_MS`, 20 s), para a página
+// desistir antes da Vercel: sem o Fluid Compute, o Hobby corta aos 10 s. Literal
+// porque o Next lê o config sem executar o módulo.
+export const maxDuration = 60;
 
 // Sem os params: cada combinação de filtro é a mesma página para o buscador.
 export const metadata: Metadata = { alternates: { canonical: "/" } };

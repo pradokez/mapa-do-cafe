@@ -5,12 +5,13 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import type { Map as MapboxMap, Marker } from "mapbox-gl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CafeMapPreview } from "@/components/cafe-map-preview";
 import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
+import { enquadramentoFantasma } from "@/lib/enquadramento-fantasma";
 import { FIT_PADDING, MAX_ZOOM } from "@/lib/map-enquadramento";
 import { placePreview } from "@/lib/map-preview-placement";
 
@@ -59,6 +60,7 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Sem cafés para enquadrar: centro de Recife.
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
+const SEM_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.
@@ -98,6 +100,18 @@ const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="tr
 const VOCE_HTML = `<span class="absolute inset-0 rounded-full bg-map-voce/20 motion-safe:animate-ping"></span>
 <span class="relative block size-4 rounded-full border-[3px] border-cream bg-map-voce shadow-[0_1px_4px_rgba(0,0,0,.5)]"></span>`;
 
+// Pin-fantasma (#142): círculo de 22 px no centro da cabeça do pin, 24 px acima da ponta — 29 no
+// mini, onde o pin é sempre o selecionado (escala 1,2, `PIN_SCALE`). Pulso defasado em 180 ms por
+// café; atraso negativo, para todos já entrarem defasados. Parado (`opacity-30`) com `prefers-reduced-motion`.
+const FANTASMA =
+  "absolute size-[22px] -translate-x-1/2 rounded-full bg-map-pin opacity-30 motion-safe:animate-fantasma";
+const FANTASMA_ALTURA = {
+  full: "-translate-y-[calc(50%+24px)]",
+  mini: "-translate-y-[calc(50%+29px)]",
+};
+const FASE_DO_FANTASMA_MS = 180;
+const PULSO_DO_FANTASMA_MS = 1800;
+
 const PIN_SCALE = {
   full: "group-data-[active=true]:scale-[1.3]",
   mini: "group-data-[active=true]:scale-[1.2]",
@@ -134,6 +148,7 @@ export function CafeMap({
   focus = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const molduraRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
   const [estado, setEstado] = useState<Estado>(TOKEN ? "carregando" : "indisponivel");
   const markers = useRef(new Map<string, Marker>());
@@ -239,6 +254,34 @@ export function CafeMap({
       setMap(null);
     };
   }, [variant]);
+
+  // Tamanho do mapa para os pins-fantasma, só enquanto carrega (no servidor, sem fantasma).
+  const [tamanho, setTamanho] = useState<{ largura: number; altura: number } | null>(null);
+  useEffect(() => {
+    const moldura = molduraRef.current;
+    if (estado !== "carregando" || !moldura || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      setTamanho({ largura: moldura.clientWidth, altura: moldura.clientHeight });
+    });
+    observer.observe(moldura);
+    return () => observer.disconnect();
+  }, [estado]);
+
+  // Onde os pins vão aparecer, pelo mesmo enquadramento da criação do mapa: o foco (#96), se
+  // houver (chegando durante a carga, o `fitBounds` dele também roda antes do `load`), senão os
+  // cafés iniciais. Os fantasmas são os cafés de agora. O mini fica no café, sem padding.
+  const fantasmas = useMemo(() => {
+    if (estado !== "carregando" || !tamanho) return [];
+    if (variant === "mini") {
+      const cafe = cafes.slice(0, 1);
+      return enquadramentoFantasma(cafe, cafe, { ...tamanho, padding: SEM_PADDING, maxZoom: MINI_ZOOM });
+    }
+    return enquadramentoFantasma(focus ?? initialCafes.current, cafes, {
+      ...tamanho,
+      padding: FIT_PADDING,
+      maxZoom: MAX_ZOOM,
+    });
+  }, [estado, tamanho, variant, cafes, focus]);
 
   // Um pin por café, sincronizado por id. Pin que já existe vai para a posição nova, se mudou.
   useEffect(() => {
@@ -373,6 +416,7 @@ export function CafeMap({
 
   return (
     <div
+      ref={molduraRef}
       className={`relative overflow-hidden bg-map-bg ${FOCO_NA_PALETA} ${className}`}
       onKeyDown={(e) => {
         if (e.key === "Escape") closePreview();
@@ -388,6 +432,23 @@ export function CafeMap({
         {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}
         <div ref={containerRef} className="size-full" />
       </div>
+      {fantasmas.length > 0 && (
+        // Decorativos e sem clique: abaixo da pílula, como no design.
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          {fantasmas.map(({ x, y }, i) => (
+            <span
+              key={i}
+              data-fantasma=""
+              className={`${FANTASMA} ${FANTASMA_ALTURA[variant]}`}
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                animationDelay: `-${(i * FASE_DO_FANTASMA_MS) % PULSO_DO_FANTASMA_MS}ms`,
+              }}
+            />
+          ))}
+        </div>
+      )}
       {estado === "carregando" && (
         // O carregamento não se anuncia: a lista já está usável. A falha fica legível, sem interromper.
         <span aria-hidden="true">

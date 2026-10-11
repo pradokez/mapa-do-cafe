@@ -39,14 +39,17 @@ const config: Config = {
         lightbox: "#120B06",
       },
       // Brilho que corre da direita para a esquerda nos blocos do skeleton; a
-      // barra de progresso do topo (#137): o trecho de 35% atravessa a janela.
+      // barra de progresso do topo (#137): o trecho de 35% atravessa a janela;
+      // os pins-fantasma do mapa (#142) pulsam até o Mapbox carregar.
       keyframes: {
         brilho: { from: { backgroundPosition: "100% 0" }, to: { backgroundPosition: "-100% 0" } },
         barra: { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(286%)" } },
+        fantasma: { "0%, 100%": { opacity: ".18" }, "50%": { opacity: ".4" } },
       },
       animation: {
         brilho: "brilho 1.6s linear infinite",
         barra: "barra 1.3s ease-in-out infinite",
+        fantasma: "fantasma 1.8s ease-in-out infinite",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

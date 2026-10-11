@@ -34,6 +34,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`${caprasimo.variable} ${dmSans.variable}`}>
+      <head>
+        {/* Sem JS, ninguém ouve o `onLoad`: a foto do Storage aparece sem brilho nem fade (#140). */}
+        <noscript>
+          <style>{"[data-foto]{opacity:1!important}"}</style>
+        </noscript>
+      </head>
       <body>
         {/* `useSearchParams` pede Suspense: sem ele, as páginas estáticas sairiam do prerender. */}
         <Suspense fallback={null}>

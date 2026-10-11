@@ -16,6 +16,9 @@ function montar() {
     <>
       <BarraDeProgresso />
       <a href="/cafes/borsoi-cafe-riomar">Borsoi</a>
+      <a href="/festivais/eu-amo-cafe/2026">
+        <span>Combos</span>
+      </a>
       <a href="https://instagram.com/cafe">Instagram</a>
       <a href="#mapa">Mapa</a>
     </>,
@@ -35,7 +38,8 @@ function montar() {
   return { barra, clicar, chegar };
 }
 
-// O jsdom não navega, mas avisa que não sabe: o dublê do router cancela antes.
+// O jsdom não navega (e avisa que não sabe): este dublê cancela o clique depois
+// da captura, em bolha, como o `<Link>` do Next.
 const cancelar = (e: Event) => e.preventDefault();
 
 beforeEach(() => {
@@ -59,6 +63,13 @@ describe("BarraDeProgresso", () => {
     esperar(99);
     expect(barra()).toBeNull();
     esperar(1);
+    expect(barra()).not.toBeNull();
+  });
+
+  it("clique num elemento dentro do link também conta", () => {
+    const { barra, clicar } = montar();
+    clicar("Combos");
+    esperar(100);
     expect(barra()).not.toBeNull();
   });
 

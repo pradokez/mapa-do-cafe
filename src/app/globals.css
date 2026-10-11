@@ -12,3 +12,10 @@
     @apply outline outline-2 outline-offset-2 outline-terracotta;
   }
 }
+
+/* Com o skeleton na tela, só a barra dele (#137). O skeleton entra junto com a
+   rota nova, e a barra da navegação só apaga no efeito seguinte: sem isto, as
+   duas apareceriam juntas por um quadro. */
+body:has([data-barra="carregamento"]) [data-barra="navegacao"] {
+  display: none;
+}

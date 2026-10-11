@@ -1,3 +1,4 @@
+import { BarraVisual } from "@/components/barra-visual";
 import { CafeCardSkeleton } from "@/components/cafe-card-skeleton";
 import { SearchIcon } from "@/components/icons";
 import {
@@ -31,6 +32,7 @@ export function HomeSkeleton({ comApoio = false }: { comApoio?: boolean }) {
   return (
     <>
       <CarregandoStatus>Carregando cafés…</CarregandoStatus>
+      <BarraVisual origem="carregamento" />
       <SiteHeader
         actions={
           <>

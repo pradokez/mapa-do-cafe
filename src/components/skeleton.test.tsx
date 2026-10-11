@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { CafeDetailSkeleton } from "./cafe-detail-skeleton";
 import { HomeSkeleton } from "./home-skeleton";
+import { PilulaDoMapa } from "./pilula-do-mapa";
 
 afterEach(cleanup);
 
@@ -26,12 +27,23 @@ describe("HomeSkeleton", () => {
     expect(blocos.length).toBeGreaterThan(0);
     for (const bloco of blocos) expect(bloco.closest('[aria-hidden="true"]')).not.toBeNull();
   });
+
+  it("o mapa diz que está carregando, sem repetir o anúncio do status", () => {
+    render(<HomeSkeleton />);
+    const pilula = screen.getByText("Carregando mapa…");
+    expect(pilula.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
 });
 
 describe("CafeDetailSkeleton", () => {
   it("anuncia o carregamento para leitor de tela", () => {
     render(<CafeDetailSkeleton />);
     expect(screen.getByRole("status").textContent).toBe("Carregando café…");
+  });
+
+  it("o mini mapa do aside também diz que está carregando, fora da árvore de acessibilidade", () => {
+    render(<CafeDetailSkeleton />);
+    expect(screen.getByText("Carregando mapa…").closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it("'Voltar ao mapa' funciona antes de o café chegar", () => {
@@ -46,5 +58,19 @@ describe("CafeDetailSkeleton", () => {
     const blocos = Array.from(container.querySelectorAll("[data-skeleton]"));
     expect(blocos.length).toBeGreaterThan(0);
     for (const bloco of blocos) expect(bloco.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+});
+
+describe("PilulaDoMapa", () => {
+  it("carregando: o texto e o spinner", () => {
+    const { container } = render(<PilulaDoMapa estado="carregando" />);
+    expect(container.textContent).toBe("Carregando mapa…");
+    expect(container.querySelector("[data-spinner]")).not.toBeNull();
+  });
+
+  it("indisponível: o texto, sem spinner", () => {
+    const { container } = render(<PilulaDoMapa estado="indisponivel" />);
+    expect(container.textContent).toBe("Mapa indisponível");
+    expect(container.querySelector("[data-spinner]")).toBeNull();
   });
 });

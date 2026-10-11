@@ -14,6 +14,9 @@
 export const BUSCA_MOLDURA =
   "flex h-[42px] w-full items-center gap-2.5 rounded-full border border-line-strong bg-white px-[18px] text-ink-3 shadow-[0_1px_2px_rgba(44,26,14,.05)] lg:w-[440px]";
 
+/** Placeholder da busca: o campo e o skeleton mostram o mesmo texto. */
+export const BUSCA_PLACEHOLDER = "Buscar café ou bairro";
+
 /** Botão redondo de 44 px do header mobile: filtros e "Me paga um café?". */
 export const BOTAO_HEADER_MOBILE = "size-11 rounded-full";
 /** "Me paga um café?" no desktop (#121): ícone e texto, 42 px. O botão cresce com o texto. */

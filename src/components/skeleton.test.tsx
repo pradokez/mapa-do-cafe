@@ -28,6 +28,11 @@ describe("HomeSkeleton", () => {
     for (const bloco of blocos) expect(bloco.closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
+  it("a busca já mostra o placeholder, fora da árvore de acessibilidade", () => {
+    render(<HomeSkeleton />);
+    expect(screen.getByText("Buscar café ou bairro").closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it("o mapa diz que está carregando, sem repetir o anúncio do status", () => {
     render(<HomeSkeleton />);
     const pilula = screen.getByText("Carregando mapa…");

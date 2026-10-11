@@ -355,7 +355,7 @@ Vem do design. Não reinventar na implementação.
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (os selos dos festivais no ar + 6 booleanos; ar-condicionado só quando `true`) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
 - Abaixo de `lg` (o design só desenhou desktop): uma coluna, com o aside (CTAs) logo depois do título
-- Carrossel: `max(4, fotos)` slots — fotos reais nunca são cortadas. Placeholder tem legenda "foto · {nome}", não as legendas por slot do design ("Salão", "Fachada"…), que prometeriam fotos inexistentes. Abaixo de `lg`, 260 px de altura e swipe
+- Carrossel: só as fotos que existem (#130), todas, sem completar com placeholder; sem foto, um placeholder só. Com um slot, nada de contador, setas, dots nem swipe. Placeholder tem legenda "foto · {nome}", não as legendas por slot do design ("Salão", "Fachada"…), que prometeriam fotos inexistentes. Abaixo de `lg`, 260 px de altura e swipe
 
 ## Horário e distância
 

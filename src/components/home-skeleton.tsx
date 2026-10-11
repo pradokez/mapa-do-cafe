@@ -6,6 +6,7 @@ import {
   BOTAO_HEADER_MOBILE,
   BARRA_FILTROS,
   BUSCA_MOLDURA,
+  BUSCA_PLACEHOLDER,
   CHIP_FORMA,
   HOME_COLUNAS,
   LISTA_GRADE,
@@ -45,7 +46,7 @@ export function HomeSkeleton({ comApoio = false }: { comApoio?: boolean }) {
         <div aria-hidden="true" className={BUSCA_MOLDURA}>
           <SearchIcon size={16} strokeWidth={2} />
           {/* O placeholder do campo, para o header não mudar na troca. */}
-          <span className="truncate text-base text-placeholder lg:text-sm">Buscar café ou bairro</span>
+          <span className="text-base text-placeholder lg:text-sm">{BUSCA_PLACEHOLDER}</span>
         </div>
       </SiteHeader>
       <div aria-hidden="true" className="flex min-h-0 flex-1 flex-col">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { SearchIcon } from "@/components/icons";
-import { BUSCA_MOLDURA } from "@/components/medidas";
+import { BUSCA_MOLDURA, BUSCA_PLACEHOLDER } from "@/components/medidas";
 
 const DEBOUNCE_MS = 300;
 
@@ -53,8 +53,8 @@ export function SearchField({ value, onSearch }: Props) {
         type="search"
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        placeholder="Buscar café ou bairro"
-        aria-label="Buscar café ou bairro"
+        placeholder={BUSCA_PLACEHOLDER}
+        aria-label={BUSCA_PLACEHOLDER}
         enterKeyHint="search"
         autoComplete="off"
         // O anel de foco fica na pílula (focus-within), não num retângulo interno.

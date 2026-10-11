@@ -55,9 +55,9 @@ export function ApoioPix({ config, variante }: Props) {
             <CoffeeIcon size={18} strokeWidth={2} className="text-terracotta" />
           </button>
         </SheetTrigger>
-        <SheetContent className="items-center text-center">
-          <SheetTitle className="!text-[23px]">{TITULO}</SheetTitle>
-          <div className="-mx-[18px] flex min-h-0 flex-col items-center self-stretch overflow-y-auto px-[18px]">
+        <SheetContent className="items-center !px-[22px] !pb-7 text-center">
+          <SheetTitle className="mt-2 !text-[23px] !leading-[normal]">{TITULO}</SheetTitle>
+          <div className="-mx-[22px] flex min-h-0 flex-col items-center gap-1.5 self-stretch overflow-y-auto px-[22px]">
             <ConteudoDoApoio config={config} variante="mobile" />
           </div>
         </SheetContent>
@@ -81,7 +81,7 @@ export function ApoioPix({ config, variante }: Props) {
         <DialogPrimitive.Content
           // Sem descrição: o título e o texto logo abaixo bastam.
           aria-describedby={undefined}
-          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-32px)] w-[400px] -translate-x-1/2 -translate-y-1/2 flex-col items-center overflow-y-auto rounded-[20px] bg-cream p-7 text-center shadow-[0_30px_60px_-20px_rgba(44,26,14,.5)] focus:outline-none"
+          className="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-32px)] w-[400px] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 overflow-y-auto rounded-[20px] bg-cream p-7 text-center shadow-[0_30px_60px_-20px_rgba(44,26,14,.5)] focus:outline-none"
         >
           <DialogPrimitive.Close
             aria-label="Fechar"
@@ -89,7 +89,7 @@ export function ApoioPix({ config, variante }: Props) {
           >
             <XIcon size={14} strokeWidth={2.4} />
           </DialogPrimitive.Close>
-          <DialogPrimitive.Title className="font-display text-[26px] text-espresso">{TITULO}</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="font-display text-[26px] leading-[normal] text-espresso">{TITULO}</DialogPrimitive.Title>
           <ConteudoDoApoio config={config} variante="desktop" />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
@@ -141,7 +141,7 @@ function ConteudoDoApoio({ config, variante }: Props) {
   return (
     <>
       <p
-        className={`mt-1.5 text-ink-2 [text-wrap:pretty] ${desktop ? "max-w-[300px] text-sm leading-[1.55]" : "text-[13.5px] leading-[1.55]"}`}
+        className={`text-ink-2 [text-wrap:pretty] ${desktop ? "max-w-[300px] text-sm leading-[1.55]" : "text-[13.5px] leading-[1.55]"}`}
       >
         {TEXTO[variante]}
       </p>
@@ -150,10 +150,10 @@ function ConteudoDoApoio({ config, variante }: Props) {
 
       {desktop ? (
         <>
-          <span className="mt-2 text-[12.5px] text-ink-3">Aponte a câmera do app do seu banco</span>
-          <div aria-hidden="true" className="mt-1.5 flex w-full items-center gap-2.5">
+          <span className="mt-2 text-[12.5px] leading-[normal] text-ink-3">Aponte a câmera do app do seu banco</span>
+          <div aria-hidden="true" className="mt-1 flex w-full items-center gap-2.5">
             <span className="h-px flex-1 bg-line-strong" />
-            <span className="text-[11.5px] font-semibold uppercase tracking-[.12em] text-ink-3">ou</span>
+            <span className="text-[11.5px] font-semibold uppercase leading-[normal] tracking-[.12em] text-ink-3">ou</span>
             <span className="h-px flex-1 bg-line-strong" />
           </div>
           <div className="mt-1.5 flex w-full items-center gap-2 rounded-full border border-line-strong bg-white py-1.5 pl-3.5 pr-1.5">
@@ -166,7 +166,7 @@ function ConteudoDoApoio({ config, variante }: Props) {
               {copiado ? COPIADO.desktop : "Copiar"}
             </button>
           </div>
-          <span className="mt-1.5 text-xs text-ink-3">Pix copia e cola</span>
+          <span className="mt-1 text-xs text-ink-3">Pix copia e cola</span>
         </>
       ) : (
         <>
@@ -178,12 +178,12 @@ function ConteudoDoApoio({ config, variante }: Props) {
             <CopyIcon size={17} strokeWidth={2} />
             {copiado ? COPIADO.mobile : "Copiar código Pix"}
           </button>
-          <span className="mt-1.5 text-xs text-ink-3">No celular, copie o código e cole na área Pix do seu banco</span>
+          <span className="text-xs text-ink-3">No celular, copie o código e cole na área Pix do seu banco</span>
         </>
       )}
 
       {copia === "manual" && (
-        <div className="mt-3 flex w-full flex-col gap-1.5 text-left">
+        <div className="mt-1.5 flex w-full flex-col gap-1.5 text-left">
           <label htmlFor={idManual} className="text-[13px] font-semibold text-espresso">
             Selecione o código e copie
           </label>

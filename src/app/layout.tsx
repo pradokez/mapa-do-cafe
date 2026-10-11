@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Caprasimo, DM_Sans } from "next/font/google";
 import { Suspense } from "react";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
           <BarraDeProgresso />
         </Suspense>
         {children}
+        <Analytics />
       </body>
     </html>
   );

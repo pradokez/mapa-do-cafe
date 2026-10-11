@@ -40,8 +40,8 @@ export function resolveCafePhotos(
 }
 
 /**
- * As duas cores das listras do placeholder. A imagem de compartilhamento usa as mesmas, para o café ter a mesma
- * cara fora do site.
+ * As duas cores das listras do placeholder. A imagem de compartilhamento usa
+ * as mesmas, para o café ter a mesma cara fora do site.
  */
 export function tonsDoPlaceholder(cafe: Pick<Cafe, "id">): readonly [string, string] {
   return TONES[hash(cafe.id) % TONES.length];

@@ -384,7 +384,7 @@ export function CafeMap({
           No invólucro: o `className` do contêiner é do Mapbox (`mapboxgl-map`), e o React o apagaria. */}
       <div
         className={`size-full motion-safe:transition-opacity motion-safe:duration-500 ${
-          estado === "pronto" ? "visible opacity-100" : "invisible opacity-0"
+          estado === "pronto" ? "" : "invisible opacity-0"
         }`}
       >
         {/* `size-full`, não `absolute`: o CSS do Mapbox força `position: relative`. */}

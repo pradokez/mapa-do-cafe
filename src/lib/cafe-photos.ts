@@ -24,41 +24,35 @@ export type TomDoPlaceholder = "claro" | "escuro";
 
 /**
  * Resolve um café para as imagens a exibir, escondendo de quem chama se elas
- * vêm do Storage ou do placeholder gerado. Fotos reais vêm primeiro, na
- * ordem; placeholders completam até `minSlots` (padrão 1), para quem exibe
- * vários slots nunca ter um vazio. O tom do placeholder deriva do `id` e
- * avança um por slot — o mesmo café tem sempre a mesma cara, e o slot 0 é
- * o mesmo no card e no carrossel. Com `tom: "escuro"`, o placeholder sai
- * nos tons escuros, também escolhidos pelo `id`.
+ * vêm do Storage ou do placeholder gerado. As fotos reais, na ordem; sem
+ * nenhuma, um placeholder só — nunca slot sem foto completando a lista. O
+ * tom do placeholder deriva do `id`: o mesmo café tem sempre a mesma cara,
+ * no card e no carrossel. Com `tom: "escuro"`, o placeholder sai nos tons
+ * escuros, também escolhidos pelo `id`.
  */
 export function resolveCafePhotos(
   cafe: Pick<Cafe, "id" | "fotos">,
-  { minSlots = 1, tom = "claro" }: { minSlots?: number; tom?: TomDoPlaceholder } = {},
+  { tom = "claro" }: { tom?: TomDoPlaceholder } = {},
 ): PhotoSource[] {
   const urls = Array.isArray(cafe.fotos) ? cafe.fotos.filter(isHttpUrl) : [];
-  const photos: PhotoSource[] = urls.map((src) => ({ kind: "url", src }));
-  const slots = Number.isFinite(minSlots) ? Math.max(1, Math.floor(minSlots)) : 1;
-  for (let k = 0; photos.length < slots; k++) {
-    photos.push({ kind: "placeholder", background: listras(cafe, k, tom) });
-  }
-  return photos;
+  if (urls.length === 0) return [{ kind: "placeholder", background: listras(cafe, tom) }];
+  return urls.map((src) => ({ kind: "url", src }));
 }
 
 /**
- * As duas cores das listras do placeholder no slot `slot` (padrão: o 0, o do
- * card). A imagem de compartilhamento usa as mesmas, para o café ter a mesma
- * cara fora do site.
+ * As duas cores das listras do placeholder. A imagem de compartilhamento usa
+ * as mesmas, para o café ter a mesma cara fora do site.
  */
-export function tonsDoPlaceholder(cafe: Pick<Cafe, "id">, slot = 0): readonly [string, string] {
-  return TONES[(hash(cafe.id) + slot) % TONES.length];
+export function tonsDoPlaceholder(cafe: Pick<Cafe, "id">): readonly [string, string] {
+  return TONES[hash(cafe.id) % TONES.length];
 }
 
-function listras(cafe: Pick<Cafe, "id">, slot: number, tom: TomDoPlaceholder): string {
+function listras(cafe: Pick<Cafe, "id">, tom: TomDoPlaceholder): string {
   if (tom === "escuro") {
-    const escuro = TONS_ESCUROS[(hash(cafe.id) + slot) % TONS_ESCUROS.length];
+    const escuro = TONS_ESCUROS[hash(cafe.id) % TONS_ESCUROS.length];
     return `repeating-linear-gradient(135deg, ${escuro} 0 12px, ${ESPRESSO} 12px 24px)`;
   }
-  const [a, b] = tonsDoPlaceholder(cafe, slot);
+  const [a, b] = tonsDoPlaceholder(cafe);
   return `repeating-linear-gradient(135deg, ${a} 0 14px, ${b} 14px 28px)`;
 }
 

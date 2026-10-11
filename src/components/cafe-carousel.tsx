@@ -67,9 +67,9 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
             aria-roledescription="slide"
             aria-label={`${k + 1} de ${total}`}
             aria-hidden={k !== index}
-            className="flex h-full flex-[0_0_100%] items-end px-[26px] pb-10 pt-[22px] lg:pb-[22px]"
+            className="flex h-full flex-[0_0_100%] items-end px-[26px] py-[22px]"
           >
-            {/* Abaixo de lg a legenda sobe acima dos dots: na largura do celular, os dois se encostariam. */}
+            {/* Placeholder só existe sozinho (café sem foto): a legenda nunca divide espaço com os dots. */}
             {photo.kind === "placeholder" && (
               <span aria-hidden="true" className="text-[11.5px] uppercase tracking-[.1em] text-espresso/55">
                 foto · {nome}
@@ -99,8 +99,7 @@ export function CafeCarousel({ photos, nome }: { photos: PhotoSource[]; nome: st
           </button>
 
           {/* O contador visual fica fora da árvore de acessibilidade: quem
-              anuncia a troca é o live region, já que slide de placeholder
-              não tem texto acessível (a legenda é decorativa). */}
+              anuncia a troca é o live region. */}
           <span aria-live="polite" className="sr-only">
             Foto {index + 1} de {total}
           </span>

@@ -6,6 +6,14 @@
 import { dentroDaRegiao } from "./cafe-dados";
 import { distanciaKm, ordenarPorDistancia, type Coordenadas } from "./cafe-distance";
 
+/**
+ * Como o mapa enquadra pontos (`fitBounds`): o `cafe-map` e os pins-fantasma
+ * (`enquadramento-fantasma`, #142) leem daqui, para os dois não divergirem.
+ * Pins ancorados pela ponta sobem 40 px a partir do ponto; o zoom ocupa a direita.
+ */
+export const FIT_PADDING = { top: 72, right: 72, bottom: 32, left: 32 };
+export const MAX_ZOOM = 15;
+
 /** Sempre aparece café na tela: num bairro sem café perto, um zoom fixo mostraria um mapa vazio. */
 const CAFES_NO_ENQUADRAMENTO = 3;
 

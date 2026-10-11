@@ -33,6 +33,11 @@ describe("HomeSkeleton", () => {
     const pilula = screen.getByText("Carregando mapa…");
     expect(pilula.closest('[aria-hidden="true"]')).not.toBeNull();
   });
+
+  it("mostra a barra do topo, fora da árvore de acessibilidade (abrir o site direto também a acende)", () => {
+    const { container } = render(<HomeSkeleton />);
+    expect(container.querySelector('[data-barra="carregamento"]')?.getAttribute("aria-hidden")).toBe("true");
+  });
 });
 
 describe("CafeDetailSkeleton", () => {
@@ -58,6 +63,11 @@ describe("CafeDetailSkeleton", () => {
     const blocos = Array.from(container.querySelectorAll("[data-skeleton]"));
     expect(blocos.length).toBeGreaterThan(0);
     for (const bloco of blocos) expect(bloco.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("mostra a barra do topo, fora da árvore de acessibilidade", () => {
+    const { container } = render(<CafeDetailSkeleton />);
+    expect(container.querySelector('[data-barra="carregamento"]')?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 

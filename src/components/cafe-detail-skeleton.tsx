@@ -1,3 +1,4 @@
+import { BarraVisual } from "@/components/barra-visual";
 import {
   ASIDE_CTA,
   ASIDE_MAPA,
@@ -28,6 +29,7 @@ export function CafeDetailSkeleton() {
   return (
     <div className="min-h-screen">
       <CarregandoStatus>Carregando café…</CarregandoStatus>
+      <BarraVisual origem="carregamento" />
       <SiteHeader />
       <main className={DETALHE_MAIN}>
         <nav aria-label="Trilha" className={DETALHE_TRILHA}>

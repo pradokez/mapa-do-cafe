@@ -38,12 +38,15 @@ const config: Config = {
         // Fundo da arte ampliada (#103): opaco no mobile, translúcido no desktop (design 4a/4c).
         lightbox: "#120B06",
       },
-      // Brilho que corre da direita para a esquerda nos blocos do skeleton.
+      // Brilho que corre da direita para a esquerda nos blocos do skeleton; a
+      // barra de progresso do topo (#137): o trecho de 35% atravessa a janela.
       keyframes: {
         brilho: { from: { backgroundPosition: "100% 0" }, to: { backgroundPosition: "-100% 0" } },
+        barra: { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(286%)" } },
       },
       animation: {
         brilho: "brilho 1.6s linear infinite",
+        barra: "barra 1.3s ease-in-out infinite",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

@@ -11,6 +11,7 @@ import { CafeMapPreview } from "@/components/cafe-map-preview";
 import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
+import { FIT_PADDING, MAX_ZOOM } from "@/lib/map-enquadramento";
 import { placePreview } from "@/lib/map-preview-placement";
 
 /** O que um pin precisa. O mini mapa do admin (#53) mostra um café que ainda não existe. */
@@ -58,9 +59,6 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 // Sem cafés para enquadrar: centro de Recife.
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
-const MAX_ZOOM = 15;
-// Pins ancorados pela ponta sobem 40 px a partir do ponto; o zoom ocupa a direita.
-const FIT_PADDING = { top: 72, right: 72, bottom: 32, left: 32 };
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.

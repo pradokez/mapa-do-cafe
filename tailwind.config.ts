@@ -17,6 +17,8 @@ const config: Config = {
         line: { DEFAULT: "#EDE4D8", strong: "#E2D7C9" },
         "chip-line": "#DDD1C2",
         "card-line": "#EFE6DA",
+        // Realce do brilho do skeleton sobre o branco (base `card-line`).
+        brilho: "#F8F3EC",
         "price-off": "#D8CBBB",
         "hover-soft": "#F5EEE5",
         seal: { bg: "#F6E8DF", fg: "#8F3F1F" },
@@ -35,6 +37,13 @@ const config: Config = {
         brasa: "#E58A5F",
         // Fundo da arte ampliada (#103): opaco no mobile, translúcido no desktop (design 4a/4c).
         lightbox: "#120B06",
+      },
+      // Brilho que corre da direita para a esquerda nos blocos do skeleton.
+      keyframes: {
+        brilho: { from: { backgroundPosition: "100% 0" }, to: { backgroundPosition: "-100% 0" } },
+      },
+      animation: {
+        brilho: "brilho 1.6s linear infinite",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

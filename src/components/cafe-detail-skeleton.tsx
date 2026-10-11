@@ -11,7 +11,7 @@ import {
   DETALHE_TAG,
   DETALHE_TRILHA,
 } from "@/components/medidas";
-import { Bloco, CarregandoStatus, Linha } from "@/components/skeleton";
+import { Bloco, BlocoDoMapa, CarregandoStatus, Linha } from "@/components/skeleton";
 import { SiteHeader } from "@/components/site-header";
 import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 
@@ -50,7 +50,7 @@ export function CafeDetailSkeleton() {
           </div>
 
           <div className={`${ASIDE_MOLDURA} ${DETALHE_ASIDE_POSICAO}`}>
-            <Bloco tom="mapa" className={ASIDE_MAPA} />
+            <BlocoDoMapa className={ASIDE_MAPA} />
             <div className="flex flex-col gap-1 px-1">
               <span className="text-[14.5px]">
                 <Linha className="w-3/4" />

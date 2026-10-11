@@ -1,25 +1,32 @@
+import { PilulaDoMapa } from "@/components/pilula-do-mapa";
+
 /**
  * Peças do skeleton de carregamento (#45). Blocos ficam fora da árvore de
  * acessibilidade; quem anuncia o carregamento é o `CarregandoStatus`.
  */
 
+// Com `prefers-reduced-motion`, o bloco fica na cor base lisa: o gradiente
+// parado deixaria uma faixa de realce congelada num canto.
+const BRILHO = "motion-safe:bg-gradient-to-r motion-safe:from-30% motion-safe:via-50% motion-safe:to-70% motion-safe:bg-[length:200%_100%] motion-safe:animate-brilho";
+
 const TONS = {
   /** Sobre superfície branca (card, aside). */
-  claro: "bg-hover-soft",
-  /** Sobre o `cream` da página — o `hover-soft` sumiria nele. */
-  creme: "bg-line",
-  /** Área do mapa: o mesmo fundo de quando o Mapbox ainda não desenhou. */
-  mapa: "bg-map-bg",
+  claro: `bg-card-line motion-safe:from-card-line motion-safe:via-brilho motion-safe:to-card-line ${BRILHO}`,
+  /** Sobre o `cream` da página. */
+  creme: `bg-line-strong motion-safe:from-line-strong motion-safe:via-line motion-safe:to-line-strong ${BRILHO}`,
 };
 
-/** Bloco que pulsa (parado com `prefers-reduced-motion`). */
+/** Bloco com o brilho que corre (parado com `prefers-reduced-motion`). */
 export function Bloco({ tom = "claro", className = "" }: { tom?: keyof typeof TONS; className?: string }) {
+  return <span aria-hidden="true" data-skeleton="" className={`block ${TONS[tom]} ${className}`} />;
+}
+
+/** Área do mapa: o fundo de quando o Mapbox ainda não desenhou, com a pílula "Carregando mapa…". Não brilha. */
+export function BlocoDoMapa({ className = "" }: { className?: string }) {
   return (
-    <span
-      aria-hidden="true"
-      data-skeleton=""
-      className={`block ${TONS[tom]} ${tom === "mapa" ? "" : "motion-safe:animate-pulse"} ${className}`}
-    />
+    <span aria-hidden="true" data-skeleton="" className={`relative block bg-map-bg ${className}`}>
+      <PilulaDoMapa estado="carregando" />
+    </span>
   );
 }
 

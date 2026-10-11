@@ -12,7 +12,7 @@ import {
   LISTA_SECTION,
   LISTA_TOPO,
 } from "@/components/medidas";
-import { Bloco, CarregandoStatus, Linha } from "@/components/skeleton";
+import { Bloco, BlocoDoMapa, CarregandoStatus, Linha } from "@/components/skeleton";
 import { SiteHeader } from "@/components/site-header";
 
 // Larguras medidas dos chips da barra (mobile / desktop): Recife Coffee, Eu
@@ -73,7 +73,7 @@ export function HomeSkeleton({ comApoio = false }: { comApoio?: boolean }) {
               </ul>
             </div>
           </div>
-          <Bloco tom="mapa" className="hidden lg:block" />
+          <BlocoDoMapa className="hidden lg:block" />
         </div>
       </div>
     </>

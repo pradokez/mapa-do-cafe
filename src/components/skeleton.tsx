@@ -9,16 +9,36 @@ import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 // parado deixaria uma faixa de realce congelada num canto.
 const BRILHO = "motion-safe:bg-gradient-to-r motion-safe:from-30% motion-safe:via-50% motion-safe:to-70% motion-safe:bg-[length:200%_100%] motion-safe:animate-brilho";
 
+/** Cor base de cada tom: o bloco parado é só ela. */
+const BASE = { claro: "bg-card-line", creme: "bg-line-strong" };
+
 const TONS = {
   /** Sobre superfície branca (card, aside). */
-  claro: `bg-card-line motion-safe:from-card-line motion-safe:via-brilho motion-safe:to-card-line ${BRILHO}`,
+  claro: `${BASE.claro} motion-safe:from-card-line motion-safe:via-brilho motion-safe:to-card-line ${BRILHO}`,
   /** Sobre o `cream` da página. */
-  creme: `bg-line-strong motion-safe:from-line-strong motion-safe:via-line motion-safe:to-line-strong ${BRILHO}`,
+  creme: `${BASE.creme} motion-safe:from-line-strong motion-safe:via-line motion-safe:to-line-strong ${BRILHO}`,
 };
 
-/** Bloco com o brilho que corre (parado com `prefers-reduced-motion`). */
-export function Bloco({ tom = "claro", className = "" }: { tom?: keyof typeof TONS; className?: string }) {
-  return <span aria-hidden="true" data-skeleton="" className={`block ${TONS[tom]} ${className}`} />;
+/**
+ * Bloco com o brilho que corre (parado com `prefers-reduced-motion`).
+ * `parado`: só a cor base, sem brilho — a foto que não carregou (#140).
+ */
+export function Bloco({
+  tom = "claro",
+  parado = false,
+  className = "",
+}: {
+  tom?: keyof typeof TONS;
+  parado?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      data-skeleton={parado ? "parado" : ""}
+      className={`block ${parado ? BASE[tom] : TONS[tom]} ${className}`}
+    />
+  );
 }
 
 /** Área do mapa: o fundo de quando o Mapbox ainda não desenhou, com a pílula "Carregando mapa…". Não brilha. */

@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { brCodePix, configDoPix, crc16Pix, rotuloDoValor, VALOR_PADRAO, VALORES_DE_APOIO } from "./pix";
 
-// Copia e cola do QR estático sem valor gerado pelo app do Inter para a chave
-// aleatória do site (#120). A chave é pública por natureza: vai em todo QR.
+// Copia e cola do QR estático sem valor gerado pelo app do Inter (#120): prova o
+// formato contra um banco de verdade. A chave em produção é do Itaú, que não gera
+// QR para chave aleatória (#132); trocar a chave muda só o campo 26 e o CRC, e o
+// pagamento para ela foi conferido à mão. A chave é pública por natureza: vai em
+// todo QR.
 const COPIA_E_COLA_DO_INTER =
   "00020101021126580014br.gov.bcb.pix01364f6b5d56-9bc5-4152-a784-63cfe953eaf35204000053039865802BR5921KEZIAH OLIVEIRA PRADO6009FORTALEZA62070503***63045A67";
 

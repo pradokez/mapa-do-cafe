@@ -1,9 +1,10 @@
 /**
  * Pix do "Me paga um café?" (#120, PRD #119): o copia e cola do QR estático
- * (BR Code, EMV MPM do Banco Central), montado no site a partir da chave
- * aleatória do Inter — um código por valor, sem imagem para manter. Puro: não
- * importa React. Quem decide o formato é o copia e cola que o app do Inter gera
- * (teste-âncora em `pix.test.ts`), não a leitura do manual.
+ * (BR Code, EMV MPM do Banco Central), montado no site a partir de uma chave
+ * aleatória — um código por valor, sem imagem para manter. Puro: não importa
+ * React. Quem decide o formato é um copia e cola gerado por um banco de verdade
+ * (o do Inter, teste-âncora em `pix.test.ts`), não a leitura do manual. A chave
+ * em produção é do Itaú (#132): ela muda só o campo 26 e o CRC.
  */
 
 /** O valor do apoio em reais; `null` é o "Livre": o valor fica para o app do banco. */
@@ -18,7 +19,7 @@ export function rotuloDoValor(valor: ValorDeApoio): string {
 
 export type ConfigDoPix = { chave: string; nome: string; cidade: string };
 
-// Os do copia e cola do Inter (campos 59 e 60): a cidade é a do cadastro no banco.
+// Os do cadastro no banco (campos 59 e 60), os mesmos no Inter e no Itaú.
 const NOME_PADRAO = "KEZIAH OLIVEIRA PRADO";
 const CIDADE_PADRAO = "FORTALEZA";
 
@@ -47,7 +48,7 @@ function ouPadrao(texto: string | undefined, max: number, padrao: string): strin
   return texto && textoDoCampo(texto, max) ? texto.trim() : padrao;
 }
 
-/** O copia e cola do Pix estático, na ordem de campos do Inter. */
+/** O copia e cola do Pix estático, na ordem de campos do copia e cola do Inter (a âncora). */
 export function brCodePix({ chave, nome, cidade, valor }: ConfigDoPix & { valor: ValorDeApoio }): string {
   const semCrc = [
     tlv("00", "01"), // versão do payload

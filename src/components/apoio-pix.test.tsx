@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { brCodePix, type ConfigDoPix } from "@/lib/pix";
 
 import { ApoioPix } from "./apoio-pix";
+import { arrastar } from "./ui/arrastar-sheet";
 
 // A lib do QR não é verificada: o dublê devolve o código que recebeu.
 vi.mock("@/lib/qr-svg", () => ({
@@ -28,7 +29,10 @@ beforeEach(() => {
   writeText = vi.fn().mockResolvedValue(undefined);
   dublarClipboard({ writeText });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 async function abrir(variante: "desktop" | "mobile" = "desktop") {
   render(<ApoioPix config={CONFIG} variante={variante} />);
@@ -120,6 +124,14 @@ describe("ApoioPix", () => {
     await user.click(screen.getByRole("button", { name: "Me paga um café?" }));
     await user.click(screen.getByRole("button", { name: "Fechar" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("no mobile, arrastar o sheet pelo título além do limiar fecha, com o foco de volta ao botão", async () => {
+    await abrir("mobile");
+    arrastar(screen.getByRole("heading", { name: "Me paga um café?" }), 100, 400, 1000);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Me paga um café?" })));
   });
 
   it("abrir e trocar o valor não mexem na URL", async () => {

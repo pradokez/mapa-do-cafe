@@ -58,9 +58,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Slots do carrossel do hero (design); faltas viram placeholder.
-const HERO_SLOTS = 4;
-
 export default async function CafePage({ params }: Props) {
   const [cafe, edicoes] = await Promise.all([getCafe(params.slug), listFestivais()]);
   if (!cafe) notFound(); // o layout já barrou; aqui só estreita o tipo
@@ -89,7 +86,7 @@ export default async function CafePage({ params }: Props) {
           </span>
         </nav>
 
-        <CafeCarousel photos={resolveCafePhotos(cafe, { minSlots: HERO_SLOTS })} nome={cafe.nome} />
+        <CafeCarousel photos={resolveCafePhotos(cafe)} nome={cafe.nome} />
 
         <div className={DETALHE_GRADE}>
           <div className={DETALHE_COLUNA}>

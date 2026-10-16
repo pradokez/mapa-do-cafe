@@ -228,8 +228,9 @@ export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const MAX_SLUG = 80;
 
 /**
- * Slug de um café novo — o endereço `/cafes/<slug>`. Depois de criado, não muda
- * (quebraria links compartilhados). Repetido, só o banco sabe (`unique`).
+ * Slug de um café — o endereço `/cafes/<slug>`, no cadastro e na edição. Trocar
+ * quebra os links do endereço antigo (#155, sem redirect). Repetido, só o banco
+ * sabe (`unique`).
  */
 export function validarSlug(valor: unknown): Normalizado<string> {
   const slug = textoAparado(valor);
@@ -255,7 +256,7 @@ export function dentroDaRegiao({ lat, lng }: Coordenadas): boolean {
   return lat > REGIAO.lat.min && lat < REGIAO.lat.max && lng > REGIAO.lng.min && lng < REGIAO.lng.max;
 }
 
-/** O que o admin grava em `cafes`: o café sem `id`, `slug` (bloqueado), `fotos` (trigger) e `ativo` (seção Status). */
+/** Os dados de `cafes` que o formulário valida campo a campo: o café sem `id`, `slug` (`validarSlug`), `fotos` (trigger) e `ativo` (seção Status). */
 export type DadosCafe = Omit<Cafe, "id" | "slug" | "fotos" | "ativo">;
 
 /** Booleanos com checkbox; `tem_ar_condicionado` (três estados) fica à parte. */
@@ -359,7 +360,7 @@ export function validarDadosCafe(entrada: unknown): ResultadoDados {
   };
 }
 
-/** O que o cadastro (#53) grava: os dados editáveis e o slug, que só se escolhe aqui. */
+/** O que o cadastro (#53) e a edição (#155) gravam: os dados editáveis e o slug. */
 export type NovoCafe = DadosCafe & { slug: string };
 
 export type ResultadoNovoCafe = { ok: true; valores: NovoCafe } | { ok: false; erros: ErrosDados };

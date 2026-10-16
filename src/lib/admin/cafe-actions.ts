@@ -12,7 +12,6 @@ import type { Cafe } from "@/lib/cafe";
 import {
   coordenadasDaUrl,
   ehLinkDoMaps,
-  validarDadosCafe,
   validarNovoCafe,
   type Coordenadas,
   type ErrosDados,
@@ -29,20 +28,34 @@ export type ResultadoSalvar = { ok: true; cafe: Cafe } | { ok: false; erro: stri
 const ERRO_GERAL = "Não deu para salvar agora. Tente de novo em instantes.";
 const ERRO_CAFE = "Este café não foi encontrado.";
 
-/** Grava os dados editáveis (nunca `id`, `slug`, `fotos` nem `ativo`) e devolve o café como ficou. */
+/** Violação de `unique` no Postgres: em `cafes`, só o slug é único (conta também os cafés fora do ar). */
+const SLUG_REPETIDO = "23505";
+
+const slugRepetido = (slug: string) => ({
+  ok: false as const,
+  erro: null,
+  erros: { slug: `Já existe um café em /cafes/${slug}. Escolha outro endereço.` },
+});
+
+/**
+ * Grava os dados editáveis e o endereço (nunca `id`, `fotos` nem `ativo`) e
+ * devolve o café como ficou. Trocar o slug (#155) quebra os links do endereço
+ * antigo, de propósito: não há redirect.
+ */
 export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<ResultadoSalvar> {
   await requireAdmin();
   const bloqueio = bloqueioDeEscrita();
   if (bloqueio) return { ok: false, erro: bloqueio };
   if (!isUuid(cafeId)) return { ok: false, erro: ERRO_CAFE };
 
-  const validacao = validarDadosCafe(campos);
+  const validacao = validarNovoCafe(campos);
   if (!validacao.ok) return { ok: false, erro: null, erros: validacao.erros };
 
   const cafe = await getCafeById(cafeId);
   if (!cafe) return { ok: false, erro: ERRO_CAFE };
 
   const { error } = await createSessionClient().from("cafes").update(validacao.valores).eq("id", cafe.id);
+  if (error?.code === SLUG_REPETIDO) return slugRepetido(validacao.valores.slug);
   if (error) return { ok: false, erro: ERRO_GERAL };
 
   // Relido pelo repositório (escrita não usa `.select`): o formulário recebe o que o banco guardou.
@@ -50,15 +63,14 @@ export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<
   if (!salvo) return { ok: false, erro: ERRO_GERAL };
 
   revalidarCafe(salvo.slug);
+  // Endereço trocado (#155): o antigo passa a dar 404, sem redirect.
+  if (salvo.slug !== cafe.slug) revalidarCafe(cafe.slug);
   // A lista do painel (nome, bairro, cidade) e o cabeçalho desta página.
   revalidatePath("/admin", "layout");
   return { ok: true, cafe: salvo };
 }
 
 export type ResultadoCadastro = { ok: true; id: string } | { ok: false; erro: string | null; erros?: ErrosDados };
-
-/** Violação de `unique` no Postgres: em `cafes`, só o slug é único. */
-const SLUG_REPETIDO = "23505";
 
 /**
  * Cadastra um café **fora do ar**: a administradora sobe as fotos e o põe no ar
@@ -78,9 +90,7 @@ export async function cadastrarCafe(campos: unknown): Promise<ResultadoCadastro>
   const { error } = await createSessionClient()
     .from("cafes")
     .insert({ ...validacao.valores, id, ativo: false });
-  if (error?.code === SLUG_REPETIDO) {
-    return { ok: false, erro: null, erros: { slug: `Já existe um café em /cafes/${slug}. Escolha outro endereço.` } };
-  }
+  if (error?.code === SLUG_REPETIDO) return slugRepetido(slug);
   if (error) return { ok: false, erro: ERRO_GERAL };
 
   // Fora do ar, o site público não muda; só a lista do painel.

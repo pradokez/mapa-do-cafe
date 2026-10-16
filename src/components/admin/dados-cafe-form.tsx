@@ -1,7 +1,8 @@
 "use client";
 
 // Client: validação imediata (a mesma da Server Action), horário estruturado,
-// coordenadas do link do Maps, slug sugerido (cadastro) e aviso de alterações não salvas.
+// coordenadas do link do Maps, slug sugerido, confirmação da troca de endereço e aviso de alterações não salvas.
+import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -18,17 +19,16 @@ import {
   parDeCoordenadas,
   slugify,
   turnosDoHorario,
-  validarDadosCafe,
   validarNovoCafe,
   type CampoDados,
-  type DadosCafe,
   type ErrosDados,
   type HorarioDia,
+  type NovoCafe,
 } from "@/lib/cafe-dados";
 import { DIAS_DA_SEMANA } from "@/lib/cafe-hours";
 import { faixaPrecoNome } from "@/lib/format";
 
-import { botaoCtaClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
+import { botaoCtaClass, botaoNeutroClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
 import { MapaDePosicao } from "./mapa-de-posicao";
 
@@ -36,7 +36,7 @@ type Booleano = (typeof BOOLEANOS)[number];
 
 /** O que o formulário edita: números como texto (aceita vírgula), horário em turnos. Café novo começa sem faixa. */
 type Estado = Omit<
-  DadosCafe,
+  NovoCafe,
   "lat" | "lng" | "bairro_slug" | "horario_funcionamento" | "instagram" | "telefone" | "faixa_preco"
 > & {
   faixa_preco: FaixaPreco | "";
@@ -50,6 +50,7 @@ type Estado = Omit<
 /** Café novo: tudo em branco, menos a cidade (quase todos são de Recife) e "Sem informação" no ar-condicionado. */
 const ESTADO_NOVO: Estado = {
   nome: "",
+  slug: "",
   bairro: "",
   endereco: "",
   cidade: "Recife",
@@ -63,9 +64,10 @@ const ESTADO_NOVO: Estado = {
   horario: Object.fromEntries(DIAS_DA_SEMANA.map((dia) => [dia, turnosDoHorario(undefined)])) as Horario,
 };
 
-function estadoDe(cafe: DadosCafe): Estado {
+function estadoDe(cafe: NovoCafe): Estado {
   return {
     nome: cafe.nome,
+    slug: cafe.slug,
     bairro: cafe.bairro,
     endereco: cafe.endereco,
     cidade: cafe.cidade,
@@ -111,10 +113,10 @@ const opcaoClass = "flex min-h-11 cursor-pointer items-center gap-2 text-[15px] 
 const marcaClass = "size-[18px] shrink-0 accent-terracotta";
 
 type Edicao = {
-  cafe: DadosCafe;
+  cafe: NovoCafe;
   /** Server Action já ligada ao café (`salvarDadosCafe.bind(null, id)`). */
   salvar: (campos: unknown) => Promise<ResultadoSalvar>;
-  /** Café no ar: o sucesso diz que a mudança já está no site. */
+  /** Café no ar: o sucesso diz que a mudança já está no site, e trocar o endereço pede confirmação. */
   ativo: boolean;
 };
 
@@ -135,14 +137,17 @@ export function DadosCafeForm(props: Props) {
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [focarErro, setFocarErro] = useState(false);
+  const [trocaDeEndereco, setTrocaDeEndereco] = useState<{ de: string; para: string; payload: unknown } | null>(null);
 
   const [link, setLink] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [erroLink, setErroLink] = useState<string | null>(null);
 
-  // Slug do cadastro: segue o nome até ser editado. Apagado (ao sair do campo), volta a seguir.
-  const [slugDigitado, setSlugDigitado] = useState<string | null>(null);
-  const slug = slugDigitado ?? slugify(estado.nome);
+  // No cadastro, o slug segue o nome até ser editado; apagado (ao sair do campo), volta a seguir.
+  // Na edição (#155), fica o salvo: mudar o nome só sugere o endereço novo.
+  const [slugSegueNome, setSlugSegueNome] = useState(!edicao);
+  const slug = slugSegueNome ? slugify(estado.nome) : estado.slug;
+  const sugestao = edicao ? slugify(estado.nome) : "";
 
   const sujo = useMemo(() => JSON.stringify(estado) !== JSON.stringify(salvo), [estado, salvo]);
 
@@ -168,13 +173,15 @@ export function DadosCafeForm(props: Props) {
   }
 
   function mudarSlug(valor: string) {
-    setSlugDigitado(valor);
-    if (erros.slug) setErros((atual) => semErros(atual, (campo) => campo === "slug"));
+    setSlugSegueNome(false);
+    mudar("slug", valor);
   }
 
   function normalizarSlug() {
-    if (slugDigitado === null) return;
-    setSlugDigitado(slugify(slugDigitado) || null);
+    if (slugSegueNome) return;
+    const normalizado = slugify(estado.slug);
+    if (!normalizado && !edicao) setSlugSegueNome(true);
+    setEstado((e) => ({ ...e, slug: normalizado }));
   }
 
   function mudarHorario(dia: DiaSemana, valor: HorarioDia) {
@@ -228,15 +235,30 @@ export function DadosCafeForm(props: Props) {
     if (Object.keys(novosErros).length > 0) setFocarErro(true);
   }
 
-  async function enviar(evento: React.FormEvent<HTMLFormElement>) {
+  function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setSucesso(false);
     setErroGeral(null);
 
-    const payload = edicao ? payloadDe(estado) : { ...payloadDe(estado), slug };
-    const validacao = edicao ? validarDadosCafe(payload) : validarNovoCafe(payload);
+    const payload = { ...payloadDe(estado), slug };
+    const validacao = validarNovoCafe(payload);
     if (!validacao.ok) return falhar(validacao.erros, null);
 
+    // Café no ar com endereço novo: os links do antigo vão parar de abrir (#155).
+    if (edicao?.ativo && validacao.valores.slug !== salvo.slug) {
+      setTrocaDeEndereco({ de: salvo.slug, para: validacao.valores.slug, payload });
+      return;
+    }
+    void gravar(payload);
+  }
+
+  function confirmarTroca() {
+    if (!trocaDeEndereco) return;
+    setTrocaDeEndereco(null);
+    void gravar(trocaDeEndereco.payload);
+  }
+
+  async function gravar(payload: unknown) {
     setSalvando(true);
     let indo = false;
     try {
@@ -330,8 +352,7 @@ export function DadosCafeForm(props: Props) {
           <legend className={legendClass}>Identificação</legend>
           <div className="flex flex-col gap-5">
             {texto("nome", "Nome")}
-            {!edicao && (
-              <div>
+            <div>
                 <label htmlFor={id("slug")} className={labelClass}>
                   Endereço no site
                 </label>
@@ -349,12 +370,24 @@ export function DadosCafeForm(props: Props) {
                   className={`${inputClass} ${invalidoClass}`}
                 />
                 <p id="dica-dados-slug" className="mt-1.5 text-[12.5px] text-ink-3">
-                  <code>/cafes/{slug || "…"}</code> — sai do nome; dá para ajustar agora, mas não muda depois de
-                  cadastrar.
+                  <code>/cafes/{slug || "…"}</code> —{" "}
+                  {edicao ? "mudar quebra os links do endereço antigo." : "sai do nome, e dá para ajustar."}
                 </p>
+                {sugestao && sugestao !== slug && (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-2">
+                    Sugestão a partir do nome: <code>/cafes/{sugestao}</code>
+                    <button
+                      type="button"
+                      onClick={() => mudarSlug(sugestao)}
+                      aria-label={`Usar /cafes/${sugestao}`}
+                      className="min-h-8 rounded-full border border-line-strong bg-white px-3 text-[13px] font-semibold text-espresso hover:bg-hover-soft"
+                    >
+                      Usar
+                    </button>
+                  </p>
+                )}
                 {erroDe("slug")}
               </div>
-            )}
             <div className="grid gap-5 sm:grid-cols-2">
               {texto(
                 "bairro",
@@ -559,6 +592,34 @@ export function DadosCafeForm(props: Props) {
         )}
         {sujo && !salvando && !sucesso && <p className="text-[13.5px] text-ink-3">Alterações não salvas</p>}
       </div>
+
+      {/* Foco preso, Esc e foco de volta ao "Salvar" vêm do Radix Dialog; o foco abre em "Cancelar". */}
+      <Dialog.Root open={trocaDeEndereco !== null} onOpenChange={(aberto) => !aberto && setTrocaDeEndereco(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-espresso/45" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-cream p-6 shadow-xl focus:outline-none">
+            <Dialog.Title className="font-display text-[22px] leading-[1.2] text-espresso">
+              Mudar o endereço de {salvo.nome}?
+            </Dialog.Title>
+            <Dialog.Description asChild>
+              <div className="mt-2.5 flex flex-col gap-2.5 text-[14.5px] leading-[1.5] text-ink-2">
+                <p className="[overflow-wrap:anywhere]">
+                  De <code>/cafes/{trocaDeEndereco?.de}</code>
+                  <br />
+                  para <code className="text-espresso">/cafes/{trocaDeEndereco?.para}</code>
+                </p>
+                <p>Links do endereço antigo deixam de funcionar: quem abrir vê “café não encontrado”.</p>
+              </div>
+            </Dialog.Description>
+            <div className="mt-6 flex flex-wrap justify-end gap-2.5">
+              <Dialog.Close className={botaoNeutroClass}>Cancelar</Dialog.Close>
+              <button type="button" onClick={confirmarTroca} className={botaoCtaClass}>
+                Mudar e salvar
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </form>
   );
 }

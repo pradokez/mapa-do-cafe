@@ -80,7 +80,7 @@ describe("DadosCafeForm", () => {
 
     const payload = salvar.mock.calls[0][0];
     expect(payload.horario_funcionamento).toEqual(borsoi.horario_funcionamento);
-    expect(payload).not.toHaveProperty("slug");
+    expect(payload.slug).toBe("borsoi");
     expect(screen.getByText("Salvo. Já está no site.")).toBeTruthy();
     expect((screen.getByLabelText(/Telefone/) as HTMLInputElement).value).toBe("(81) 99908-4986");
   });
@@ -218,5 +218,82 @@ describe("DadosCafeForm — café novo", () => {
 
     expect(cadastrar.mock.calls[0][0]).toMatchObject({ slug: "cafe-da-praca", bairro: "Poço da Panela", faixa_preco: "$$" });
     expect(push).toHaveBeenCalledWith("/admin/cafes/c0ffee?novo=1");
+  });
+});
+
+const CAFE = cafe("0b4a1f6e-2f61-4d7c-9a31-0c8f3f1f0a11", { slug: "cafe-antigo", nome: "Café Antigo" });
+
+function editar({ ativo = true } = {}) {
+  const salvar = vi.fn(async (campos: unknown) => ({
+    ok: true as const,
+    cafe: { ...CAFE, ...(campos as object) },
+  }));
+  render(<DadosCafeForm cafe={CAFE} ativo={ativo} salvar={salvar} buscarCoordenadas={vi.fn()} />);
+  return { salvar, endereco: () => screen.getByLabelText<HTMLInputElement>("Endereço no site") };
+}
+
+describe("DadosCafeForm — endereço na edição (#155)", () => {
+  it("mudar o nome sugere o endereço novo sem trocar sozinho; “Usar” troca", async () => {
+    const { endereco } = editar();
+    expect(endereco().value).toBe("cafe-antigo");
+    expect(screen.queryByRole("button", { name: /^Usar/ })).toBeNull();
+
+    const nome = screen.getByLabelText("Nome");
+    await userEvent.clear(nome);
+    await userEvent.type(nome, "Café Novo");
+
+    expect(endereco().value).toBe("cafe-antigo");
+    expect(screen.getByText("/cafes/cafe-novo")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Usar/ }));
+    expect(endereco().value).toBe("cafe-novo");
+    expect(screen.queryByRole("button", { name: /^Usar/ })).toBeNull();
+  });
+
+  async function trocarEndereco(endereco: () => HTMLInputElement, novo: string) {
+    await userEvent.clear(endereco());
+    await userEvent.type(endereco(), novo);
+    await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+  }
+
+  it("no ar, pede confirmação com o antigo e o novo; Cancelar não grava", async () => {
+    const { salvar, endereco } = editar();
+    await trocarEndereco(endereco, "cafe-novo");
+
+    const dialogo = screen.getByRole("dialog", { name: "Mudar o endereço de Café Antigo?" });
+    expect(dialogo.textContent).toContain("/cafes/cafe-antigo");
+    expect(dialogo.textContent).toContain("/cafes/cafe-novo");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancelar" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(salvar).not.toHaveBeenCalled();
+  });
+
+  it("no ar, confirmar grava com o endereço novo", async () => {
+    const { salvar, endereco } = editar();
+    await trocarEndereco(endereco, "cafe-novo");
+
+    await userEvent.click(screen.getByRole("button", { name: "Mudar e salvar" }));
+
+    expect(salvar).toHaveBeenCalledWith(expect.objectContaining({ slug: "cafe-novo" }));
+    expect(await screen.findByText("Salvo. Já está no site.")).toBeTruthy();
+    expect(endereco().value).toBe("cafe-novo");
+  });
+
+  it("fora do ar, salva sem confirmação (não há link funcionando para quebrar)", async () => {
+    const { salvar, endereco } = editar({ ativo: false });
+    await trocarEndereco(endereco, "cafe-novo");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(salvar).toHaveBeenCalledWith(expect.objectContaining({ slug: "cafe-novo" }));
+  });
+
+  it("sem trocar o endereço, salva sem confirmação", async () => {
+    const { salvar } = editar();
+    await userEvent.type(screen.getByLabelText("Endereço"), " 2");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(salvar).toHaveBeenCalledWith(expect.objectContaining({ slug: "cafe-antigo" }));
   });
 });

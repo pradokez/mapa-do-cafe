@@ -8,7 +8,6 @@ import { StatusForm } from "@/components/admin/status-form";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { ChevronDownIcon } from "@/components/icons";
 import { coordenadasDoLink, salvarDadosCafe } from "@/lib/admin/cafe-actions";
-import { caminhoDoCafe } from "@/lib/cafe";
 import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
@@ -76,10 +75,6 @@ export default async function AdminCafe({ params, searchParams }: Props) {
               className="col-start-2 row-span-2 row-start-1 text-ink-2 transition-transform group-open:rotate-180"
             />
           </summary>
-          <p className="mt-6 text-[13.5px] text-ink-3">
-            Endereço no site: <code className="text-ink-2">{caminhoDoCafe(cafe)}</code> — não muda, para não quebrar
-            links já compartilhados.
-          </p>
           <DadosCafeForm
             cafe={cafe}
             ativo={cafe.ativo}

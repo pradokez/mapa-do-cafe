@@ -137,7 +137,7 @@ export function DadosCafeForm(props: Props) {
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [focarErro, setFocarErro] = useState(false);
-  const [trocaDeEndereco, setTrocaDeEndereco] = useState<{ de: string; para: string; payload: unknown } | null>(null);
+  const [trocaDeEndereco, setTrocaDeEndereco] = useState<{ para: string; payload: unknown } | null>(null);
 
   const [link, setLink] = useState("");
   const [buscando, setBuscando] = useState(false);
@@ -246,7 +246,7 @@ export function DadosCafeForm(props: Props) {
 
     // Café no ar com endereço novo: os links do antigo vão parar de abrir (#155).
     if (edicao?.ativo && validacao.valores.slug !== salvo.slug) {
-      setTrocaDeEndereco({ de: salvo.slug, para: validacao.valores.slug, payload });
+      setTrocaDeEndereco({ para: validacao.valores.slug, payload });
       return;
     }
     void gravar(payload);
@@ -353,41 +353,41 @@ export function DadosCafeForm(props: Props) {
           <div className="flex flex-col gap-5">
             {texto("nome", "Nome")}
             <div>
-                <label htmlFor={id("slug")} className={labelClass}>
-                  Endereço no site
-                </label>
-                <input
-                  id={id("slug")}
-                  type="text"
-                  required
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  maxLength={MAX_SLUG}
-                  value={slug}
-                  onChange={(e) => mudarSlug(e.target.value)}
-                  onBlur={normalizarSlug}
-                  {...aria("slug", "dica-dados-slug")}
-                  className={`${inputClass} ${invalidoClass}`}
-                />
-                <p id="dica-dados-slug" className="mt-1.5 text-[12.5px] text-ink-3">
-                  <code>/cafes/{slug || "…"}</code> —{" "}
-                  {edicao ? "mudar quebra os links do endereço antigo." : "sai do nome, e dá para ajustar."}
+              <label htmlFor={id("slug")} className={labelClass}>
+                Endereço no site
+              </label>
+              <input
+                id={id("slug")}
+                type="text"
+                required
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={MAX_SLUG}
+                value={slug}
+                onChange={(e) => mudarSlug(e.target.value)}
+                onBlur={normalizarSlug}
+                {...aria("slug", "dica-dados-slug")}
+                className={`${inputClass} ${invalidoClass}`}
+              />
+              <p id="dica-dados-slug" className="mt-1.5 text-[12.5px] text-ink-3">
+                <code>/cafes/{slug || "…"}</code> —{" "}
+                {edicao ? "mudar quebra os links do endereço antigo." : "sai do nome, e dá para ajustar."}
+              </p>
+              {sugestao && sugestao !== slug && (
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-2">
+                  Sugestão a partir do nome: <code>/cafes/{sugestao}</code>
+                  <button
+                    type="button"
+                    onClick={() => mudarSlug(sugestao)}
+                    aria-label={`Usar /cafes/${sugestao}`}
+                    className="min-h-8 rounded-full border border-line-strong bg-white px-3 text-[13px] font-semibold text-espresso hover:bg-hover-soft"
+                  >
+                    Usar
+                  </button>
                 </p>
-                {sugestao && sugestao !== slug && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-2">
-                    Sugestão a partir do nome: <code>/cafes/{sugestao}</code>
-                    <button
-                      type="button"
-                      onClick={() => mudarSlug(sugestao)}
-                      aria-label={`Usar /cafes/${sugestao}`}
-                      className="min-h-8 rounded-full border border-line-strong bg-white px-3 text-[13px] font-semibold text-espresso hover:bg-hover-soft"
-                    >
-                      Usar
-                    </button>
-                  </p>
-                )}
-                {erroDe("slug")}
-              </div>
+              )}
+              {erroDe("slug")}
+            </div>
             <div className="grid gap-5 sm:grid-cols-2">
               {texto(
                 "bairro",
@@ -604,7 +604,7 @@ export function DadosCafeForm(props: Props) {
             <Dialog.Description asChild>
               <div className="mt-2.5 flex flex-col gap-2.5 text-[14.5px] leading-[1.5] text-ink-2">
                 <p className="[overflow-wrap:anywhere]">
-                  De <code>/cafes/{trocaDeEndereco?.de}</code>
+                  De <code>/cafes/{salvo.slug}</code>
                   <br />
                   para <code className="text-espresso">/cafes/{trocaDeEndereco?.para}</code>
                 </p>

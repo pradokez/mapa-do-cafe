@@ -180,6 +180,51 @@ describe("filtrarCafes — distância", () => {
   });
 });
 
+describe("filtrarCafes — aberto agora", () => {
+  // Quarta, 28/10/2026, 10h em Recife (13h UTC).
+  const AGORA = new Date("2026-10-28T13:00:00Z");
+  const semana = (quarta: string) => ({ ...cafe("x").horario_funcionamento, quarta });
+  const cafes = [
+    cafe("aberto", { horario_funcionamento: semana("08:00 – 18:00"), aceita_pets: true }),
+    cafe("intervalo", { horario_funcionamento: semana("07:00 – 09:30, 14:00 – 18:00") }),
+    cafe("fechado", { horario_funcionamento: semana("Fechado") }),
+    // jsonb incompleto: sem a quarta, é `sem-informacao`.
+    cafe("sem-info", { horario_funcionamento: { segunda: "08:00 – 18:00" } as Cafe["horario_funcionamento"] }),
+    cafe("24h", { horario_funcionamento: semana("00:00 – 24:00"), bairro: "Pina", bairro_slug: "pina" }),
+  ];
+  const aberto = (extra: Partial<CafeFilters> = {}): CafeFilters => ({ ...FILTROS_VAZIOS, abertoAgora: true, ...extra });
+
+  it("deixa só os cafés abertos no instante dado, na ordem de entrada", () => {
+    expect(ids(filtrarCafes(cafes, aberto(), { agora: AGORA }))).toEqual(["aberto", "24h"]);
+  });
+
+  it("o instante decide: às 9h, quem está no primeiro turno passa e o 24 h também", () => {
+    const nove = new Date("2026-10-28T12:00:00Z");
+    expect(ids(filtrarCafes(cafes, aberto(), { agora: nove }))).toEqual(["aberto", "intervalo", "24h"]);
+  });
+
+  it("sem informação para hoje não passa, como o ar-condicionado `null`", () => {
+    expect(ids(filtrarCafes(cafes, aberto(), { agora: AGORA }))).not.toContain("sem-info");
+  });
+
+  it("sem o instante no contexto, não filtra ninguém (o módulo não consulta o relógio)", () => {
+    expect(filtrarCafes(cafes, aberto())).toHaveLength(cafes.length);
+  });
+
+  it("desligado, o instante sozinho não filtra", () => {
+    expect(filtrarCafes(cafes, FILTROS_VAZIOS, { agora: AGORA })).toHaveLength(cafes.length);
+  });
+
+  it("em interseção com atributo, bairro, busca e raio", () => {
+    expect(ids(filtrarCafes(cafes, aberto({ pets: true }), { agora: AGORA }))).toEqual(["aberto"]);
+    expect(ids(filtrarCafes(cafes, aberto({ bairros: ["pina"] }), { agora: AGORA }))).toEqual(["24h"]);
+    expect(ids(filtrarCafes(cafes, aberto({ q: "interv" }), { agora: AGORA }))).toEqual([]);
+    const origem = { lat: cafes[0].lat, lng: cafes[0].lng };
+    const comRaio = [cafe("longe", { horario_funcionamento: semana("08:00 – 18:00"), lat: -7.9, lng: -34.8 }), cafes[0]];
+    expect(ids(filtrarCafes(comRaio, aberto({ raioKm: 1 }), { agora: AGORA, origem }))).toEqual(["aberto"]);
+  });
+});
+
 describe("filtrarCafes — busca", () => {
   const busca = (q: string): CafeFilters => ({ ...FILTROS_VAZIOS, q });
 
@@ -262,7 +307,7 @@ describe("parseFilters", () => {
   it("lê cada param `=true` como filtro ligado", () => {
     const params = new URLSearchParams(
       "recife_coffee=true&eu_amo_cafe=true&pets=true&estacionamento=true&coffee_office=true" +
-        "&pcd=true&vegetariano=true&ar_condicionado=true",
+        "&pcd=true&vegetariano=true&ar_condicionado=true&aberto_agora=true",
     );
 
     expect(parseFilters(params, { festivais: OS_DOIS_NO_AR })).toEqual({
@@ -275,6 +320,7 @@ describe("parseFilters", () => {
       pcd: true,
       vegetariano: true,
       arCondicionado: true,
+      abertoAgora: true,
     });
   });
 
@@ -282,7 +328,7 @@ describe("parseFilters", () => {
     ["ausente", ""],
     ["desconhecido", "foo=bar&wifi=true"],
     ["vazio", "pets=&eu_amo_cafe"],
-    ["malformado", "pets=1&eu_amo_cafe=TRUE&estacionamento=sim&coffee_office=false"],
+    ["malformado", "pets=1&eu_amo_cafe=TRUE&estacionamento=sim&coffee_office=false&aberto_agora=1"],
     ["com codificação estranha", "pets=%E0%A4%A&coffee_office=tru%65%"],
   ])("param %s é ignorado em silêncio: filtro desligado", (_, query) => {
     expect(parseFilters(new URLSearchParams(query), { festivais: OS_DOIS_NO_AR })).toEqual(FILTROS_VAZIOS);
@@ -362,6 +408,15 @@ describe("serializeFilters", () => {
       "q=caf%C3%A9+gra%C3%A7as",
     );
     expect(serializeFilters({ ...FILTROS_VAZIOS, q: "   " }, new URLSearchParams("q=fiore"))).toBe("");
+  });
+
+  it("emite `aberto_agora=true`, e a ida e volta devolve o mesmo estado", () => {
+    const filters: CafeFilters = { ...FILTROS_VAZIOS, abertoAgora: true, pets: true };
+    const query = serializeFilters(filters);
+
+    expect(query).toBe("pets=true&aberto_agora=true");
+    expect(parseFilters(new URLSearchParams(query))).toEqual(filters);
+    expect(serializeFilters(FILTROS_VAZIOS, new URLSearchParams("aberto_agora=true"))).toBe("");
   });
 
   it("o raio fica fora da URL: quem recebe o link está em outro lugar", () => {
@@ -446,6 +501,10 @@ describe("temFiltroAtivo", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, precos: ["$"] })).toBe(true);
   });
 
+  it("Aberto agora conta como filtro ativo (a vitrine some com ele)", () => {
+    expect(temFiltroAtivo({ ...FILTROS_VAZIOS, abertoAgora: true })).toBe(true);
+  });
+
   it("raio escolhido conta como filtro ativo (a vitrine some com ele)", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, raioKm: 3 })).toBe(true);
   });
@@ -472,6 +531,10 @@ describe("contarFiltrosAtivos", () => {
     };
 
     expect(contarFiltrosAtivos(filters)).toBe(8);
+  });
+
+  it("Aberto agora conta 1 no badge", () => {
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, abertoAgora: true, raioKm: 3 })).toBe(2);
   });
 
   it("o raio conta 1 no badge", () => {

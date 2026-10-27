@@ -3,7 +3,7 @@ import type { DiaSemana } from "./cafe";
 /**
  * Horário de funcionamento — PRD › "Horário de funcionamento".
  *
- * Compara só o *dia* ("Aberto hoje"), nunca a hora ("Aberto agora" é Fase 3).
+ * Compara só o *dia* ("Aberto hoje"), nunca a hora ("Aberto agora" é Fase 3a).
  * O dia é o de Recife: o servidor roda em UTC e, das 21h à meia-noite, já
  * estaria no dia seguinte.
  */

@@ -190,7 +190,7 @@ Botão de apoio por Pix **só na home**: no desktop, na coluna direita do header
 
 O Server Component carrega **todos** os cafés ativos de uma vez (cache de 1 h no `cafe-repository`); filtros, busca e hover rodam no cliente. A home é **dinâmica** para o HTML já sair filtrado pelos params da URL — o primeiro render nunca mostra a lista completa piscando. Alvo de escala: 100–150 cafés (~100–200 KB). Mantém a sincronia card↔pin instantânea.
 
-PostGIS fica no schema para a Fase 3 (busca por raio). Mover filtragem para o servidor depois é uma troca atrás do `cafe-repository`.
+PostGIS fica no schema para a Fase 3a (busca por raio). Mover filtragem para o servidor depois é uma troca atrás do `cafe-repository`.
 
 ## Schema
 
@@ -202,7 +202,7 @@ nome, bairro,                      -- bairro: exibição ("Graças")
 bairro_slug,                       -- filtro ("gracas")
 endereco, cidade,                  -- cidade: 'Recife' | 'Olinda' | 'Jaboatão dos Guararapes'
 lat, lng,
-location geography(Point, 4326),   -- gerado de lat/lng; Fase 3: busca por raio
+location geography(Point, 4326),   -- gerado de lat/lng; Fase 3a: busca por raio
 aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
@@ -356,7 +356,7 @@ Vem do design. Não reinventar na implementação.
 - Busca: placeholder "Buscar café ou bairro"
 - Horário: "Aberto hoje" (`open`) / "Fechado hoje" (`terracotta`); quando fechado, complemento "abre amanhã". Horas como no design: `8h – 18h`, `8h30` (`formatarHorario`; o `jsonb` segue `HH:MM`)
 - Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Elevado — desvio consciente: o design dizia "Especial", que num diretório de cafés especiais soava como qualidade, não preço
-- Avaliações: pílula "Em breve" + "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." — **sem CTA**, desvio consciente do design (#80): o "Avise-me quando abrir" prometia um aviso que nunca chegava, e guardar o email exige double opt-in, texto de privacidade (LGPD), descadastro e proteção contra robôs, para uma Fase 3 sem data. Se ela ganhar data, o aviso volta como issue própria com esse pacote
+- Avaliações: pílula "Em breve" + "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." — **sem CTA**, desvio consciente do design (#80): o "Avise-me quando abrir" prometia um aviso que nunca chegava, e guardar o email exige double opt-in, texto de privacidade (LGPD), descadastro e proteção contra robôs, para uma Fase 3b sem data. Se ela ganhar data, o aviso volta como issue própria com esse pacote
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
 - Detalhe: "Voltar ao mapa" · "Como chegar" · "Ver no Instagram" · "Selo Recife Coffee" · "Selo Eu Amo Café" · "Comodidades" · "Horário de funcionamento"
 - Sugestões (#83): título "Sugestões" + "Uma ideia para o site ou algo que não funcionou direito? Escreva aqui. Toda mensagem é lida, mas não há resposta por este canal." · legenda "Sobre o quê?" · "Sua mensagem", dica e placeholder por tipo (`SOBRE_O_TIPO`) ou "Escolha um tipo acima para ver uma dica." · contador "N restantes" / "N a mais" · erros "Escolha o tipo da mensagem.", "Escreva sua mensagem.", "Escreva pelo menos 10 caracteres.", "Passou de 500 caracteres. Corte um pouco." · privacidade "**Você não precisa se identificar.** Evite colocar email, telefone ou outros dados pessoais no texto." + "Junto vai só a página de onde você veio: {café ou "a lista de cafés"}." · limite "**Opa, muitas mensagens seguidas.** Espere um pouco e tente de novo. Seu texto continua aqui." · falha (não está no design) "**Não deu para enviar agora.** Tente de novo em alguns minutos. Seu texto continua aqui." · "Enviar mensagem" · sucesso "Recebido, obrigado!" + "Sua mensagem chegou e vai ser lida. Não tem resposta por aqui, mas ela ajuda a deixar o mapa melhor." + "Voltar ao mapa" / "Enviar outra" · rodapé "Envie uma sugestão" depois de "Tem uma ideia ou viu algo quebrado?" (lista), "Sentiu falta de algo?" (estado vazio) ou "Viu algo estranho nesta página?" (detalhe), e embaixo, numa linha própria, "Ou, se preferir entrar em contato, basta enviar um email para contatomapadocafe@gmail.com." (o email é link `mailto:`)
@@ -387,7 +387,7 @@ Vem do design. Não reinventar na implementação.
 
 `horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
 
-O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora. **"Aberto agora"** (com hora corrente) é Fase 3; não confundir.
+O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora. **"Aberto agora"** (com hora corrente) é Fase 3a; não confundir.
 
 Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em UTC e, das 21h à meia-noite, já estaria no dia seguinte. Por isso `/cafes/[slug]` é **dinâmica** (`force-dynamic`), não ISR — HTML cacheado atravessaria a meia-noite com o dia errado. O Vitest roda com `TZ=UTC` para pegar esse tipo de bug.
 
@@ -513,7 +513,10 @@ Rodada de testes de exploit contra o próprio site, para provar que as garantias
 |---|---|
 | **Fase 1 — MVP** | Seed 53 cafés (51 ativos) · Listagem · Mapa · 10 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
-| **Fase 3 — Comunidade** | Avaliações · "Aberto agora" · sugestão de café · busca por raio (PostGIS) |
+| **Fase 3a — Descoberta** | Filtro "Aberto agora" (hora corrente, fuso de Recife) · busca por raio (PostGIS) |
+| **Fase 3b — Comunidade** | Avaliações e comentários |
+
+**Backlog, sem previsão:** formulário de sugestão de café novo — as sugestões do público (#83) já servem de canal.
 
 Não-objetivos: app nativo, reservas, delivery, monetização, multi-cidade, auth de usuário final.
 

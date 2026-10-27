@@ -93,7 +93,8 @@ Google Places foi avaliado e descartado como fonte de imagem: os termos proíbem
 |---|---|---|
 | Fase 1 — MVP | Em andamento | Listagem · Mapa · Filtros · Busca · Detalhe · Mobile · Deploy |
 | Fase 2 — Polimento | Backlog | Admin · Upload de fotos · SEO · Performance |
-| Fase 3 — Comunidade | Backlog | Avaliações · "Aberto agora" · Sugestões · Busca por raio |
+| Fase 3a — Descoberta | Backlog | "Aberto agora" · Busca por raio |
+| Fase 3b — Comunidade | Backlog | Avaliações e comentários |
 
 ## Documentação
 

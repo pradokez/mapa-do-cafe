@@ -252,6 +252,9 @@ describe("estadoAgora › sem informação e fuso", () => {
     ["sem o dia", { ...SEMANA, segunda: undefined }],
     ["vazio", { ...SEMANA, segunda: "" }],
     ["fora do formato", { ...SEMANA, segunda: "sob consulta" }],
+    ["com um turno fora do formato", { ...SEMANA, segunda: "08:00 – 12:00, à tarde" }],
+    ["com hora que não existe", { ...SEMANA, segunda: "08:00 – 25:00" }],
+    ["com minuto que não existe", { ...SEMANA, segunda: "08:75 – 18:00" }],
     ["jsonb nulo", null],
   ])("hoje %s → sem-informacao", (_, horario) => {
     expect(estadoAgora(horario, recife(0, "10:00"))).toEqual({ estado: "sem-informacao" });

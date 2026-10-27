@@ -110,6 +110,8 @@ function turnosDoDia(horario: string | null): TurnoEmMinutos[] | null {
     const abre = Number(ha) * 60 + Number(ma);
     // Fechar às 00:00 ou às 24:00 é fechar à meia-noite.
     const fecha = Number(hf) * 60 + Number(mf) || DIA_EM_MINUTOS;
+    // Hora que não existe (25:00, 08:75) é texto fora do formato.
+    if (Number(ha) > 23 || Number(ma) > 59 || Number(mf) > 59 || fecha > DIA_EM_MINUTOS) return null;
     turnos.push({ abre, fecha, horaAbre: `${ha}:${ma}`, horaFecha: `${hf}:${mf}` });
   }
   return turnos;

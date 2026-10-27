@@ -42,7 +42,7 @@ Node 24 (`.nvmrc`), pnpm.
 | Módulo | Localização | Responsabilidade |
 |---|---|---|
 | `cafe-filter` | `src/lib/cafe-filter.ts` | **Puro.** Aplica estado de filtro sobre lista de cafés, e serializa/desserializa esse estado para `URLSearchParams`. Os filtros de festival recebem os participantes no ar como dado (`FestivaisNoAr`); não consulta data. Não importa React, Supabase nem Mapbox. |
-| `cafe-hours` | `src/lib/cafe-hours.ts` | **Puro.** `(jsonb de horário, data)` → aberto hoje, horário de hoje, lista dos 7 dias com hoje marcado. |
+| `cafe-hours` | `src/lib/cafe-hours.ts` | **Puro.** `estadoAgora(horario, instante)` (#160, PRD #158) → `aberto` (`fecha`: hora, `"meia-noite"` ou `"24h"`, e `faltamMin`), `fechado` (`abre`: hoje, amanhã ou um dia da semana, com a hora; ou `null`) ou `sem-informacao`, no relógio de Recife. `rotuloDoDetalhe` → o badge do detalhe ("Aberto agora · fecha às 18h", `alerta` com N ≤ 30 min); `diasComHoje` → os 7 dias com hoje marcado; `formatarHorario` (`8h – 18h`). |
 | `cafe-distance` | `src/lib/cafe-distance.ts` | **Puro.** Haversine + formatação pt-BR (`1,2 km`) + ordenação por proximidade. Trata explicitamente "sem origem conhecida". |
 | `cafe-photos` | `src/lib/cafe-photos.ts` | **Puro.** `(café)` → fontes de imagem. Esconde se vem do Storage ou do placeholder. Precedência: Storage > placeholder. `tonsDoPlaceholder` dá as cores das listras (a imagem de compartilhamento usa as mesmas); `tom: "escuro"` troca pelos tons sobre `espresso` (a vitrine, #111). `urlsPublicasDasFotos` transforma os caminhos de `cafes.fotos` em URLs públicas do bucket `cafe-fotos`. |
 | `cafe-seo` | `src/lib/cafe-seo.ts` | **Puro.** `(café)` → título, meta description, imagem de compartilhamento (`imagemCompartilhamento`) e JSON-LD `CafeOrCoffeeShop`. "Fechado" vira 00:00–00:00; dia sem informação fica fora do JSON-LD. Edição de festival (#104): `tituloEdicao`, `descricaoEdicao` (gerada, não a `descricao` da edição) e JSON-LD `Festival` (`jsonLdEdicao`: datas, local Recife, `offers` com o preço). |
@@ -333,7 +333,7 @@ Duas linhas alinhadas à direita, formando uma unidade:
 | `seal-bg` / `seal-fg` | `#F6E8DF` / `#8F3F1F` | Badges dos selos (Recife Coffee, Eu Amo Café) |
 | `erro` | `#B23A1E` | Erro de formulário nas sugestões — 5,97:1 sobre branco (o `#D9826A` de borda do design dá 2,86:1, abaixo dos 3:1). Os erros do admin seguem em terracota |
 | `aviso-bg` / `aviso-line` / `aviso-fg` | `#FBEFE8` / `#EBC9B8` / `#7A3216` | Caixa de limite de envios (e de falha) nas sugestões — texto 8,1:1 |
-| `open` | `#3F6B3A` | "Aberto hoje" |
+| `open` | `#3F6B3A` | "Aberto agora" |
 | `sobre-espresso` / `sobre-espresso-2` | `#E2D7C9` / `#CDBFAE` | Textos claros sobre `espresso` na página do festival (descrição; "Voltar ao mapa", período, crédito) — 11,73:1 e 9,24:1. Na pílula "Edição encerrada" (`cream/12` sobre `espresso`), `sobre-espresso` dá 8,29:1 |
 | `brasa` | `#E58A5F` | Acento do festival sobre `espresso`: ano no título da página (6,45:1) e pontos das pílulas — do combo no detalhe (#103) e do status "Em breve" (decorativos: o texto diz o festival e o estado; na pílula clara do "Em breve", 2,42:1). É o token que a #111 chamava de `festival-ponto`. O ponto da encerrada é `placeholder` (2,69:1 na pílula, também decorativo) |
 | `map-bg` | `#1E1B19` | Fundo do mapa |
@@ -354,7 +354,7 @@ Vem do design. Não reinventar na implementação.
 - Contador: `1 café encontrado` / `N cafés encontrados`
 - Estado vazio: **"Xícara vazia por aqui"** + "Nenhum café encontrado com esses filtros. Que tal explorar outros bairros?"
 - Busca: placeholder "Buscar café ou bairro"
-- Horário: "Aberto hoje" (`open`) / "Fechado hoje" (`terracotta`); quando fechado, complemento "abre amanhã". Horas como no design: `8h – 18h`, `8h30` (`formatarHorario`; o `jsonb` segue `HH:MM`)
+- Horário no detalhe (#160, PRD #158): "Aberto agora" (`open`) · "fecha às 18h" / "fecha à meia-noite" / "24 horas" / "fecha em 20 min" (com N ≤ 30, também em terracota negrito); "Fechado agora" (`terracotta`) · "abre às 14h" / "abre amanhã às 8h" / "abre segunda às 8h" ("à meia-noite" quando abre às 00:00); "Fechado" (`terracotta`, sem complemento) quando nenhum dia abre. O complemento vai em `ink-2`. Horas como no design: `8h – 18h`, `8h30` (`formatarHorario`; o `jsonb` segue `HH:MM`)
 - Faixa de preço nomeada: `$` Econômico · `$$` Moderado · `$$$` Elevado — desvio consciente: o design dizia "Especial", que num diretório de cafés especiais soava como qualidade, não preço
 - Avaliações: pílula "Em breve" + "Ainda sem avaliações" + "Logo você vai poder contar como foi seu café aqui — do espresso ao atendimento." — **sem CTA**, desvio consciente do design (#80): o "Avise-me quando abrir" prometia um aviso que nunca chegava, e guardar o email exige double opt-in, texto de privacidade (LGPD), descadastro e proteção contra robôs, para uma Fase 3b sem data. Se ela ganhar data, o aviso volta como issue própria com esse pacote
 - FAB mobile: "Ver mapa" / "Ver lista" · Bottom sheet: "Ver N cafés"
@@ -375,8 +375,8 @@ Vem do design. Não reinventar na implementação.
 
 **Desvios conscientes no detalhe** (#4, #5) — o design não cobria esses casos:
 
-- Fechado hoje: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), ou nada se nenhum dia abre
-- Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje, o badge some
+- Fechado agora: "abre amanhã" só quando amanhã abre de fato; senão "abre {dia}" (`abre segunda`), pulando dia "Fechado", sem informação ou fora do formato; o próprio dia da semana seguinte também conta. Nenhum dia abre → só "Fechado"
+- Dia sem horário no `jsonb`: "Não informado" — nunca "Fechado". Se for hoje (ou o texto de hoje estiver fora do formato `HH:MM – HH:MM`), o badge some: é `sem-informacao`
 - Nota depois do horário, antes de "Avaliações": "Informações podem mudar. Na dúvida, confira com o café antes de ir." — `ink-3`, 12,5 px, ícone de info em `ink-3/60` (o design não tem a nota)
 - 404: "Esse café não está no mapa" + "Talvez o endereço esteja errado ou o café tenha saído do diretório." + "Voltar ao mapa"
 - Tags de "Comodidades" = as opções de filtro (os selos dos festivais no ar + 6 booleanos; ar-condicionado só quando `true`) + faixa de preço. Não há lista própria de comodidades: o array `comodidades` (wifi, brunch…) foi removido na #17 por não ter consumidor
@@ -385,9 +385,11 @@ Vem do design. Não reinventar na implementação.
 
 ## Horário e distância
 
-`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" vem de `(getDay() + 6) % 7`. Um dia pode ser `"Fechado"`.
+`horario_funcionamento` tem os 7 dias em ordem **Segunda → Domingo**. Mas o `jsonb` **não preserva a ordem das chaves** (o Postgres as normaliza): a ordem de exibição vem de uma lista fixa de `DiaSemana` em `cafe-hours`, nunca de `Object.keys`. "Hoje" e a hora vêm de um `Intl.DateTimeFormat` com `timeZone: "America/Recife"`, nunca de `getDay()`. Um dia pode ser `"Fechado"`.
 
-O badge **"Aberto hoje / Fechado hoje"** é Fase 1 — compara só o *dia*, sem hora. **"Aberto agora"** (com hora corrente) é Fase 3a; não confundir.
+O badge do detalhe é o **"Aberto agora / Fechado agora"** (#160, Fase 3a): `estadoAgora` com o `agora` do request. Regras de borda: a abertura conta e o fechamento não (às 18:00 em ponto, quem fecha às 18h está fechado); "fecha em N min" a partir de 30 min; `14:00 – 00:00` vai até 23:59 (fechar às `00:00` ou `24:00` é fechar à meia-noite); `00:00 – 24:00` é 24 h. Nenhum turno atravessa a meia-noite, então ontem nunca vale hoje. Nada recalcula sozinho: o estado é o do carregamento.
+
+**Risco aceito — hoje não olha amanhã:** um café com `14:00 – 00:00` hoje e `00:00 – 24:00` amanhã aparece às 23h50 como "fecha em 10 min", embora siga aberto. Nenhum café do seed tem essa combinação.
 
 Mas o *dia* é o de **`America/Recife`**, não o do servidor: a Vercel roda em UTC e, das 21h à meia-noite, já estaria no dia seguinte. Por isso `/cafes/[slug]` é **dinâmica** (`force-dynamic`), não ISR — HTML cacheado atravessaria a meia-noite com o dia errado. O Vitest roda com `TZ=UTC` para pegar esse tipo de bug.
 
@@ -462,7 +464,7 @@ Regra: testar **comportamento externo observável**, nunca detalhe de implementa
 | Módulo | Tipo | Prioridade |
 |---|---|---|
 | `cafe-filter` | Unitário puro — atributos, festivais (só no ar; param fora do ar e `ascape` descartados), interseção, multi-select, busca, ida e volta de URL | **Alta** |
-| `cafe-hours` | Unitário puro — aberto/fechado, índice de hoje (atenção a domingo), jsonb incompleto | **Alta** |
+| `cafe-hours` | Unitário puro — `estadoAgora`: meio do turno, minuto da abertura e do fechamento, 30 e 31 min, intervalo entre turnos, depois do último turno (amanhã, pulando "Fechado"), semana toda fechada, `14:00 – 00:00` às 23:59 e à 00:00, 24 h, sem informação, virada do dia em Recife, domingo → segunda; `rotuloDoDetalhe` por estado; índice de hoje (atenção a domingo); jsonb incompleto | **Alta** |
 | `cafe-distance` | Unitário puro — haversine, formato pt-BR, sem origem, ordenação (crescente, sem origem, desempate estável) | **Alta** |
 | `cafe-photos` | Unitário puro — placeholder determinístico (claro e escuro), precedência Storage > placeholder, caminho → URL pública | **Alta** |
 | `cafe-dados` | Unitário puro — cada constraint do banco, horário (turnos, "Fechado", meia-noite, sobreposição), Instagram e telefone, opcionais vazios, coordenadas de link do Maps e hosts aceitos; todos os cafés do seed passam sem mudança | **Alta** |
@@ -511,9 +513,9 @@ Rodada de testes de exploit contra o próprio site, para provar que as garantias
 
 | Fase | Escopo |
 |---|---|
-| **Fase 1 — MVP** | Seed 53 cafés (51 ativos) · Listagem · Mapa · 10 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
+| **Fase 1 — MVP** | Seed 53 cafés (51 ativos) · Listagem · Mapa · 10 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge de horário do dia · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
-| **Fase 3a — Descoberta** | Filtro "Aberto agora" (hora corrente, fuso de Recife) · busca por raio (PostGIS) |
+| **Fase 3a — Descoberta** (PRD #158) | "Aberto agora" (hora corrente, fuso de Recife): no detalhe (#160), filtro, card e pin · filtro de distância |
 | **Fase 3b — Comunidade** | Avaliações e comentários |
 
 **Backlog, sem previsão:** formulário de sugestão de café novo — as sugestões do público (#83) já servem de canal.

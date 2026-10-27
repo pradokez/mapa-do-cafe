@@ -190,7 +190,7 @@ Botão de apoio por Pix **só na home**: no desktop, na coluna direita do header
 
 O Server Component carrega **todos** os cafés ativos de uma vez (cache de 1 h no `cafe-repository`); filtros, busca e hover rodam no cliente. A home é **dinâmica** para o HTML já sair filtrado pelos params da URL — o primeiro render nunca mostra a lista completa piscando. Alvo de escala: 100–150 cafés (~100–200 KB). Mantém a sincronia card↔pin instantânea.
 
-PostGIS fica no schema para a Fase 3a (busca por raio). Mover filtragem para o servidor depois é uma troca atrás do `cafe-repository`.
+PostGIS fica no schema para quando a conta de distância precisar ir ao banco — o filtro de distância da Fase 3a (#158) roda no cliente, com haversine. Mover filtragem para o servidor depois é uma troca atrás do `cafe-repository`.
 
 ## Schema
 
@@ -202,7 +202,7 @@ nome, bairro,                      -- bairro: exibição ("Graças")
 bairro_slug,                       -- filtro ("gracas")
 endereco, cidade,                  -- cidade: 'Recife' | 'Olinda' | 'Jaboatão dos Guararapes'
 lat, lng,
-location geography(Point, 4326),   -- gerado de lat/lng; Fase 3a: busca por raio
+location geography(Point, 4326),   -- gerado de lat/lng; reservado para distância no banco
 aceita_pets boolean,
 tem_estacionamento boolean,        -- nome canônico (não `estacionamento`)
 permite_coffee_office boolean,
@@ -513,7 +513,7 @@ Rodada de testes de exploit contra o próprio site, para provar que as garantias
 |---|---|
 | **Fase 1 — MVP** | Seed 53 cafés (51 ativos) · Listagem · Mapa · 10 filtros + busca · URL sync · hover card↔pin · `/cafes/[slug]` com carrossel, horários e badge "Aberto hoje" · distância e lista ordenada por proximidade · estado vazio · mobile · deploy |
 | **Fase 2 — Polimento** | Admin + auth · CRUD · **upload de fotos (item de maior valor)** · SEO · lazy load · skeleton · domínio |
-| **Fase 3a — Descoberta** | Filtro "Aberto agora" (hora corrente, fuso de Recife) · busca por raio (PostGIS) |
+| **Fase 3a — Descoberta** (PRD #158) | Filtro "Aberto agora" (hora corrente, fuso de Recife) · filtro de distância 1 · 3 · 7 km (no cliente) |
 | **Fase 3b — Comunidade** | Avaliações e comentários |
 
 **Backlog, sem previsão:** formulário de sugestão de café novo — as sugestões do público (#83) já servem de canal.

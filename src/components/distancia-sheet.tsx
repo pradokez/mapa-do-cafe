@@ -4,7 +4,7 @@ import { chipClass } from "@/components/filter-chip";
 import { ChevronDownIcon, LocateIcon } from "@/components/icons";
 import { RaioOpcoes, RascunhoSheet } from "@/components/rascunho-sheet";
 import type { Cafe } from "@/lib/cafe";
-import { raioLabel, type Coordenadas } from "@/lib/cafe-distance";
+import { distanciaChipLabel, type Coordenadas } from "@/lib/cafe-distance";
 import type { CafeFilters } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 
@@ -22,6 +22,7 @@ type Props = {
  */
 export function DistanciaSheet({ cafes, festivais, origem, filters, onAplicar }: Props) {
   const ativo = filters.raioKm !== null;
+  const label = distanciaChipLabel(filters.raioKm);
 
   return (
     <RascunhoSheet
@@ -34,11 +35,11 @@ export function DistanciaSheet({ cafes, festivais, origem, filters, onAplicar }:
       trigger={
         <button
           type="button"
-          aria-label={ativo ? `Distância: ${raioLabel(filters.raioKm)}` : undefined}
+          aria-label={ativo ? `Distância: ${label}` : undefined}
           className={chipClass(ativo, "gap-1.5 pl-[13px] pr-[11px] font-medium lg:hidden")}
         >
           <LocateIcon size={15} strokeWidth={2} />
-          {ativo ? raioLabel(filters.raioKm) : "Distância"}
+          {label}
           <ChevronDownIcon size={14} strokeWidth={2} />
         </button>
       }

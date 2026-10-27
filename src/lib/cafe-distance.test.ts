@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   dentroDoRaio,
+  distanciaChipLabel,
   distanciaKm,
   distanciaLabel,
   formatarDistancia,
+  OPCOES_DE_RAIO,
   ordenarPorDistancia,
   RAIOS_KM,
   raioLabel,
@@ -171,8 +173,14 @@ describe("dentroDoRaio", () => {
 });
 
 describe("raios", () => {
-  it("as opções são 1, 3 e 7 km", () => {
+  it("as opções são 1, 3 e 7 km, e a de desligar vem por último", () => {
     expect(RAIOS_KM).toEqual([1, 3, 7]);
+    expect(OPCOES_DE_RAIO).toEqual([1, 3, 7, null]);
+  });
+
+  it("o chip diz \"Distância\" até um raio ser escolhido", () => {
+    expect(distanciaChipLabel(null)).toBe("Distância");
+    expect(distanciaChipLabel(3)).toBe("Até 3 km");
   });
 
   it("rótulo do raio, e o de desligar", () => {

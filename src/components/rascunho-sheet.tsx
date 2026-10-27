@@ -5,7 +5,8 @@ import { useRef, useState, type KeyboardEvent } from "react";
 import { CheckIcon } from "@/components/icons";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { Cafe } from "@/lib/cafe";
-import { RAIOS_KM, raioLabel, type Coordenadas, type RaioKm } from "@/lib/cafe-distance";
+import { proximoPelaSeta } from "@/components/radio-setas";
+import { OPCOES_DE_RAIO, raioLabel, type Coordenadas, type RaioKm } from "@/lib/cafe-distance";
 import { filtrarCafes, type CafeFilters } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 
@@ -91,8 +92,6 @@ export function SheetOption({ checked, onToggle, children, role = "checkbox", ta
   );
 }
 
-const OPCOES_DE_RAIO: (RaioKm | null)[] = [...RAIOS_KM, null];
-
 /**
  * Escolha única do raio, em linhas de 48 px (sheet de distância e seção do
  * sheet de filtros): "Até 1 km" · "Até 3 km" · "Até 7 km" · "Qualquer
@@ -104,11 +103,8 @@ export function RaioOpcoes({ raioKm, onEscolher }: { raioKm: RaioKm | null; onEs
   const atual = OPCOES_DE_RAIO.indexOf(raioKm);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
-    if (!passo) return;
-    e.preventDefault();
-    const n = OPCOES_DE_RAIO.length;
-    const proximo = (atual + passo + n) % n;
+    const proximo = proximoPelaSeta(e, atual, OPCOES_DE_RAIO.length);
+    if (proximo === null) return;
     onEscolher(OPCOES_DE_RAIO[proximo]);
     linhas.current[proximo]?.focus();
   };

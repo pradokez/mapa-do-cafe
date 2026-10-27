@@ -76,7 +76,15 @@ export function dentroDoRaio<T extends Coordenadas>(
   });
 }
 
+/** Opções do filtro, na ordem do menu: os raios e, por último, a de desligar. */
+export const OPCOES_DE_RAIO: readonly (RaioKm | null)[] = [...RAIOS_KM, null];
+
 /** Rótulo de uma opção do filtro: "Até 1 km", ou "Qualquer distância" (desligado). */
 export function raioLabel(km: RaioKm | null): string {
   return km === null ? "Qualquer distância" : `Até ${km} km`;
+}
+
+/** Rótulo do chip: `Distância` → o raio escolhido ("Até 3 km"). */
+export function distanciaChipLabel(km: RaioKm | null): string {
+  return km === null ? "Distância" : raioLabel(km);
 }

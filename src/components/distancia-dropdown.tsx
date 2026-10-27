@@ -9,7 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RAIOS_KM, raioLabel, type RaioKm } from "@/lib/cafe-distance";
+import { distanciaChipLabel, OPCOES_DE_RAIO, raioLabel, type RaioKm } from "@/lib/cafe-distance";
 
 type Props = {
   raioKm: RaioKm | null;
@@ -23,24 +23,26 @@ type Props = {
  */
 export function DistanciaDropdown({ raioKm, onEscolher }: Props) {
   const ativo = raioKm !== null;
+  const label = distanciaChipLabel(raioKm);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={ativo ? `Distância: ${raioLabel(raioKm)}` : undefined}
+        aria-label={ativo ? `Distância: ${label}` : undefined}
         className={chipClass(ativo, "hidden gap-2 pl-[15px] pr-3 font-medium lg:inline-flex")}
       >
         <LocateIcon size={16} strokeWidth={2} />
-        {ativo ? raioLabel(raioKm) : "Distância"}
+        {label}
         <ChevronDownIcon size={15} strokeWidth={2} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[230px]">
+        {/* O rótulo é o valor do item: único, e volta ao raio sem conversão. */}
         <DropdownMenuRadioGroup
-          value={String(raioKm)}
-          onValueChange={(valor) => onEscolher(valor === "null" ? null : (Number(valor) as RaioKm))}
+          value={raioLabel(raioKm)}
+          onValueChange={(valor) => onEscolher(OPCOES_DE_RAIO.find((km) => raioLabel(km) === valor) ?? null)}
         >
-          {[...RAIOS_KM, null].map((km) => (
-            <DropdownMenuRadioItem key={String(km)} value={String(km)}>
+          {OPCOES_DE_RAIO.map((km) => (
+            <DropdownMenuRadioItem key={raioLabel(km)} value={raioLabel(km)}>
               {raioLabel(km)}
             </DropdownMenuRadioItem>
           ))}

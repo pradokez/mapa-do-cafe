@@ -4,10 +4,11 @@ import { useId } from "react";
 
 import { ATRIBUTOS, selosNoAr, type SELOS } from "@/components/cafe-atributos";
 import { AtributoChip } from "@/components/filter-chip";
-import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
+import { RaioOpcoes, RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
 import { BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
+import type { Coordenadas } from "@/lib/cafe-distance";
 import { alternar, contarFiltrosAtivos, FAIXAS, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
@@ -16,18 +17,21 @@ type Props = {
   cafes: Cafe[];
   /** Festivais no ar: só eles têm chip em "Selos"; sem nenhum, a seção some. */
   festivais: FestivaisNoAr;
+  /** Posição do navegador: o raio conta para o "Ver N cafés". */
+  origem: Coordenadas | null;
   filters: CafeFilters;
   onAplicar: (next: CafeFilters) => void;
 };
 
 /**
  * Botão de filtros do header mobile (com badge) + bottom sheet em seções:
- * selos (dos festivais no ar) e comodidades em chips (como no design v2),
+ * distância em linhas de escolha única (#161, no topo, como no design da
+ * #159), selos (dos festivais no ar) e comodidades em chips (como no design v2),
  * faixa de preço em linhas (o chip "$" sozinho perderia o nome). Desvio
  * consciente do design, em que o botão abria o mesmo sheet do bairro: o
  * bairro fica no próprio chip (`BairroSheet`).
  */
-export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
+export function FiltrosSheet({ cafes, festivais, origem, filters, onAplicar }: Props) {
   const ativos = contarFiltrosAtivos(filters);
   const selos = selosNoAr(festivais);
 
@@ -36,6 +40,7 @@ export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
       titulo="Filtros"
       cafes={cafes}
       festivais={festivais}
+      origem={origem}
       filters={filters}
       onAplicar={onAplicar}
       trigger={
@@ -60,6 +65,9 @@ export function FiltrosSheet({ cafes, festivais, filters, onAplicar }: Props) {
         const alternarFiltro = (filtro: FiltroBooleano) => mudar({ ...rascunho, [filtro]: !rascunho[filtro] });
         return (
           <>
+            <Secao titulo="Distância">
+              <RaioOpcoes raioKm={rascunho.raioKm} onEscolher={(raioKm) => mudar({ ...rascunho, raioKm })} />
+            </Secao>
             {selos.length > 0 && (
               <Secao titulo="Selos">
                 <Chips opcoes={selos} rascunho={rascunho} onToggle={alternarFiltro} />

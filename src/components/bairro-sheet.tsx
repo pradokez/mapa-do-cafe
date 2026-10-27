@@ -4,12 +4,14 @@ import { chipClass } from "@/components/filter-chip";
 import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
 import { ChevronDownIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
+import type { Coordenadas } from "@/lib/cafe-distance";
 import { alternar, bairroChipLabel, type BairroOpcao, type CafeFilters } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 
 type Props = {
   cafes: Cafe[];
   festivais: FestivaisNoAr;
+  origem: Coordenadas | null;
   bairros: BairroOpcao[];
   filters: CafeFilters;
   onAplicar: (next: CafeFilters) => void;
@@ -20,7 +22,7 @@ type Props = {
  * Multi-select (desvio consciente do design, que tinha escolha única):
  * "Todos os bairros" limpa a seleção do rascunho.
  */
-export function BairroSheet({ cafes, festivais, bairros, filters, onAplicar }: Props) {
+export function BairroSheet({ cafes, festivais, origem, bairros, filters, onAplicar }: Props) {
   const label = bairroChipLabel(filters.bairros, bairros);
   const ativo = filters.bairros.length > 0;
 
@@ -29,6 +31,7 @@ export function BairroSheet({ cafes, festivais, bairros, filters, onAplicar }: P
       titulo="Bairro"
       cafes={cafes}
       festivais={festivais}
+      origem={origem}
       filters={filters}
       onAplicar={onAplicar}
       trigger={

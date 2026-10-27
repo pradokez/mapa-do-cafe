@@ -17,9 +17,9 @@ import {
 import { Bloco, BlocoDoMapa, CarregandoStatus, Linha } from "@/components/skeleton";
 import { SiteHeader } from "@/components/site-header";
 
-// Larguras medidas dos chips da barra (mobile / desktop): Recife Coffee, Eu
-// Amo Café, estacionamento e bairro; depois do divisor, $, $$ e $$$.
-const CHIPS = ["w-[131px] lg:w-[141px]", "w-[128px] lg:w-[138px]", "w-[149px] lg:w-[190px]", "w-[82px] lg:w-[113px]"];
+// Larguras medidas dos chips da barra (mobile / desktop): distância, Recife
+// Coffee, Eu Amo Café, estacionamento e bairro; depois do divisor, $, $$ e $$$.
+const CHIPS = ["w-[124px] lg:w-[135px]", "w-[131px] lg:w-[141px]", "w-[128px] lg:w-[138px]", "w-[149px] lg:w-[190px]", "w-[82px] lg:w-[113px]"];
 const PRECOS = ["w-[42px] lg:w-[46px]", "w-[42px] lg:w-[46px]", "w-[49px] lg:w-[54px]"];
 const CARDS = 6;
 

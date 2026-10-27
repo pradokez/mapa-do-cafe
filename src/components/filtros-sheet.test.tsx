@@ -21,7 +21,7 @@ const OS_DOIS_NO_AR: FestivaisNoAr = { "recife-coffee": ["c"], "eu-amo-cafe": ["
 
 function renderSheet(filters: CafeFilters = FILTROS_VAZIOS, festivais: FestivaisNoAr = OS_DOIS_NO_AR) {
   const onAplicar = vi.fn();
-  render(<FiltrosSheet cafes={CAFES} festivais={festivais} filters={filters} onAplicar={onAplicar} />);
+  render(<FiltrosSheet cafes={CAFES} festivais={festivais} origem={null} filters={filters} onAplicar={onAplicar} />);
   return onAplicar;
 }
 

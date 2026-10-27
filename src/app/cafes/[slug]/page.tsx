@@ -21,7 +21,7 @@ import { RodapeSugestoes } from "@/components/rodape-sugestoes";
 import { SiteHeader } from "@/components/site-header";
 import { VoltarAoMapa } from "@/components/voltar-ao-mapa";
 import { caminhoDoCafe } from "@/lib/cafe";
-import { resumoHorario } from "@/lib/cafe-hours";
+import { diasComHoje, estadoAgora } from "@/lib/cafe-hours";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
 import { listFestivais } from "@/lib/cafe-repository";
 import {
@@ -67,7 +67,6 @@ export default async function CafePage({ params }: Props) {
   if (!cafe) notFound(); // o layout já barrou; aqui só estreita o tipo
 
   const agora = new Date();
-  const horario = resumoHorario(cafe.horario_funcionamento, agora);
   // No ar e ativa hoje decididos aqui, fora do cache das edições (dia de Recife).
   const combos = combosDoCafe(edicoes, cafe.id, agora);
   const selos = selosDo(cafe, participantesNoAr(edicoes, agora));
@@ -153,7 +152,10 @@ export default async function CafePage({ params }: Props) {
             ))}
 
             <hr className="mb-2 mt-[30px] border-line" />
-            <CafeHoursPanel resumo={horario} />
+            <CafeHoursPanel
+              dias={diasComHoje(cafe.horario_funcionamento, agora)}
+              agora={estadoAgora(cafe.horario_funcionamento, agora)}
+            />
             <hr className="mt-2 border-line" />
             {/* Desvio consciente: o design não tem a nota. Sem fonte oficial, horário,
                 preço e comodidades mudam sem aviso (PRD › Risco de dado). */}

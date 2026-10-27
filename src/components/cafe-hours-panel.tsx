@@ -1,18 +1,18 @@
 import { ChevronDownIcon, ClockIcon } from "@/components/icons";
-import { formatarHorario, proximaAberturaLabel, type ResumoHorario } from "@/lib/cafe-hours";
+import { formatarHorario, rotuloDoDetalhe, type DiaHorario, type EstadoAgora } from "@/lib/cafe-hours";
 
 /**
- * "Horário de funcionamento": status de hoje no cabeçalho e os 7 dias ao
+ * "Horário de funcionamento": o estado de agora no cabeçalho e os 7 dias ao
  * expandir. `<details>` nativo — teclado e ARIA de graça, sem JS.
  */
-export function CafeHoursPanel({ resumo }: { resumo: ResumoHorario }) {
+export function CafeHoursPanel({ dias, agora }: { dias: DiaHorario[]; agora: EstadoAgora }) {
   return (
     <details className="group">
       <summary className="flex cursor-pointer list-none items-center gap-3 py-3.5 [&::-webkit-details-marker]:hidden">
         <ClockIcon size={18} strokeWidth={2} className="flex-none" />
         <span className="flex min-w-0 flex-1 flex-col gap-x-3 gap-y-0.5 sm:flex-row sm:items-center">
           <h2 className="text-base font-semibold">Horário de funcionamento</h2>
-          <StatusHoje hoje={resumo.hoje} />
+          <StatusAgora agora={agora} />
         </span>
         <ChevronDownIcon
           size={18}
@@ -21,7 +21,7 @@ export function CafeHoursPanel({ resumo }: { resumo: ResumoHorario }) {
         />
       </summary>
       <ul className="flex flex-col pb-2.5 pl-[30px] pt-1">
-        {resumo.dias.map(({ dia, label, horario, hoje }) => (
+        {dias.map(({ dia, label, horario, hoje }) => (
           <li
             key={dia}
             aria-current={hoje ? "date" : undefined}
@@ -38,22 +38,21 @@ export function CafeHoursPanel({ resumo }: { resumo: ResumoHorario }) {
   );
 }
 
-function StatusHoje({ hoje }: { hoje: ResumoHorario["hoje"] }) {
-  if (hoje.status === "desconhecido") return null;
-
-  const complemento =
-    hoje.status === "aberto"
-      ? formatarHorario(hoje.horario)
-      : hoje.proximaAbertura && proximaAberturaLabel(hoje.proximaAbertura);
+function StatusAgora({ agora }: { agora: EstadoAgora }) {
+  const rotulo = rotuloDoDetalhe(agora);
+  if (!rotulo) return null;
 
   return (
     <span className="text-sm text-ink-2 sm:ml-auto">
-      {hoje.status === "aberto" ? (
-        <span className="font-semibold text-open">Aberto hoje</span>
-      ) : (
-        <span className="font-semibold text-terracotta">Fechado hoje</span>
+      <span className={`font-semibold ${rotulo.estado === "Aberto agora" ? "text-open" : "text-terracotta"}`}>
+        {rotulo.estado}
+      </span>
+      {rotulo.complemento && (
+        <>
+          {" · "}
+          <span className={rotulo.alerta ? "font-semibold text-terracotta" : undefined}>{rotulo.complemento}</span>
+        </>
       )}
-      {complemento && ` · ${complemento}`}
     </span>
   );
 }

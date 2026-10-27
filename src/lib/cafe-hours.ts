@@ -3,9 +3,8 @@ import type { DiaSemana } from "./cafe";
 /**
  * Horário de funcionamento — PRD › "Horário de funcionamento".
  *
- * Compara só o *dia* ("Aberto hoje"), nunca a hora ("Aberto agora" é Fase 3a).
- * O dia é o de Recife: o servidor roda em UTC e, das 21h à meia-noite, já
- * estaria no dia seguinte.
+ * O dia e a hora são os de Recife: o servidor roda em UTC e, das 21h à
+ * meia-noite, já estaria no dia seguinte.
  */
 
 export const FECHADO = "Fechado";
@@ -25,11 +24,6 @@ export const NOME_DO_DIA: Record<DiaSemana, string> = {
 
 // Abreviação em inglês (estável entre runtimes) → índice com Segunda = 0.
 const INDICE_WEEKDAY: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-
-const weekdayEmRecife = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  timeZone: "America/Recife",
-});
 
 // Dia da semana e hora de Recife, juntos: os dois precisam vir do mesmo relógio.
 const relogioEmRecife = new Intl.DateTimeFormat("en-US", {
@@ -69,9 +63,7 @@ type TurnoEmMinutos = { abre: number; fecha: number; horaAbre: string; horaFecha
  * nunca vale hoje — nem amanhã estende hoje.
  */
 export function estadoAgora(horario: unknown, agora: Date): EstadoAgora {
-  const partes = Object.fromEntries(relogioEmRecife.formatToParts(agora).map((p) => [p.type, p.value]));
-  const iHoje = INDICE_WEEKDAY[partes.weekday];
-  const minuto = Number(partes.hour) * 60 + Number(partes.minute);
+  const { iHoje, minuto } = emRecife(agora);
   const semana = horarioDaSemana(horario).map(({ horario }) => turnosDoDia(horario));
 
   const hoje = semana[iHoje];
@@ -99,6 +91,12 @@ export function estadoAgora(horario: unknown, agora: Date): EstadoAgora {
     }
   }
   return { estado: "fechado", abre: null };
+}
+
+/** Índice do dia (Segunda = 0) e minutos desde 00:00, no relógio de Recife. */
+function emRecife(instante: Date): { iHoje: number; minuto: number } {
+  const partes = Object.fromEntries(relogioEmRecife.formatToParts(instante).map((p) => [p.type, p.value]));
+  return { iHoje: INDICE_WEEKDAY[partes.weekday], minuto: Number(partes.hour) * 60 + Number(partes.minute) };
 }
 
 /** Texto do dia → turnos em minutos (`[]` = "Fechado"), ou `null` se não informado ou fora do formato. */
@@ -160,35 +158,14 @@ export interface DiaHorario {
   hoje: boolean;
 }
 
-export type StatusHoje =
-  | { status: "aberto"; horario: string; proximaAbertura: null }
-  /** `proximaAbertura`: "amanha", o próximo dia aberto, ou `null` se nenhum abre. */
-  | { status: "fechado"; horario: null; proximaAbertura: "amanha" | DiaSemana | null }
-  | { status: "desconhecido"; horario: null; proximaAbertura: null };
-
-export interface ResumoHorario {
-  hoje: StatusHoje;
-  /** Sempre os 7 dias, de Segunda a Domingo. */
-  dias: DiaHorario[];
-}
-
 /**
- * `(jsonb de horário, data)` → status de hoje e os 7 dias com hoje marcado.
- * Dado ausente ou malformado nunca lança: o dia vira "não informado".
+ * `(jsonb de horário, data)` → os 7 dias, de Segunda a Domingo, com hoje
+ * (em Recife) marcado. Dado ausente ou malformado nunca lança: o dia vira
+ * "não informado".
  */
-export function resumoHorario(horario: unknown, data: Date): ResumoHorario {
-  const iHoje = INDICE_WEEKDAY[weekdayEmRecife.format(data)];
-  const dias = horarioDaSemana(horario).map((d, i) => ({ ...d, label: NOME_DO_DIA[d.dia], hoje: i === iHoje }));
-
-  const valor = dias[iHoje].horario;
-  const hoje: StatusHoje =
-    valor === null
-      ? { status: "desconhecido", horario: null, proximaAbertura: null }
-      : valor === FECHADO
-        ? { status: "fechado", horario: null, proximaAbertura: proximaAbertura(dias, iHoje) }
-        : { status: "aberto", horario: valor, proximaAbertura: null };
-
-  return { hoje, dias };
+export function diasComHoje(horario: unknown, data: Date): DiaHorario[] {
+  const { iHoje } = emRecife(data);
+  return horarioDaSemana(horario).map((d, i) => ({ ...d, label: NOME_DO_DIA[d.dia], hoje: i === iHoje }));
 }
 
 /**
@@ -200,14 +177,6 @@ export function horarioDaSemana(horario: unknown): { dia: DiaSemana; horario: st
   return DIAS_DA_SEMANA.map((dia) => ({ dia, horario: valorDoDia(registro[dia]) }));
 }
 
-function proximaAbertura(dias: DiaHorario[], iHoje: number): "amanha" | DiaSemana | null {
-  for (let passo = 1; passo < 7; passo++) {
-    const { dia, horario } = dias[(iHoje + passo) % 7];
-    if (horario !== null && horario !== FECHADO) return passo === 1 ? "amanha" : dia;
-  }
-  return null;
-}
-
 export function isRegistro(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -217,12 +186,6 @@ function valorDoDia(value: unknown): string | null {
   if (typeof value !== "string" || value.trim() === "") return null;
   const valor = value.trim();
   return valor.toLocaleLowerCase("pt-BR") === FECHADO.toLocaleLowerCase("pt-BR") ? FECHADO : valor;
-}
-
-/** Complemento de "Fechado hoje": "abre amanhã" (microcopy fixado) ou "abre sábado". */
-export function proximaAberturaLabel(proxima: "amanha" | DiaSemana): string {
-  if (proxima === "amanha") return "abre amanhã";
-  return `abre ${NOME_DO_DIA[proxima].toLocaleLowerCase("pt-BR")}`;
 }
 
 /**

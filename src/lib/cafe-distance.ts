@@ -54,3 +54,29 @@ export function ordenarPorDistancia<T extends Coordenadas>(
     .sort((a, b) => (a.km === b.km ? 0 : a.km - b.km))
     .map(({ item }) => item);
 }
+
+/** Raios do filtro de distância (#161), em km. */
+export const RAIOS_KM = [1, 3, 7] as const;
+export type RaioKm = (typeof RAIOS_KM)[number];
+
+/**
+ * Só os itens a até `km` da origem (borda inclusiva), na ordem de entrada.
+ * Sem origem, o raio não tem centro: nada sai. Com origem, item sem
+ * coordenada válida fica de fora — não dá para dizer que está dentro.
+ */
+export function dentroDoRaio<T extends Coordenadas>(
+  itens: readonly T[],
+  origem: Coordenadas | null,
+  km: number,
+): T[] {
+  if (!origem) return [...itens];
+  return itens.filter((item) => {
+    const distancia = distanciaKm(origem, item);
+    return distancia !== null && distancia <= km;
+  });
+}
+
+/** Rótulo de uma opção do filtro: "Até 1 km", ou "Qualquer distância" (desligado). */
+export function raioLabel(km: RaioKm | null): string {
+  return km === null ? "Qualquer distância" : `Até ${km} km`;
+}

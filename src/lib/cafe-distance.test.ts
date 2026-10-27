@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { distanciaKm, distanciaLabel, formatarDistancia, ordenarPorDistancia } from "./cafe-distance";
+import {
+  dentroDoRaio,
+  distanciaKm,
+  distanciaLabel,
+  formatarDistancia,
+  ordenarPorDistancia,
+  RAIOS_KM,
+  raioLabel,
+} from "./cafe-distance";
 
 const MARCO_ZERO = { lat: -8.0631, lng: -34.8711 };
 
@@ -125,5 +133,51 @@ describe("ordenarPorDistancia", () => {
     const entrada = [longe, perto, meio];
     ordenarPorDistancia(entrada, MARCO_ZERO);
     expect(nomes(entrada)).toEqual(["longe", "perto", "meio"]);
+  });
+});
+
+describe("dentroDoRaio", () => {
+  // Ao norte do Marco Zero: 0,009° ≈ 1,0 km; 0,0089° fica dentro de 1 km e 0,0091° fora.
+  const dentro = { nome: "dentro", lat: -8.0542, lng: -34.8711 };
+  const fora = { nome: "fora", lat: -8.054, lng: -34.8711 };
+  const longe = { nome: "longe", lat: -8.0331, lng: -34.8711 };
+  const nomes = (itens: { nome: string }[]) => itens.map((i) => i.nome);
+
+  it("deixa só os cafés a até o raio da origem", () => {
+    expect(distanciaKm(MARCO_ZERO, dentro)).toBeLessThan(1);
+    expect(distanciaKm(MARCO_ZERO, fora)).toBeGreaterThan(1);
+    expect(nomes(dentroDoRaio([longe, dentro, fora], MARCO_ZERO, 1))).toEqual(["dentro"]);
+    expect(nomes(dentroDoRaio([longe, dentro, fora], MARCO_ZERO, 7))).toEqual(["longe", "dentro", "fora"]);
+  });
+
+  it("na borda exata do raio, o café entra", () => {
+    const km = distanciaKm(MARCO_ZERO, fora)!;
+    expect(nomes(dentroDoRaio([fora], MARCO_ZERO, km))).toEqual(["fora"]);
+    expect(dentroDoRaio([fora], MARCO_ZERO, km - 1e-9)).toEqual([]);
+  });
+
+  it("sem origem conhecida, ninguém sai", () => {
+    expect(nomes(dentroDoRaio([longe, dentro, fora], null, 1))).toEqual(["longe", "dentro", "fora"]);
+  });
+
+  it("com origem, café sem coordenada válida fica de fora", () => {
+    const semLugar = { nome: "sem lugar", lat: Number.NaN, lng: -34.8711 };
+    expect(nomes(dentroDoRaio([semLugar, dentro], MARCO_ZERO, 7))).toEqual(["dentro"]);
+  });
+
+  it("preserva a ordem de entrada (ordenar é do ordenarPorDistancia)", () => {
+    expect(nomes(dentroDoRaio([fora, longe, dentro], MARCO_ZERO, 7))).toEqual(["fora", "longe", "dentro"]);
+  });
+});
+
+describe("raios", () => {
+  it("as opções são 1, 3 e 7 km", () => {
+    expect(RAIOS_KM).toEqual([1, 3, 7]);
+  });
+
+  it("rótulo do raio, e o de desligar", () => {
+    expect(raioLabel(1)).toBe("Até 1 km");
+    expect(raioLabel(7)).toBe("Até 7 km");
+    expect(raioLabel(null)).toBe("Qualquer distância");
   });
 });

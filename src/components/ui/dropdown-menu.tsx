@@ -8,7 +8,7 @@ import { CheckIcon } from "@/components/icons";
 /**
  * shadcn/ui DropdownMenu (Radix), só com as partes em uso e estilizado com os
  * tokens da paleta. Teclado (setas, Home/End, type-ahead, Esc), foco de volta
- * ao gatilho e ARIA (`menu`, `menuitemcheckbox`) vêm do Radix.
+ * ao gatilho e ARIA (`menu`, `menuitemcheckbox`, `menuitemradio`) vêm do Radix.
  */
 export const DropdownMenu = DropdownMenuPrimitive.Root;
 
@@ -31,15 +31,14 @@ export const DropdownMenuContent = forwardRef<
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 /** Linha do design: 38 px, marca ✓ terracota à direita e semibold quando marcada. */
+const ITEM =
+  "flex h-[38px] cursor-pointer select-none items-center justify-between gap-3 rounded-lg px-2.5 text-sm text-espresso outline-offset-[-2px] data-[highlighted]:bg-hover-soft data-[state=checked]:font-semibold";
+
 export const DropdownMenuCheckboxItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
 >(({ className = "", children, ...props }, ref) => (
-  <DropdownMenuPrimitive.CheckboxItem
-    ref={ref}
-    className={`flex h-[38px] cursor-pointer select-none items-center justify-between gap-3 rounded-lg px-2.5 text-sm text-espresso outline-offset-[-2px] data-[highlighted]:bg-hover-soft data-[state=checked]:font-semibold ${className}`}
-    {...props}
-  >
+  <DropdownMenuPrimitive.CheckboxItem ref={ref} className={`${ITEM} ${className}`} {...props}>
     {children}
     <DropdownMenuPrimitive.ItemIndicator className="text-terracotta">
       <CheckIcon size={16} strokeWidth={2.2} />
@@ -47,3 +46,19 @@ export const DropdownMenuCheckboxItem = forwardRef<
   </DropdownMenuPrimitive.CheckboxItem>
 ));
 DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
+
+export const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
+
+/** A mesma linha do `DropdownMenuCheckboxItem`, para escolha única. */
+export const DropdownMenuRadioItem = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
+>(({ className = "", children, ...props }, ref) => (
+  <DropdownMenuPrimitive.RadioItem ref={ref} className={`${ITEM} ${className}`} {...props}>
+    {children}
+    <DropdownMenuPrimitive.ItemIndicator className="text-terracotta">
+      <CheckIcon size={16} strokeWidth={2.2} />
+    </DropdownMenuPrimitive.ItemIndicator>
+  </DropdownMenuPrimitive.RadioItem>
+));
+DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;

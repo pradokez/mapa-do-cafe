@@ -112,32 +112,71 @@ describe("filtrarCafes — festivais", () => {
     ["euAmoCafe", ["a", "b"]],
     ["recifeCoffee", ["c"]],
   ] as const)("filtro %s deixa só os participantes da edição no ar", (filtro, esperado) => {
-    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, [filtro]: true }, NO_AR))).toEqual(esperado);
+    expect(ids(filtrarCafes(cafes, { ...FILTROS_VAZIOS, [filtro]: true }, { festivais: NO_AR }))).toEqual(esperado);
   });
 
   it("em interseção com os outros filtros", () => {
     const filters = { ...FILTROS_VAZIOS, euAmoCafe: true, pets: true };
 
-    expect(ids(filtrarCafes(cafes, filters, NO_AR))).toEqual(["a"]);
+    expect(ids(filtrarCafes(cafes, filters, { festivais: NO_AR }))).toEqual(["a"]);
   });
 
   it("os dois festivais ligados: quem participa dos dois", () => {
     const filters = { ...FILTROS_VAZIOS, euAmoCafe: true, recifeCoffee: true };
 
-    expect(ids(filtrarCafes(cafes, filters, { ...NO_AR, "recife-coffee": ["b", "c"] }))).toEqual(["b"]);
+    expect(ids(filtrarCafes(cafes, filters, { festivais: { ...NO_AR, "recife-coffee": ["b", "c"] } }))).toEqual(["b"]);
   });
 
   it("festival fora do ar não filtra ninguém", () => {
     const filters = { ...FILTROS_VAZIOS, recifeCoffee: true };
 
-    expect(ids(filtrarCafes(cafes, filters, { "eu-amo-cafe": ["a"] }))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarCafes(cafes, filters, { festivais: { "eu-amo-cafe": ["a"] } }))).toEqual(["a", "b", "c"]);
     expect(ids(filtrarCafes(cafes, filters))).toEqual(["a", "b", "c"]);
   });
 
   it("festival no ar ainda sem participantes: lista vazia", () => {
     const filters = { ...FILTROS_VAZIOS, euAmoCafe: true };
 
-    expect(filtrarCafes(cafes, filters, { "eu-amo-cafe": [] })).toEqual([]);
+    expect(filtrarCafes(cafes, filters, { festivais: { "eu-amo-cafe": [] } })).toEqual([]);
+  });
+});
+
+describe("filtrarCafes — distância", () => {
+  // Origem no Marco Zero; ao norte, a ~0,6 km, ~2,2 km e ~5,5 km.
+  const ORIGEM = { lat: -8.0631, lng: -34.8711 };
+  const cafes = [
+    cafe("longe", { lat: -8.0131, lng: -34.8711, aceita_pets: true, bairro: "Pina", bairro_slug: "pina" }),
+    cafe("perto", { lat: -8.0581, lng: -34.8711 }),
+    cafe("meio", { lat: -8.0431, lng: -34.8711, aceita_pets: true, bairro: "Pina", bairro_slug: "pina" }),
+  ];
+  const raio = (raioKm: CafeFilters["raioKm"], extra: Partial<CafeFilters> = {}): CafeFilters => ({
+    ...FILTROS_VAZIOS,
+    raioKm,
+    ...extra,
+  });
+
+  it.each([
+    [1, ["perto"]],
+    [3, ["perto", "meio"]],
+    [7, ["longe", "perto", "meio"]],
+  ] as const)("até %i km deixa só os cafés dentro do raio, na ordem de entrada", (km, esperado) => {
+    expect(ids(filtrarCafes(cafes, raio(km), { origem: ORIGEM }))).toEqual(esperado);
+  });
+
+  it("sem origem, o raio não filtra ninguém", () => {
+    expect(ids(filtrarCafes(cafes, raio(1)))).toEqual(["longe", "perto", "meio"]);
+    expect(ids(filtrarCafes(cafes, raio(1), { origem: null }))).toEqual(["longe", "perto", "meio"]);
+  });
+
+  it("sem raio, a origem sozinha não filtra", () => {
+    expect(ids(filtrarCafes(cafes, FILTROS_VAZIOS, { origem: ORIGEM }))).toEqual(["longe", "perto", "meio"]);
+  });
+
+  it("em interseção com atributo, bairro e busca", () => {
+    expect(ids(filtrarCafes(cafes, raio(3, { pets: true }), { origem: ORIGEM }))).toEqual(["meio"]);
+    expect(ids(filtrarCafes(cafes, raio(7, { bairros: ["gracas"] }), { origem: ORIGEM }))).toEqual(["perto"]);
+    expect(ids(filtrarCafes(cafes, raio(3, { q: "graças" }), { origem: ORIGEM }))).toEqual(["perto"]);
+    expect(filtrarCafes(cafes, raio(1, { pets: true }), { origem: ORIGEM })).toEqual([]);
   });
 });
 
@@ -325,6 +364,11 @@ describe("serializeFilters", () => {
     expect(serializeFilters({ ...FILTROS_VAZIOS, q: "   " }, new URLSearchParams("q=fiore"))).toBe("");
   });
 
+  it("o raio fica fora da URL: quem recebe o link está em outro lugar", () => {
+    expect(serializeFilters({ ...FILTROS_VAZIOS, raioKm: 3, pets: true })).toBe("pets=true");
+    expect(parseFilters(new URLSearchParams("raio=3&raioKm=3")).raioKm).toBeNull();
+  });
+
   it("sem filtro ligado não emite nada", () => {
     expect(serializeFilters(FILTROS_VAZIOS)).toBe("");
   });
@@ -402,6 +446,10 @@ describe("temFiltroAtivo", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, precos: ["$"] })).toBe(true);
   });
 
+  it("raio escolhido conta como filtro ativo (a vitrine some com ele)", () => {
+    expect(temFiltroAtivo({ ...FILTROS_VAZIOS, raioKm: 3 })).toBe(true);
+  });
+
   it("busca preenchida conta como filtro ativo (\"Limpar filtros\" também a limpa)", () => {
     expect(temFiltroAtivo({ ...FILTROS_VAZIOS, q: "fiore" })).toBe(true);
   });
@@ -424,6 +472,10 @@ describe("contarFiltrosAtivos", () => {
     };
 
     expect(contarFiltrosAtivos(filters)).toBe(8);
+  });
+
+  it("o raio conta 1 no badge", () => {
+    expect(contarFiltrosAtivos({ ...FILTROS_VAZIOS, raioKm: 1, pets: true })).toBe(2);
   });
 
   it("a busca não entra no badge: ela aparece no próprio campo", () => {

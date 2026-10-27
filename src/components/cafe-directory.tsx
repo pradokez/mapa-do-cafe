@@ -23,8 +23,8 @@ import type { ConfigDoPix } from "@/lib/pix";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
- * recorte dos filtros e da busca (na URL, com os festivais no ar), a ordem por distância (com
- * posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
+ * recorte dos filtros e da busca (na URL, com os festivais no ar), o raio de
+ * distância (local, fora da URL, #161), a ordem por distância (com posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
  * sempre abre na lista. Tudo no cliente, sem round-trip. As vitrines dos
  * festivais no ar (#106) ficam no topo da lista só sem filtro nem busca.
@@ -45,14 +45,17 @@ export function CafeDirectory({
 }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
-  const { filters, toggle, toggleBairro, limparBairros, togglePreco, buscar, aplicar, limpar } =
+  const { filters: escolhidos, toggle, toggleBairro, limparBairros, togglePreco, buscar, escolherRaio, aplicar, limpar } =
     useFilterParams(slugs, festivais);
   // Com posição, do mais perto ao mais longe; sem ela (e no HTML do servidor),
   // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
   // lista muda de identidade.
   const { coords } = useGeolocation();
+  // Sem posição, o raio não tem centro: não filtra, não conta no badge, não
+  // esconde a vitrine e o chip fica em "Distância". Com ela, o escolhido vale.
+  const filters = useMemo(() => (coords ? escolhidos : { ...escolhidos, raioKm: null }), [coords, escolhidos]);
   const filtrados = useMemo(
-    () => ordenarPorDistancia(filtrarCafes(cafes, filters, festivais), coords),
+    () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords }), coords),
     [cafes, filters, festivais, coords],
   );
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
@@ -93,7 +96,7 @@ export function CafeDirectory({
         actions={
           <>
             {pix && <ApoioPix config={pix} variante="mobile" />}
-            <FiltrosSheet cafes={cafes} festivais={festivais} filters={filters} onAplicar={aplicar} />
+            <FiltrosSheet cafes={cafes} festivais={festivais} origem={coords} filters={filters} onAplicar={aplicar} />
           </>
         }
         extra={pix && <ApoioPix config={pix} variante="desktop" />}
@@ -104,12 +107,14 @@ export function CafeDirectory({
         <FilterBar
           cafes={cafes}
           festivais={festivais}
+          origem={coords}
           filters={filters}
           bairros={bairros}
           onToggle={toggle}
           onToggleBairro={toggleBairro}
           onLimparBairros={limparBairros}
           onTogglePreco={togglePreco}
+          onEscolherRaio={escolherRaio}
           onAplicar={aplicar}
         />
         <div className={HOME_COLUNAS}>

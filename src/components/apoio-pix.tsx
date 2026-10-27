@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type
 
 import { CHIP_OFF, CHIP_ON } from "@/components/filter-chip";
 import { CoffeeIcon, CopyIcon, XIcon } from "@/components/icons";
+import { proximoPelaSeta } from "@/components/radio-setas";
 import { APOIO_BOTAO_DESKTOP, APOIO_BOTAO_DESKTOP_FORMA, BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { brCodePix, rotuloDoValor, VALOR_PADRAO, VALORES_DE_APOIO, type ConfigDoPix, type ValorDeApoio } from "@/lib/pix";
@@ -224,11 +225,8 @@ function Valores({
   const atual = VALORES_DE_APOIO.indexOf(valor);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
-    if (!passo) return;
-    e.preventDefault();
-    const n = VALORES_DE_APOIO.length;
-    const proximo = (atual + passo + n) % n;
+    const proximo = proximoPelaSeta(e, atual, VALORES_DE_APOIO.length);
+    if (proximo === null) return;
     onEscolher(VALORES_DE_APOIO[proximo]);
     botoes.current[proximo]?.focus();
   };

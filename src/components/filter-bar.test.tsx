@@ -22,12 +22,14 @@ function renderBar(filters: CafeFilters = FILTROS_VAZIOS, festivais: FestivaisNo
     <FilterBar
       cafes={[]}
       festivais={festivais}
+      origem={null}
       filters={filters}
       bairros={[]}
       onToggle={onToggle}
       onToggleBairro={vi.fn()}
       onLimparBairros={vi.fn()}
       onTogglePreco={vi.fn()}
+      onEscolherRaio={vi.fn()}
       onAplicar={vi.fn()}
     />,
   );

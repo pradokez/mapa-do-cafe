@@ -1,10 +1,13 @@
 import { BairroDropdown } from "@/components/bairro-dropdown";
 import { BairroSheet } from "@/components/bairro-sheet";
 import { filtrosDaBarra } from "@/components/cafe-atributos";
+import { DistanciaDropdown } from "@/components/distancia-dropdown";
+import { DistanciaSheet } from "@/components/distancia-sheet";
 import { AtributoChip, chipClass } from "@/components/filter-chip";
 import { MaisFiltrosDropdown } from "@/components/mais-filtros-dropdown";
 import { BARRA_FILTROS } from "@/components/medidas";
 import type { Cafe, FaixaPreco } from "@/lib/cafe";
+import type { Coordenadas, RaioKm } from "@/lib/cafe-distance";
 import { FAIXAS, type BairroOpcao, type CafeFilters, type FiltroBooleano } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 import { faixaPrecoNome } from "@/lib/format";
@@ -14,30 +17,35 @@ type Props = {
   cafes: Cafe[];
   /** Festivais no ar: só eles têm chip. */
   festivais: FestivaisNoAr;
+  /** Posição do navegador: os sheets contam o resultado com o raio. */
+  origem: Coordenadas | null;
   filters: CafeFilters;
   bairros: BairroOpcao[];
   onToggle: (chave: FiltroBooleano) => void;
   onToggleBairro: (slug: string) => void;
   onLimparBairros: () => void;
   onTogglePreco: (faixa: FaixaPreco) => void;
+  onEscolherRaio: (km: RaioKm | null) => void;
   onAplicar: (next: CafeFilters) => void;
 };
 
 /**
  * Barra de filtros da home: chips em pílula com scroll lateral, sem quebrar
- * linha — os festivais no ar e o estacionamento; os outros atributos ficam em "Mais
+ * linha — a distância (fora da URL, #161), os festivais no ar e o estacionamento; os outros atributos ficam em "Mais
  * filtros" (desktop) e no sheet do botão de filtros (mobile). Desktop: 64 px,
  * bairro em dropdown. Mobile: chips de 36 px, bairro em bottom sheet.
  */
 export function FilterBar({
   cafes,
   festivais,
+  origem,
   filters,
   bairros,
   onToggle,
   onToggleBairro,
   onLimparBairros,
   onTogglePreco,
+  onEscolherRaio,
   onAplicar,
 }: Props) {
   return (
@@ -49,6 +57,8 @@ export function FilterBar({
       onFocus={(e) => e.target.scrollIntoView({ block: "nearest", inline: "nearest" })}
       className={`${BARRA_FILTROS} scroll-px-[18px] overflow-x-auto [scrollbar-width:none] lg:scroll-px-7 [&::-webkit-scrollbar]:hidden`}
     >
+      <DistanciaSheet cafes={cafes} festivais={festivais} origem={origem} filters={filters} onAplicar={onAplicar} />
+      <DistanciaDropdown raioKm={filters.raioKm} onEscolher={onEscolherRaio} />
       {filtrosDaBarra(festivais).map((opcao) => (
         <AtributoChip
           key={opcao.filtro}
@@ -57,7 +67,7 @@ export function FilterBar({
           onToggle={() => onToggle(opcao.filtro)}
         />
       ))}
-      <BairroSheet cafes={cafes} festivais={festivais} bairros={bairros} filters={filters} onAplicar={onAplicar} />
+      <BairroSheet cafes={cafes} festivais={festivais} origem={origem} bairros={bairros} filters={filters} onAplicar={onAplicar} />
       <BairroDropdown
         bairros={bairros}
         selecionados={filters.bairros}

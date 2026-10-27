@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe, DiaSemana } from "./cafe";
 
-import { formatarHorario, proximaAberturaLabel, resumoHorario } from "./cafe-hours";
+import { estadoAgora, formatarHorario, proximaAberturaLabel, resumoHorario, rotuloDoDetalhe } from "./cafe-hours";
 
 // 2026-10-05 é uma segunda-feira. Meio-dia em Recife (UTC−3) = 15:00Z.
 const em = (dia: number) => new Date(Date.UTC(2026, 9, 5 + dia, 15));
@@ -201,6 +201,196 @@ describe("resumoHorario › seed real", () => {
       expect(dias.some((d) => d.horario !== "Fechado")).toBe(true);
     },
   );
+
+  it.each(seed.filter((c) => c.ativo).map((c) => [c.slug, c.horario_funcionamento]))(
+    "%s tem estado de agora em todo dia (nenhum texto fora do formato)",
+    (_, horario) => {
+      for (let dia = 0; dia < 7; dia++) {
+        expect(estadoAgora(horario, recife(dia, "12:00")).estado).not.toBe("sem-informacao");
+      }
+    },
+  );
+});
+
+// Hora local de Recife (UTC−3, sem horário de verão) → instante. `dia` 0 = segunda 05/10/2026.
+const recife = (dia: number, hora: string) => {
+  const [h, m] = hora.split(":").map(Number);
+  return new Date(Date.UTC(2026, 9, 5 + dia, h + 3, m));
+};
+
+const todosOsDias = (valor: string) =>
+  Object.fromEntries(Object.keys(SEMANA).map((dia) => [dia, valor])) as Record<DiaSemana, string>;
+
+describe("estadoAgora › aberto", () => {
+  it("no meio do turno: aberto, fecha às 18h, com os minutos que faltam", () => {
+    expect(estadoAgora(SEMANA, recife(0, "10:00"))).toEqual({
+      estado: "aberto",
+      fecha: { hora: "18:00" },
+      faltamMin: 480,
+    });
+  });
+
+  it("no minuto da abertura já está aberto", () => {
+    expect(estadoAgora(SEMANA, recife(0, "08:00"))).toMatchObject({ estado: "aberto", faltamMin: 600 });
+  });
+
+  it("no minuto do fechamento já está fechado", () => {
+    expect(estadoAgora(SEMANA, recife(0, "18:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "amanha", hora: "08:00" },
+    });
+  });
+
+  it("a 30 e a 31 minutos do fechamento", () => {
+    expect(estadoAgora(SEMANA, recife(0, "17:30"))).toMatchObject({ estado: "aberto", faltamMin: 30 });
+    expect(estadoAgora(SEMANA, recife(0, "17:29"))).toMatchObject({ estado: "aberto", faltamMin: 31 });
+  });
+
+  it("no segundo turno, fecha no fim dele", () => {
+    expect(estadoAgora(SEMANA, recife(5, "17:00"))).toMatchObject({ estado: "aberto", fecha: { hora: "20:00" } });
+  });
+
+  it("'14:00 – 00:00' às 23:59: aberto, fecha à meia-noite, falta 1 min", () => {
+    const tardeENoite = { ...SEMANA, segunda: "14:00 – 00:00" };
+
+    expect(estadoAgora(tardeENoite, recife(0, "23:59"))).toEqual({
+      estado: "aberto",
+      fecha: "meia-noite",
+      faltamMin: 1,
+    });
+  });
+
+  it("'14:00 – 00:00' à 00:00 do dia seguinte: fechado (ontem não vale hoje)", () => {
+    const tardeENoite = { ...SEMANA, segunda: "14:00 – 00:00", terca: "14:00 – 00:00" };
+
+    expect(estadoAgora(tardeENoite, recife(1, "00:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "hoje", hora: "14:00" },
+    });
+  });
+
+  it.each(["00:00", "03:00", "23:59"])("'00:00 – 24:00' é 24 horas (%s)", (hora) => {
+    expect(estadoAgora(todosOsDias("00:00 – 24:00"), recife(2, hora))).toEqual({
+      estado: "aberto",
+      fecha: "24h",
+      faltamMin: null,
+    });
+  });
+});
+
+describe("estadoAgora › fechado", () => {
+  it("no intervalo entre turnos: abre hoje no segundo turno", () => {
+    expect(estadoAgora(SEMANA, recife(5, "13:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "hoje", hora: "16:00" },
+    });
+  });
+
+  it("antes do primeiro turno: abre hoje", () => {
+    expect(estadoAgora(SEMANA, recife(0, "06:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "hoje", hora: "08:00" },
+    });
+  });
+
+  it("depois do último turno, com amanhã 'Fechado': abre no próximo dia, pulando os fechados", () => {
+    // Sábado 21h; domingo fechado → segunda.
+    expect(estadoAgora(SEMANA, recife(5, "21:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "segunda", hora: "08:00" },
+    });
+  });
+
+  it("domingo → segunda é 'amanhã'", () => {
+    expect(estadoAgora(SEMANA, recife(6, "12:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "amanha", hora: "08:00" },
+    });
+  });
+
+  it("fechado a semana toda: sem próxima abertura", () => {
+    expect(estadoAgora(todosOsDias("Fechado"), recife(3, "12:00"))).toEqual({ estado: "fechado", abre: null });
+  });
+
+  it("só abre no próprio dia e já fechou: abre no mesmo dia da semana seguinte", () => {
+    const soSegunda = { ...todosOsDias("Fechado"), segunda: "08:00 – 12:00" };
+
+    expect(estadoAgora(soSegunda, recife(0, "13:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "segunda", hora: "08:00" },
+    });
+  });
+
+  it("dia sem informação ou fora do formato é pulado na próxima abertura", () => {
+    // Domingo fechado, segunda sem dado, terça inválida, quarta aberta.
+    const horario = { ...SEMANA, segunda: undefined, terca: "sob consulta" };
+
+    expect(estadoAgora(horario, recife(6, "12:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "quarta", hora: "08:00" },
+    });
+  });
+
+  it("abre à meia-noite do dia seguinte", () => {
+    const horario = { ...SEMANA, terca: "00:00 – 24:00" };
+
+    expect(estadoAgora(horario, recife(0, "19:00"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "amanha", hora: "00:00" },
+    });
+  });
+});
+
+describe("estadoAgora › sem informação e fuso", () => {
+  it.each([
+    ["sem o dia", { ...SEMANA, segunda: undefined }],
+    ["vazio", { ...SEMANA, segunda: "" }],
+    ["fora do formato", { ...SEMANA, segunda: "sob consulta" }],
+    ["jsonb nulo", null],
+  ])("hoje %s → sem-informacao", (_, horario) => {
+    expect(estadoAgora(horario, recife(0, "10:00"))).toEqual({ estado: "sem-informacao" });
+  });
+
+  it("o relógio é o de Recife: sábado 22h30 em Recife já é domingo 01h30 em UTC", () => {
+    const horario = { ...SEMANA, sabado: "18:00 – 23:00", domingo: "00:00 – 24:00" };
+
+    expect(estadoAgora(horario, new Date("2026-10-11T01:30:00Z"))).toEqual({
+      estado: "aberto",
+      fecha: { hora: "23:00" },
+      faltamMin: 30,
+    });
+  });
+
+  it("às 21h de Recife (meia-noite em UTC) ainda é o mesmo dia", () => {
+    // Segunda 21h em Recife = terça 00:00Z.
+    expect(estadoAgora(SEMANA, new Date("2026-10-06T00:00:00Z"))).toEqual({
+      estado: "fechado",
+      abre: { quando: "amanha", hora: "08:00" },
+    });
+  });
+});
+
+describe("rotuloDoDetalhe", () => {
+  it.each([
+    [{ estado: "aberto", fecha: { hora: "18:00" }, faltamMin: 120 }, "Aberto agora", "fecha às 18h", false],
+    [{ estado: "aberto", fecha: { hora: "18:30" }, faltamMin: 31 }, "Aberto agora", "fecha às 18h30", false],
+    [{ estado: "aberto", fecha: "meia-noite", faltamMin: 90 }, "Aberto agora", "fecha à meia-noite", false],
+    [{ estado: "aberto", fecha: "24h", faltamMin: null }, "Aberto agora", "24 horas", false],
+    [{ estado: "aberto", fecha: { hora: "18:00" }, faltamMin: 30 }, "Aberto agora", "fecha em 30 min", true],
+    [{ estado: "aberto", fecha: "meia-noite", faltamMin: 1 }, "Aberto agora", "fecha em 1 min", true],
+    [{ estado: "fechado", abre: { quando: "hoje", hora: "14:00" } }, "Fechado agora", "abre às 14h", false],
+    [{ estado: "fechado", abre: { quando: "amanha", hora: "08:00" } }, "Fechado agora", "abre amanhã às 8h", false],
+    [{ estado: "fechado", abre: { quando: "segunda", hora: "08:30" } }, "Fechado agora", "abre segunda às 8h30", false],
+    [{ estado: "fechado", abre: { quando: "sabado", hora: "09:00" } }, "Fechado agora", "abre sábado às 9h", false],
+    [{ estado: "fechado", abre: { quando: "amanha", hora: "00:00" } }, "Fechado agora", "abre amanhã à meia-noite", false],
+    [{ estado: "fechado", abre: null }, "Fechado", null, false],
+  ] as const)("%j → %s · %s", (estado, rotulo, complemento, alerta) => {
+    expect(rotuloDoDetalhe(estado)).toEqual({ estado: rotulo, complemento, alerta });
+  });
+
+  it("sem informação → sem badge", () => {
+    expect(rotuloDoDetalhe({ estado: "sem-informacao" })).toBeNull();
+  });
 });
 
 describe("formatarHorario", () => {

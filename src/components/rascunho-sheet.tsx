@@ -37,7 +37,7 @@ export function RascunhoSheet({ titulo, trigger, cafes, festivais, filters, onAp
   // A busca não é do sheet: um termo que chega com ele aberto (debounce do
   // campo) vale para a contagem e não é desfeito ao aplicar.
   const efetivo = { ...rascunho, q: filters.q };
-  const total = filtrarCafes(cafes, efetivo, festivais).length;
+  const total = filtrarCafes(cafes, efetivo, { festivais }).length;
 
   return (
     <Sheet open={aberto} onOpenChange={abrirOuFechar}>

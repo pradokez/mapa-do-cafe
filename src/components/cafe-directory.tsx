@@ -52,7 +52,7 @@ export function CafeDirectory({
   // lista muda de identidade.
   const { coords } = useGeolocation();
   const filtrados = useMemo(
-    () => ordenarPorDistancia(filtrarCafes(cafes, filters, festivais), coords),
+    () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords }), coords),
     [cafes, filters, festivais, coords],
   );
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.

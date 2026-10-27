@@ -1,4 +1,5 @@
 import type { Cafe, FaixaPreco } from "./cafe";
+import { dentroDoRaio, type Coordenadas, type RaioKm } from "./cafe-distance";
 import type { FestivaisNoAr, FestivalSlug } from "./festival";
 
 /**
@@ -36,6 +37,12 @@ export type CafeFilters = Record<FiltroBooleano, boolean> & {
   precos: FaixaPreco[];
   /** Busca livre por nome ou bairro; vazio = filtro desligado. */
   q: string;
+  /**
+   * Raio em km a partir da posição do navegador; `null` = desligado. Fica
+   * fora da URL (quem recebe o link está em outro lugar): `parseFilters`
+   * sempre devolve `null`, e `serializeFilters` o ignora.
+   */
+  raioKm: RaioKm | null;
 };
 
 export const FILTROS_VAZIOS: CafeFilters = {
@@ -50,6 +57,7 @@ export const FILTROS_VAZIOS: CafeFilters = {
   bairros: [],
   precos: [],
   q: "",
+  raioKm: null,
 };
 
 const FESTIVAIS = Object.keys(FILTROS_DE_FESTIVAL) as FiltroDeFestival[];
@@ -65,19 +73,33 @@ export const FAIXAS: readonly FaixaPreco[] = ["$", "$$", "$$$"];
 /** Lista vazia aceita qualquer valor; senão, o valor precisa estar nela. */
 const aceita = <T>(lista: readonly T[], valor: T) => lista.length === 0 || lista.includes(valor);
 
+/** O que a filtragem recebe como dado, sem consultar nada por conta própria. */
+export type ContextoDoFiltro = {
+  /** Festivais no ar: os participantes de cada edição. */
+  festivais?: FestivaisNoAr;
+  /** Posição do navegador, o centro do raio; sem ela, o raio não filtra. */
+  origem?: Coordenadas | null;
+};
+
 /**
  * Interseção dos filtros ligados — dentro de bairro e de preço, a união das
  * opções marcadas; na busca, cada palavra precisa casar com o nome ou o
- * bairro; num festival, os participantes da edição no ar (`festivais`). Filtro
- * desligado, ou de festival fora do ar, não exclui ninguém. Preserva a ordem.
+ * bairro; num festival, os participantes da edição no ar (`festivais`); no
+ * raio, os cafés a até `raioKm` da `origem`. Filtro desligado, de festival
+ * fora do ar ou raio sem origem não exclui ninguém. Preserva a ordem.
  */
-export function filtrarCafes(cafes: Cafe[], filters: CafeFilters, festivais: FestivaisNoAr = {}): Cafe[] {
+export function filtrarCafes(
+  cafes: Cafe[],
+  filters: CafeFilters,
+  { festivais = {}, origem = null }: ContextoDoFiltro = {},
+): Cafe[] {
   const atributos = ATRIBUTOS.filter((chave) => filters[chave]);
   const participantes = FESTIVAIS.filter((chave) => filters[chave])
     .map((chave) => festivais[FILTROS_DE_FESTIVAL[chave].festival])
     .filter((ids) => ids !== undefined);
   const palavras = normalizar(filters.q).split(/\s+/).filter(Boolean);
-  return cafes.filter(
+  const noRaio = filters.raioKm === null ? cafes : dentroDoRaio(cafes, origem, filters.raioKm);
+  return noRaio.filter(
     (cafe) =>
       atributos.every((chave) => cafe[FILTROS_DE_ATRIBUTO[chave].campo]) &&
       participantes.every((ids) => ids.includes(cafe.id)) &&
@@ -169,17 +191,22 @@ export function temFiltroAtivo(filters: CafeFilters): boolean {
     CHAVES.some((chave) => filters[chave]) ||
     filters.bairros.length > 0 ||
     filters.precos.length > 0 ||
-    filters.q.trim() !== ""
+    filters.q.trim() !== "" ||
+    filters.raioKm !== null
   );
 }
 
 /**
- * Badge do botão de filtros (mobile): cada booleano ligado, cada bairro e cada
- * faixa marcados contam 1. A busca fica de fora — ela aparece no próprio campo.
+ * Badge do botão de filtros (mobile): cada booleano ligado, cada bairro, cada
+ * faixa marcados e o raio contam 1. A busca fica de fora — ela aparece no
+ * próprio campo.
  */
 export function contarFiltrosAtivos(filters: CafeFilters): number {
   return (
-    CHAVES.filter((chave) => filters[chave]).length + filters.bairros.length + filters.precos.length
+    CHAVES.filter((chave) => filters[chave]).length +
+    filters.bairros.length +
+    filters.precos.length +
+    (filters.raioKm === null ? 0 : 1)
   );
 }
 

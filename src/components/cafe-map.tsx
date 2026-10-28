@@ -114,7 +114,7 @@ const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="tr
 </g></svg>`;
 
 // Ponto de quem usa: o azul de posição dos apps de mapa (não lembra pin nem pin ativo), borda `cream`.
-// Abaixo dos pins (o `z-[1]` deles vence a ordem no DOM) e sem receber clique.
+// Abaixo dos pins (o `z-index` deles, `z-[1]` no apagado, vence a ordem no DOM) e sem receber clique.
 const VOCE_HTML = `<span class="absolute inset-0 rounded-full bg-map-voce/20 motion-safe:animate-ping"></span>
 <span class="relative block size-4 rounded-full border-[3px] border-cream bg-map-voce shadow-[0_1px_4px_rgba(0,0,0,.5)]"></span>`;
 

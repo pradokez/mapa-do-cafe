@@ -394,3 +394,19 @@ describe("marcarRevisaoAprovada", () => {
     expect(await marcarRevisaoAprovada(ID, "atualizacao", CAFE_ID)).toBe(false);
   });
 });
+
+describe("aprovarRevisao — falhas no caminho", () => {
+  it("café gravado mas a marcação não pega (outra aba decidiu): erro, sem dizer que aprovou", async () => {
+    banco.respostas.revisoes = { error: null, count: 0 };
+
+    expect(await aprovarRevisao(null, form({ id: ID }))).toMatchObject({ ok: false, id: ID });
+    expect(updatesEm("cafes")).toHaveLength(1);
+  });
+
+  it("café que não existe mais é erro, sem gravar", async () => {
+    repo.getCafeById.mockResolvedValue(null);
+
+    expect(await aprovarRevisao(null, form({ id: ID }))).toMatchObject({ ok: false });
+    expect(banco.updates).toEqual([]);
+  });
+});

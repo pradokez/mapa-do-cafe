@@ -30,7 +30,7 @@ type Props = {
   onClick?: () => void;
   icone?: React.ReactNode;
   children: React.ReactNode;
-  /** Posição: quem usa decide (rodapé da lista, acima do FAB, dentro do sheet). */
+  /** Posição: quem usa decide (rodapé da lista, sobre o FAB, dentro do sheet). */
   className?: string;
 };
 

@@ -30,7 +30,7 @@ type Props = (
        * Uma vez por mapa, e só se a pessoa ainda não arrastou nem deu zoom.
        */
       focus?: Coordenadas[] | null;
-      /** Instante do request: a linha de horário do preview (#163). */
+      /** Instante da linha de horário do preview (#163): o mesmo dos cards. */
       agora: Date;
     }
   | {

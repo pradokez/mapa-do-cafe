@@ -22,7 +22,7 @@ export type Hovered = { id: string; source: "card" | "pin" };
 
 type Props = {
   cafes: Cafe[];
-  /** Instante do request: o horário de agora nos cards (#163). */
+  /** Instante do horário de agora nos cards (#163): o mesmo do "Aberto agora". */
   agora: Date;
   /** Participantes dos festivais no ar: os selos dos cards. */
   festivais: FestivaisNoAr;

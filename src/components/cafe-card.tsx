@@ -48,7 +48,7 @@ export function CafeCard({
   priority = false,
 }: {
   cafe: Cafe;
-  /** Instante do request: o horário de agora (#163). Nada recalcula sozinho. */
+  /** Instante do horário de agora (#163): o do "Aberto agora" — o do request ou o do último gesto. */
   agora: Date;
   /** Participantes dos festivais no ar: os selos do card. */
   festivais?: FestivaisNoAr;

@@ -141,14 +141,41 @@ export function rotuloDoDetalhe(agora: EstadoAgora): RotuloDoDetalhe | null {
             : `fecha às ${formatarHorario(agora.fecha.hora)}`;
       return { estado: "Aberto agora", complemento, alerta };
     }
-    case "fechado": {
+    case "fechado":
       if (agora.abre === null) return { estado: "Fechado", complemento: null, alerta: false };
-      const { quando, hora } = agora.abre;
-      const dia = quando === "hoje" ? "" : quando === "amanha" ? " amanhã" : ` ${NOME_DO_DIA[quando].toLocaleLowerCase("pt-BR")}`;
-      const as = hora === "00:00" ? "à meia-noite" : `às ${formatarHorario(hora)}`;
-      return { estado: "Fechado agora", complemento: `abre${dia} ${as}`, alerta: false };
-    }
+      return { estado: "Fechado agora", complemento: `abre ${quandoAbre(agora.abre)}`, alerta: false };
   }
+}
+
+export interface RotuloDoCard {
+  texto: string;
+  /** `aberto` em `open`; `alerta` ("Fecha em N min") em terracota; `fechado` em `ink-3`. */
+  tom: "aberto" | "alerta" | "fechado";
+}
+
+/** Linha de horário do card (e do preview do mapa); `null` = sem estado, nunca "Fechado". */
+export function rotuloDoCard(agora: EstadoAgora): RotuloDoCard | null {
+  switch (agora.estado) {
+    case "sem-informacao":
+      return null;
+    case "aberto":
+      if (agora.faltamMin !== null && agora.faltamMin <= ALERTA_DE_FECHAMENTO_MIN) {
+        return { texto: `Fecha em ${agora.faltamMin} min`, tom: "alerta" };
+      }
+      if (agora.fecha === "24h") return { texto: "Aberto 24 horas", tom: "aberto" };
+      return {
+        texto: `Aberto até ${agora.fecha === "meia-noite" ? "meia-noite" : formatarHorario(agora.fecha.hora)}`,
+        tom: "aberto",
+      };
+    case "fechado":
+      return { texto: agora.abre === null ? FECHADO : `Abre ${quandoAbre(agora.abre)}`, tom: "fechado" };
+  }
+}
+
+/** "às 14h", "amanhã às 8h", "segunda à meia-noite". */
+function quandoAbre({ quando, hora }: ProximaAbertura): string {
+  const dia = quando === "hoje" ? "" : quando === "amanha" ? "amanhã " : `${NOME_DO_DIA[quando].toLocaleLowerCase("pt-BR")} `;
+  return `${dia}${hora === "00:00" ? "à meia-noite" : `às ${formatarHorario(hora)}`}`;
 }
 
 export interface DiaHorario {

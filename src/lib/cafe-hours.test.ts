@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe, DiaSemana } from "./cafe";
 
-import { diasComHoje, estadoAgora, formatarHorario, rotuloDoDetalhe } from "./cafe-hours";
+import { diasComHoje, estadoAgora, formatarHorario, rotuloDoCard, rotuloDoDetalhe } from "./cafe-hours";
 
 // 2026-10-05 é uma segunda-feira. Meio-dia em Recife (UTC−3) = 15:00Z.
 const em = (dia: number) => new Date(Date.UTC(2026, 9, 5 + dia, 15));
@@ -299,6 +299,28 @@ describe("rotuloDoDetalhe", () => {
 
   it("sem informação → sem badge", () => {
     expect(rotuloDoDetalhe({ estado: "sem-informacao" })).toBeNull();
+  });
+});
+
+describe("rotuloDoCard", () => {
+  it.each([
+    [{ estado: "aberto", fecha: { hora: "18:00" }, faltamMin: 120 }, "Aberto até 18h", "aberto"],
+    [{ estado: "aberto", fecha: { hora: "18:30" }, faltamMin: 31 }, "Aberto até 18h30", "aberto"],
+    [{ estado: "aberto", fecha: "meia-noite", faltamMin: 90 }, "Aberto até meia-noite", "aberto"],
+    [{ estado: "aberto", fecha: "24h", faltamMin: null }, "Aberto 24 horas", "aberto"],
+    [{ estado: "aberto", fecha: { hora: "18:00" }, faltamMin: 30 }, "Fecha em 30 min", "alerta"],
+    [{ estado: "aberto", fecha: "meia-noite", faltamMin: 1 }, "Fecha em 1 min", "alerta"],
+    [{ estado: "fechado", abre: { quando: "hoje", hora: "14:00" } }, "Abre às 14h", "fechado"],
+    [{ estado: "fechado", abre: { quando: "amanha", hora: "08:00" } }, "Abre amanhã às 8h", "fechado"],
+    [{ estado: "fechado", abre: { quando: "segunda", hora: "08:30" } }, "Abre segunda às 8h30", "fechado"],
+    [{ estado: "fechado", abre: { quando: "amanha", hora: "00:00" } }, "Abre amanhã à meia-noite", "fechado"],
+    [{ estado: "fechado", abre: null }, "Fechado", "fechado"],
+  ] as const)("%j → %s", (estado, texto, tom) => {
+    expect(rotuloDoCard(estado)).toEqual({ texto, tom });
+  });
+
+  it("sem informação hoje: nada no card (nunca \"Fechado\")", () => {
+    expect(rotuloDoCard({ estado: "sem-informacao" })).toBeNull();
   });
 });
 

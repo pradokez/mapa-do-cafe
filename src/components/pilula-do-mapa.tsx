@@ -1,3 +1,5 @@
+import { Spinner } from "@/components/spinner";
+
 /**
  * Pílula no centro do mapa (PRD #135): "Carregando mapa…" com spinner, ou
  * "Mapa indisponível" sem ele. Neutra — não sabe de Mapbox —, para servir ao
@@ -13,13 +15,7 @@ export function PilulaDoMapa({ estado }: { estado: "carregando" | "indisponivel"
         carregando ? "gap-2.5 font-medium shadow-[0_12px_28px_-10px_rgba(0,0,0,.6)]" : "gap-2"
       }`}
     >
-      {carregando && (
-        <span
-          aria-hidden="true"
-          data-spinner=""
-          className="size-3.5 rounded-full border-2 border-map-control-line border-t-map-control-fg motion-safe:animate-[spin_0.8s_linear_infinite]"
-        />
-      )}
+      {carregando && <Spinner className="size-3.5 border-map-control-line border-t-map-control-fg" />}
       {carregando ? "Carregando mapa…" : "Mapa indisponível"}
     </span>
   );

@@ -30,6 +30,8 @@ type Props = (
        * Uma vez por mapa, e só se a pessoa ainda não arrastou nem deu zoom.
        */
       focus?: Coordenadas[] | null;
+      /** Ids dos cafés fechados agora (`fechadosAgora`, #165): pin apagado, com ", fechado agora" no nome. */
+      fechados?: ReadonlySet<string>;
     }
   | {
       /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
@@ -37,6 +39,7 @@ type Props = (
       cafes: Pin[];
       userPosition?: never;
       focus?: never;
+      fechados?: never;
     }
 ) & {
   hoveredId?: string | null;
@@ -61,6 +64,7 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
 const SEM_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+const NENHUM: ReadonlySet<string> = new Set();
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.
@@ -88,10 +92,13 @@ const PAINT: [layer: string, prop: string, value: string][] = [
 ];
 
 // Pin 32×40 do design. O Mapbox controla o `transform` do elemento externo,
-// então escala e cores vivem no filho, guiadas por `data-active` no externo.
+// então escala e cores vivem no filho, guiadas por `data-active` e `data-fechado` no externo.
+// Fechado agora (#165), "luz apagada": `map-control` com contorno e xícara `pin-apagado`; ativo,
+// contorno `brasa` e xícara `map-control-fg`, sem virar terracota (o estado continua visível).
+// O ativo apagado empilha as duas variantes: o seletor mais específico vence o ativo comum.
 const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="true">
-<path d="M16 1C7.7 1 1 7.6 1 15.8 1 26.6 16 39 16 39s15-12.4 15-23.2C31 7.6 24.3 1 16 1z" stroke-width="1.5" class="fill-map-pin stroke-espresso transition-colors group-data-[active=true]:fill-terracotta group-data-[active=true]:stroke-on-terracotta"/>
-<g transform="translate(8.6 8.2) scale(0.62)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="stroke-espresso transition-colors group-data-[active=true]:stroke-on-terracotta">
+<path d="M16 1C7.7 1 1 7.6 1 15.8 1 26.6 16 39 16 39s15-12.4 15-23.2C31 7.6 24.3 1 16 1z" stroke-width="1.5" class="fill-map-pin stroke-espresso transition-colors group-data-[active=true]:fill-terracotta group-data-[active=true]:stroke-on-terracotta group-data-[fechado=true]:fill-map-control group-data-[fechado=true]:stroke-pin-apagado group-data-[active=true]:group-data-[fechado=true]:fill-map-control group-data-[active=true]:group-data-[fechado=true]:stroke-brasa group-data-[active=true]:group-data-[fechado=true]:[stroke-width:2.2]"/>
+<g transform="translate(8.6 8.2) scale(0.62)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="stroke-espresso transition-colors group-data-[active=true]:stroke-on-terracotta group-data-[fechado=true]:stroke-pin-apagado group-data-[active=true]:group-data-[fechado=true]:stroke-map-control-fg">
 <path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>
 </g></svg>`;
 
@@ -146,6 +153,7 @@ export function CafeMap({
   className = "",
   userPosition = null,
   focus = null,
+  fechados = NENHUM,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const molduraRef = useRef<HTMLDivElement>(null);
@@ -344,6 +352,18 @@ export function CafeMap({
     map.jumpTo({ center: [lng, lat] });
   }, [map, centro]);
 
+  // Fechado agora (#165): o pin apaga e o nome acessível diz, porque a diferença não pode ser só visual.
+  useEffect(() => {
+    if (!map) return;
+    for (const cafe of cafes) {
+      const el = markers.current.get(cafe.id)?.getElement();
+      if (!el) continue;
+      const fechado = fechados.has(cafe.id);
+      el.dataset.fechado = String(fechado);
+      el.setAttribute("aria-label", fechado ? `${cafe.nome}, fechado agora` : cafe.nome);
+    }
+  }, [map, cafes, fechados]);
+
   // Estado ativo (hover ou seleção) só troca um atributo: o CSS faz o resto.
   useEffect(() => {
     if (!map) return;
@@ -518,7 +538,8 @@ function createPinElement(
 ): HTMLElement {
   const interactive = Boolean(handlers.current.onSelect);
   const el = document.createElement(interactive ? "button" : "div");
-  el.className = `group block z-[1] data-[active=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
+  // Abertos acima dos apagados quando se sobrepõem; o ativo acima de todos.
+  el.className = `group block z-[2] data-[fechado=true]:z-[1] data-[active=true]:z-10 data-[active=true]:data-[fechado=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
   el.setAttribute("aria-label", cafe.nome);
   if (interactive) {
     el.setAttribute("type", "button");

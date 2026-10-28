@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { rodizio } from "../../src/lib/rodizio";
-import { rodarRodada, type CafeDoContexto, type Dependencias, type Gemini, type Tavily } from "./robo";
+import { CONSULTAS_ABERTAS, CONSULTAS_POR_RODADA, LIMITES_PADRAO, rodarRodada, type CafeDoContexto, type Dependencias, type Gemini, type Tavily } from "./robo";
 
 const AGORA = new Date("2026-10-28T15:00:00Z");
 const CHAVE = "chave-secreta-tavily-123";
@@ -274,6 +274,20 @@ describe("rodarRodada", () => {
     expect(log).not.toContain(CORPO);
     expect(log).not.toContain(URL_SITE);
   });
+
+  it("o log diz o motivo da falha do adaptador (status ou timeout), nunca outra mensagem", async () => {
+    const erros = [new Error("timeout"), new Error("HTTP 503"), new Error(`Unexpected token in ${CORPO}`)];
+    let n = 0;
+    const d = deps({ gemini: { extrair: async () => { throw erros[n++ % erros.length]; } } });
+    await rodarRodada(d);
+    const linhas = d.log.mock.calls.map(([m]) => m as string).filter((m) => m.includes("falha"));
+    expect(linhas[0]).toContain("falha (gemini: timeout)");
+    expect(linhas[1]).toContain("falha (gemini: HTTP 503)");
+    expect(linhas[2]).toMatch(/falha \(gemini\)$/);
+    expect(linhas.join("\n")).not.toContain(CORPO);
+    // O `erro` da rodada segue só com o código.
+    expect(d.registrar.mock.calls[0][0].erro).toBe(`falhas:gemini=${DA_SEMANA.length}`);
+  });
 });
 
 
@@ -349,6 +363,16 @@ describe("busca aberta de cafés novos (#189)", () => {
     expect(rodada.cafes_verificados).toBe(DA_SEMANA.length);
     expect(rodada.chamadas_gemini).toBe(5);
     expect(rodada.erro).toBe("teto");
+  });
+
+  it("com ~15 cafés na semana e o teto padrão, a busca aberta cabe sem marcar teto (#190)", async () => {
+    const cafes = Array.from({ length: 60 }, (_, i) => cafe(i + 1));
+    const d = deps({ consultas: CONSULTAS_ABERTAS, lerContexto: async () => ({ cafes, rejeitadas: [], cafes_novos_rejeitados: [] }) });
+    const { rodada } = await rodarRodada(d);
+    expect(d.gemini.extrairCandidatos).toHaveBeenCalledTimes(CONSULTAS_POR_RODADA);
+    expect(rodada.cafes_verificados).toBe(15);
+    expect(rodada.chamadas_gemini).toBeLessThanOrEqual(LIMITES_PADRAO.chamadasGemini);
+    expect(rodada.erro).toBeNull();
   });
 
   it("reserva também os créditos do Tavily", async () => {

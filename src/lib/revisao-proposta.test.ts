@@ -79,6 +79,36 @@ describe("proporRevisoes", () => {
     });
   });
 
+  it("endereço que só muda abreviação, pontuação, cidade, UF, CEP ou país → nada (#190)", () => {
+    const atributos = { endereco: "R. das Creoulas, 55 - Graças" };
+    const iguais = [
+      "Rua das Creoulas, 55, Graças, Recife, PE",
+      "R. das Creoulas, 55 - Graças, Recife - PE, 52011-270, Brasil",
+      "rua das creoulas 55. graças recife",
+    ];
+    expect(propor({ endereco: iguais.map((e, i) => fato(e, i + 1)) }, atributos)).toEqual([]);
+    expect(propor({ endereco: [fato("Rua Desembargador Martins Pereira, 45, Rosarinho")] }, { endereco: "R. Des. Martins Pereira, 45 - Rosarinho" })).toEqual([]);
+    expect(propor({ endereco: [fato("Avenida Governador Carlos de Lima Cavalcanti, 1828")] }, { endereco: "Av. Gov. Carlos de Lima Cavalcanti, 1828" })).toEqual([]);
+  });
+
+  it("endereço com outra rua ou outro número → proposta, com o texto da fonte (#190)", () => {
+    const atributos = { endereco: "R. das Creoulas, 55 - Graças" };
+    expect(propor({ endereco: [fato("Rua das Creoulas, 57, Graças")] }, atributos)).toMatchObject([{ valorProposto: "Rua das Creoulas, 57, Graças" }]);
+    expect(propor({ endereco: [fato("Rua Fernando Lopes, 44, Graças")] }, atributos)).toHaveLength(1);
+  });
+
+  it("fontes do mesmo endereço em formatos diferentes somam votos (#190)", () => {
+    const [proposta] = propor({
+      endereco: [fato("Rua A, 1", 1), fato("Rua B, 2, Recife - PE", 2), fato("R. B, 2", 3)],
+    });
+    expect(proposta.valorProposto).toBe("Rua B, 2, Recife - PE");
+  });
+
+  it("endereço rejeitado em outro formato não volta (#190)", () => {
+    const rejeitada: Rejeitada = { cafeId: "a", campo: "endereco", valor: "Rua B, 2", rejeitadaEm: new Date(AGORA.getTime() - DIA).toISOString() };
+    expect(propor({ endereco: [fato("R. B, 2 - Recife, PE")] }, {}, [rejeitada])).toEqual([]);
+  });
+
   it("endereço sem coordenadas", () => {
     const [proposta] = propor({ endereco: [fato("  Rua Nova, 10 ")] });
     expect(proposta).toMatchObject({ campo: "endereco", valorProposto: "Rua Nova, 10" });

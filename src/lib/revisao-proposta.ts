@@ -102,6 +102,39 @@ export function canonico(valor: unknown): string {
   );
 }
 
+/** Abreviações de logradouro e título que as páginas alternam com a palavra inteira. */
+const ABREVIACOES: Record<string, string> = {
+  r: "rua", av: "avenida", al: "alameda", tv: "travessa", trav: "travessa", estr: "estrada", pca: "praca", pc: "praca",
+  gov: "governador", des: "desembargador", dr: "doutor", prof: "professor", eng: "engenheiro", cel: "coronel",
+  mal: "marechal", sen: "senador", pres: "presidente", cap: "capitao", gen: "general", sta: "santa", sto: "santo",
+};
+/** O que as páginas acrescentam a um endereço sem mudá-lo: cidade, UF, país, preposição e "nº". */
+const FORA_DO_ENDERECO = new Set([
+  "recife", "olinda", "jaboatao", "guararapes", "pe", "pernambuco", "brasil", "brazil",
+  "de", "da", "do", "das", "dos", "n", "no", "numero",
+]);
+
+/**
+ * Endereço → chave de comparação (#190): sem caixa, acento, pontuação, CEP,
+ * cidade, UF e país, com as abreviações por extenso. "R. das Creoulas, 55 -
+ * Graças" e "Rua das Creoulas, 55, Graças, Recife, PE" dão a mesma chave.
+ */
+function chaveDoEndereco(endereco: string): string {
+  return slugify(endereco.replace(/\b\d{5}-?\d{3}\b/g, " "))
+    .split("-")
+    .map((palavra) => ABREVIACOES[palavra] ?? palavra)
+    .filter((palavra) => palavra !== "" && !FORA_DO_ENDERECO.has(palavra))
+    .join(" ");
+}
+
+/**
+ * Chave para comparar valores de um campo: o `canonico`, e no endereço a
+ * `chaveDoEndereco` — o mesmo lugar escrito de outro jeito não é outro valor.
+ */
+export function chaveDoValor(campo: string | null, valor: unknown): string {
+  return campo === "endereco" && typeof valor === "string" ? chaveDoEndereco(valor) : canonico(valor);
+}
+
 const fonteDe = ({ url, titulo, data_fonte, trecho }: FonteDoFato): FonteDoFato => ({ url, titulo, data_fonte, trecho });
 
 function rejeitadaRecente(
@@ -111,9 +144,9 @@ function rejeitadaRecente(
   valor: unknown,
   agora: Date,
 ): boolean {
-  const chave = canonico(valor);
+  const chave = chaveDoValor(campo, valor);
   return rejeitadas.some(({ cafeId: id, campo: c, valor: v, rejeitadaEm }) => {
-    if (id !== cafeId || c !== campo || canonico(v) !== chave) return false;
+    if (id !== cafeId || c !== campo || chaveDoValor(c, v) !== chave) return false;
     const idade = agora.getTime() - new Date(rejeitadaEm).getTime();
     return idade < DIAS_DE_REJEICAO * DIA_EM_MS;
   });
@@ -132,11 +165,11 @@ function proporCampo(
   agora: Date,
 ): Proposta | null {
   const atual = cafe[campo];
-  const chaveAtual = canonico(atual);
+  const chaveAtual = chaveDoValor(campo, atual);
 
   const votos = new Map<string, { valor: unknown; n: number }>();
   for (const { valor } of candidatos) {
-    const chave = canonico(valor);
+    const chave = chaveDoValor(campo, valor);
     if (chave === chaveAtual || rejeitadaRecente(rejeitadas, cafe.id, campo, valor, agora)) continue;
     const voto = votos.get(chave) ?? { valor, n: 0 };
     voto.n += 1;

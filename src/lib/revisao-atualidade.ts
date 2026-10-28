@@ -9,7 +9,7 @@
 import { hojeEmRecife } from "./foto-upload";
 import { normalizarTrecho } from "./revisao-fontes";
 import type { Atualidade, FonteDaRevisao } from "./revisao";
-import { canonico, type CampoRevisado, type FonteDaProposta } from "./revisao-proposta";
+import { chaveDoValor, type CampoRevisado, type FonteDaProposta } from "./revisao-proposta";
 
 /** Janela única, para todo campo: a fonte vale se tem até tantos meses. */
 export const JANELA_EM_MESES = 6;
@@ -143,18 +143,19 @@ export type ResultadoDeAtualidade = {
  * diferentes ficam a menos de 30 dias uma da outra, ou quando nenhuma tem data
  * e elas discordam. Sem fonte, `sem_data`.
  *
- * `campo` está na assinatura do PRD, mas a janela é a mesma para todo campo.
+ * A janela é a mesma para todo campo; o `campo` decide só o que é discordar
+ * (`chaveDoValor`: no endereço, o mesmo lugar em outro formato concorda, #190).
  */
 export function atualidadeDasFontes(
   fontes: readonly FonteDaProposta[],
-  _campo: CampoRevisado | null,
+  campo: CampoRevisado | null,
   agora: Date,
 ): ResultadoDeAtualidade {
   const classificadas = fontes.map((fonte) => classificar(fonte, agora));
   const resultado = classificadas.map(({ fonte, atualidade }) => ({ ...fonte, atualidade }));
 
   const datadas = classificadas.filter((c) => c.dia !== null);
-  const discordam = (a: FonteClassificada, b: FonteClassificada) => canonico(a.fonte.valor) !== canonico(b.fonte.valor);
+  const discordam = (a: FonteClassificada, b: FonteClassificada) => chaveDoValor(campo, a.fonte.valor) !== chaveDoValor(campo, b.fonte.valor);
 
   const emConflito =
     datadas.length === 0

@@ -21,6 +21,7 @@ export function promptDaExtracao({ cafe, paginas }: EntradaDoGemini): string {
     "- Ignore páginas que são de outro estabelecimento. Lista vazia quando não há o fato.",
     "- Booleanos (aceita_pets, tem_estacionamento, permite_coffee_office, acessivel_pcd, opcoes_vegetarianas, tem_ar_condicionado): negacao_explicita só quando a página diz que NÃO tem.",
     "- Situação: 'permanente' só para fechado definitivamente; 'temporaria' para reforma, férias etc.",
+    "- faixa_preco: só quando a página dá a faixa de preço DO LUGAR ($, $$, $$$ ou 'barato', 'moderado', 'caro'). Cifrão de cardápio, preço de um item ou moeda não são faixa: lista vazia.",
     "",
     paginasEmTexto(paginas),
   ].join("\n");
@@ -39,9 +40,10 @@ export function promptDosCandidatos({ consulta, paginas }: { consulta: string; p
     "Regras:",
     "- Use SÓ o que está nas páginas; não use conhecimento próprio nem estime. Dado ausente = null.",
     "- Só cafés em Recife, Olinda ou Jaboatão dos Guararapes (PE). Ignore padaria, rede, lanchonete e café comum.",
-    "- sinais: indícios de café especial (origem do grão, torra própria, métodos filtrados, barista, microlote…), cada um com a URL e um trecho LITERAL da página. Sem indício, lista vazia.",
+    "- Só cafeterias FÍSICAS: um lugar com salão ou balcão onde se toma café. Torrefação, marca de grãos ou loja online sem salão NÃO entram.",
+    "- sinais: indícios de café especial (origem do grão, torra própria, métodos filtrados, barista, microlote…), cada um com a URL e um trecho LITERAL da página. O próprio trecho precisa citar o indício: aparecer num ranking, numa lista de cafés ou com nota alta NÃO é sinal. Sem indício, lista vazia.",
     "- fontes: as páginas que sustentam os dados de cadastro (endereço, bairro, Instagram, telefone, horário), com a data COMO APARECE na página (null se não houver) e um trecho LITERAL.",
-    "- Copie os trechos, não parafraseie. Horário por dia no formato pedido.",
+    "- Copie os trechos, não parafraseie. Horário por dia no formato pedido. faixa_preco com a mesma regra: só a faixa do lugar, nunca o cifrão de um item.",
     "",
     paginasEmTexto(paginas),
   ].join("\n");
@@ -52,9 +54,18 @@ export function criarGemini(chave: string, modelo: string = MODELO_PADRAO): Gemi
     const resposta = (await postarJson(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       headers: { "x-goog-api-key": chave },
       timeoutMs: 90_000,
+      // Timeout e 429 já custaram um pedido da cota diária (20 no grátis); repetir só gasta outro (#190).
+      retentarTimeout: false,
+      retentar429: false,
       corpo: {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0 },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseJsonSchema: schema,
+          temperature: 0,
+          // Copiar fatos de páginas não pede raciocínio longo; o padrão (alto) passava dos 90 s (#190).
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       },
     })) as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] };
     const texto = resposta.candidates?.[0]?.content?.parts?.[0]?.text;

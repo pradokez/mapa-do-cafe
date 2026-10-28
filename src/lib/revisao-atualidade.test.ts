@@ -176,6 +176,12 @@ describe("atualidadeDasFontes — a revisão", () => {
     expect(atualidade([fonte("01/10/2026", { valor: a }), fonte("02/10/2026", { valor: b })])).toBe("atualizada");
   });
 
+  it("endereço igual em formatos diferentes não é discordância (#190)", () => {
+    const fontes = [fonte(null, { valor: "R. das Creoulas, 55 - Graças" }), fonte(null, { valor: "Rua das Creoulas, 55, Graças, Recife, PE" })];
+    expect(atualidadeDasFontes(fontes, "endereco", AGORA).atualidade).toBe("sem_data");
+    expect(atualidadeDasFontes([...fontes, fonte(null, { valor: "Rua das Creoulas, 57" })], "endereco", AGORA).atualidade).toBe("conflito");
+  });
+
   it("só fontes sem data discordando é conflito", () => {
     expect(atualidade([fonte(null, { valor: "A" }), fonte("há 3 semanas", { valor: "B" })])).toBe("conflito");
   });

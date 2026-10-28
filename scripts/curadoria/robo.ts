@@ -27,8 +27,11 @@ const CREDITOS_POR_CAFE = 2;
 export const CONSULTAS_ABERTAS = ["café especial", "cafeteria nova"].flatMap((termo) =>
   ["Recife", "Olinda", "Jaboatão dos Guararapes"].map((cidade) => `${termo} ${cidade}`),
 );
-/** Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto". */
-export const CONSULTAS_POR_RODADA = 4;
+/**
+ * Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto".
+ * Com ~15 cafés na semana, o rodízio reserva 15 das 18 chamadas Gemini: cabem 3 (#190).
+ */
+export const CONSULTAS_POR_RODADA = 3;
 /** O `erro` da rodada cabe em 80 caracteres no banco. */
 const MAX_ERRO = 80;
 
@@ -108,11 +111,24 @@ export type Dependencias = {
   log: (mensagem: string) => void;
 };
 
-/** Falha de um café ou de uma consulta, com o código curto que vai para a rodada. */
+/** As mensagens próprias dos adaptadores (`http.ts`, `gemini.ts`): só elas vão ao log. */
+const MOTIVO_SEGURO = /^(HTTP \d{3}|timeout|rede|resposta sem texto)$/;
+
+/**
+ * Falha de um café ou de uma consulta, com o código curto que vai para a rodada
+ * e, para o log, o motivo do adaptador — só quando é um dos seus (status, timeout).
+ */
 class Falha extends Error {
-  constructor(readonly codigo: "busca" | "extracao" | "gemini" | "schema") {
+  readonly motivo: string | null;
+  constructor(readonly codigo: "busca" | "extracao" | "gemini" | "schema", causa?: unknown) {
     super(codigo);
+    this.motivo = causa instanceof Error && MOTIVO_SEGURO.test(causa.message) ? causa.message : null;
   }
+}
+
+function descreverFalha(erro: unknown): { codigo: string; texto: string } {
+  if (!(erro instanceof Falha)) return { codigo: "inesperada", texto: "inesperada" };
+  return { codigo: erro.codigo, texto: erro.motivo ? `${erro.codigo}: ${erro.motivo}` : erro.codigo };
 }
 
 function montarErro(teto: boolean, falhas: Map<string, number>): string | null {
@@ -194,8 +210,8 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
     try {
       creditos += 1;
       resultados = await tavily.buscar(consulta);
-    } catch {
-      throw new Falha("busca");
+    } catch (erro) {
+      throw new Falha("busca", erro);
     }
 
     const paginas = new Map<string, { titulo: string; texto: string }>();
@@ -211,8 +227,8 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
           // A página inteira e o trecho da busca: o trecho citado pode vir de qualquer um.
           paginas.set(p.url, { titulo: antes?.titulo ?? p.url, texto: `${p.texto}\n${antes?.texto ?? ""}` });
         }
-      } catch {
-        throw new Falha("extracao");
+      } catch (erro) {
+        throw new Falha("extracao", erro);
       }
     }
     return paginas;
@@ -237,8 +253,8 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
         cafe: { nome: cafe.nome, bairro: cafe.bairro, cidade: cafe.cidade },
         paginas: Array.from(paginas).map(([url, p]) => ({ url, ...p })),
       });
-    } catch {
-      throw new Falha("gemini");
+    } catch (erro) {
+      throw new Falha("gemini", erro);
     }
 
     let extracao: Extracao;
@@ -278,8 +294,8 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
         consulta,
         paginas: Array.from(paginas).map(([url, p]) => ({ url, ...p })),
       });
-    } catch {
-      throw new Falha("gemini");
+    } catch (erro) {
+      throw new Falha("gemini", erro);
     }
 
     let candidatos: ReturnType<typeof lerCandidatos>["candidatos"];
@@ -308,9 +324,9 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
       for (const proposta of propostas) revisoes.push(revisaoDeCafeNovo(proposta, agora));
       log(`busca aberta ${i + 1}/${quantas}: ${propostas.length} cafés novos`);
     } catch (erro) {
-      const codigo = erro instanceof Falha ? erro.codigo : "inesperada";
+      const { codigo, texto } = descreverFalha(erro);
       falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
-      log(`busca aberta ${i + 1}/${quantas}: falha (${codigo})`);
+      log(`busca aberta ${i + 1}/${quantas}: falha (${texto})`);
     }
   }
 
@@ -325,10 +341,10 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
       const propostas = await verificar(cafe);
       for (const proposta of propostas) revisoes.push(revisaoDaProposta(proposta, agora));
     } catch (erro) {
-      // Só o código: a mensagem pode trazer URL, chave ou trecho de página.
-      const codigo = erro instanceof Falha ? erro.codigo : "inesperada";
+      // Só o código e o motivo do adaptador: outra mensagem pode trazer URL, chave ou trecho de página.
+      const { codigo, texto } = descreverFalha(erro);
       falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
-      log(`café ${cafe.id}: falha (${codigo})`);
+      log(`café ${cafe.id}: falha (${texto})`);
     }
   }
 

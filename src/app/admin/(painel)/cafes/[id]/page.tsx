@@ -33,7 +33,7 @@ export default async function AdminCafe({ params, searchParams }: Props) {
   const param = searchParams.revisao;
   const pedida = typeof param === "string" ? await getRevisaoById(param) : null;
   const proposta = pedida?.status === "pendente" && pedida.cafe_id === cafe.id ? propostaDaRevisao(pedida) : null;
-  const revisao = pedida && proposta ? { revisao: pedida, proposta } : null;
+  const daRevisao = pedida && proposta ? { revisao: pedida, proposta } : null;
 
   return (
     <>
@@ -73,7 +73,7 @@ export default async function AdminCafe({ params, searchParams }: Props) {
           <StatusForm cafeId={cafe.id} nome={cafe.nome} ativo={cafe.ativo} />
         </section>
         {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
-        <details open={revisao ? true : undefined} className="group rounded-xl border border-card-line bg-white px-5 py-4">
+        <details open={daRevisao ? true : undefined} className="group rounded-xl border border-card-line bg-white px-5 py-4">
           {/* `summary` aceita só heading e conteúdo inline: grade em vez de um `div` em volta. */}
           <summary className="-mx-5 -my-4 grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-x-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
             <h2 className={TITULO_SECAO}>Dados</h2>
@@ -84,18 +84,18 @@ export default async function AdminCafe({ params, searchParams }: Props) {
               className="col-start-2 row-span-2 row-start-1 text-ink-2 transition-transform group-open:rotate-180"
             />
           </summary>
-          {revisao && (
+          {daRevisao && (
             <div className="mt-4 flex flex-col gap-2 rounded-lg border border-aviso-line bg-aviso-bg px-4 py-3 text-[13.5px] text-aviso-fg">
               <p role="status">
-                Valor proposto pela revisão de {formatarDiaDaRevisao(revisao.revisao.criado_em)}. Confira as fontes
+                Valor proposto pela revisão de {formatarDiaDaRevisao(daRevisao.revisao.criado_em)}. Confira as fontes
                 antes de salvar.
               </p>
-              <Fontes fontes={revisao.revisao.fontes} />
+              <Fontes fontes={daRevisao.revisao.fontes} />
             </div>
           )}
           <DadosCafeForm
             cafe={cafe}
-            revisao={revisao ? { id: revisao.revisao.id, ...revisao.proposta } : undefined}
+            revisao={daRevisao ? { id: daRevisao.revisao.id, ...daRevisao.proposta } : undefined}
             ativo={cafe.ativo}
             salvar={salvarDadosCafe.bind(null, cafe.id)}
             buscarCoordenadas={coordenadasDoLink}

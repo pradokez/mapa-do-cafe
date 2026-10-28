@@ -45,11 +45,13 @@ const config: Config = {
         brilho: { from: { backgroundPosition: "100% 0" }, to: { backgroundPosition: "-100% 0" } },
         barra: { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(286%)" } },
         fantasma: { "0%, 100%": { opacity: ".18" }, "50%": { opacity: ".4" } },
+        toast: { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
       },
       animation: {
         brilho: "brilho 1.6s linear infinite",
         barra: "barra 1.3s ease-in-out infinite",
         fantasma: "fantasma 1.8s ease-in-out infinite",
+        toast: "toast .25s ease-out both",
       },
       fontFamily: {
         logo: ["var(--font-caprasimo)", "Georgia", "serif"],

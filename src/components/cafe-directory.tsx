@@ -8,6 +8,7 @@ import { FestivalVitrine } from "@/components/festival-vitrine";
 import { FilterBar } from "@/components/filter-bar";
 import { FiltrosSheet } from "@/components/filtros-sheet";
 import { HomeMap } from "@/components/home-map";
+import { useTentativaDeLocalizacao } from "@/components/localizacao-tentativa";
 import { MapFab } from "@/components/map-fab";
 import { HOME_COLUNAS, LISTA_ROLAGEM } from "@/components/medidas";
 import { SearchField } from "@/components/search-field";
@@ -69,6 +70,12 @@ export function CafeDirectory({
   // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
   // lista muda de identidade.
   const { coords } = useGeolocation();
+  // Sem posição, o chip "Distância" tenta de novo (#164); a falha avisa num
+  // toast no rodapé da coluna da lista (desktop) ou acima do FAB (mobile),
+  // abaixo dos sheets (z-40).
+  const { tentar: tentarLocalizacao, aviso: avisoDeLocalizacao } = useTentativaDeLocalizacao(
+    "fixed inset-x-[18px] bottom-[90px] z-[35] lg:inset-x-auto lg:bottom-7 lg:left-[22.5%] lg:w-max lg:max-w-[520px] lg:-translate-x-1/2",
+  );
   // Sem posição, o raio não tem centro: não filtra, não conta no badge, não
   // esconde a vitrine e o chip fica em "Distância". Com ela, o escolhido vale.
   const filters = useMemo(() => (coords ? escolhidos : { ...escolhidos, raioKm: null }), [coords, escolhidos]);
@@ -133,6 +140,7 @@ export function CafeDirectory({
           onLimparBairros={limparBairros}
           onTogglePreco={togglePreco}
           onEscolherRaio={escolherRaio}
+          onTentarLocalizacao={tentarLocalizacao}
           onAplicar={aplicar}
         />
         <div className={HOME_COLUNAS}>
@@ -176,6 +184,7 @@ export function CafeDirectory({
         </div>
       </main>
       <MapFab view={view} onToggle={alternarView} />
+      {avisoDeLocalizacao}
     </>
   );
 }

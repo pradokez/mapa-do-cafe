@@ -6,6 +6,7 @@ import { ABERTO_AGORA, ATRIBUTOS, selosNoAr, type SELOS } from "@/components/caf
 import { AtributoChip } from "@/components/filter-chip";
 import { RaioOpcoes, RascunhoSheet, SheetOption, type AplicarFiltros } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
+import { useTentativaDeLocalizacao } from "@/components/localizacao-tentativa";
 import { BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
@@ -35,6 +36,8 @@ type Props = {
 export function FiltrosSheet({ cafes, festivais, origem, filters, onAplicar }: Props) {
   const ativos = contarFiltrosAtivos(filters);
   const selos = selosNoAr(festivais);
+  // A tentativa daqui avisa dentro do sheet, acima de "Ver N cafés".
+  const { tentar, aviso } = useTentativaDeLocalizacao("absolute inset-x-[18px] bottom-[86px] z-10");
 
   return (
     <RascunhoSheet
@@ -44,6 +47,7 @@ export function FiltrosSheet({ cafes, festivais, origem, filters, onAplicar }: P
       origem={origem}
       filters={filters}
       onAplicar={onAplicar}
+      aviso={aviso}
       trigger={
         <button
           type="button"
@@ -70,7 +74,12 @@ export function FiltrosSheet({ cafes, festivais, origem, filters, onAplicar }: P
               <Chips opcoes={[ABERTO_AGORA]} rascunho={rascunho} onToggle={alternarFiltro} />
             </Secao>
             <Secao titulo="Distância">
-              <RaioOpcoes raioKm={rascunho.raioKm} onEscolher={(raioKm) => mudar({ ...rascunho, raioKm })} />
+              <RaioOpcoes
+                raioKm={rascunho.raioKm}
+                semPosicao={!origem}
+                onTentar={tentar}
+                onEscolher={(raioKm) => mudar({ ...rascunho, raioKm })}
+              />
             </Secao>
             {selos.length > 0 && (
               <Secao titulo="Selos">

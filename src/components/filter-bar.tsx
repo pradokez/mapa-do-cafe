@@ -27,6 +27,8 @@ type Props = {
   onLimparBairros: () => void;
   onTogglePreco: (faixa: FaixaPreco) => void;
   onEscolherRaio: (km: RaioKm | null) => void;
+  /** Sem posição, o chip "Distância" tenta a localização de novo. */
+  onTentarLocalizacao: () => void;
   onAplicar: AplicarFiltros;
 };
 
@@ -48,6 +50,7 @@ export function FilterBar({
   onLimparBairros,
   onTogglePreco,
   onEscolherRaio,
+  onTentarLocalizacao,
   onAplicar,
 }: Props) {
   return (
@@ -64,8 +67,20 @@ export function FilterBar({
         ativo={filters.abertoAgora}
         onToggle={() => onToggle(ABERTO_AGORA.filtro)}
       />
-      <DistanciaSheet cafes={cafes} festivais={festivais} origem={origem} filters={filters} onAplicar={onAplicar} />
-      <DistanciaDropdown raioKm={filters.raioKm} onEscolher={onEscolherRaio} />
+      <DistanciaSheet
+        cafes={cafes}
+        festivais={festivais}
+        origem={origem}
+        filters={filters}
+        onTentar={onTentarLocalizacao}
+        onAplicar={onAplicar}
+      />
+      <DistanciaDropdown
+        raioKm={filters.raioKm}
+        semPosicao={!origem}
+        onTentar={onTentarLocalizacao}
+        onEscolher={onEscolherRaio}
+      />
       {filtrosDaBarra(festivais).map((opcao) => (
         <AtributoChip
           key={opcao.filtro}

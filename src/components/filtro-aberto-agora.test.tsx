@@ -25,7 +25,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Sem posição: a ordem é a alfabética do repositório.
-const geo: GeoState = { status: "denied", coords: null };
+const geo: GeoState = { status: "denied", coords: null, tentando: false };
 vi.mock("@/hooks/use-geolocation", () => ({ useGeolocation: () => geo }));
 
 const pushState = window.history.pushState.bind(window.history);

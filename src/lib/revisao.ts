@@ -6,6 +6,7 @@
 
 import { formatarHorario, horarioDaSemana, NOME_DO_DIA } from "./cafe-hours";
 import { alternarEm, statusDoParam } from "./filtro-de-status";
+import { milhar } from "./sugestao";
 
 export const STATUS_REVISAO = ["pendente", "aprovada", "rejeitada", "obsoleta"] as const;
 export type StatusRevisao = (typeof STATUS_REVISAO)[number];
@@ -184,7 +185,7 @@ export function formatarValor(campo: CampoDeRevisao, valor: unknown): string[] {
 
 /** "1 revisão pendente" / "N revisões pendentes" — o cartão do topo do `/admin`. */
 export function rotuloDePendentes(n: number): string {
-  return n === 1 ? "1 revisão pendente" : `${n.toLocaleString("pt-BR")} revisões pendentes`;
+  return n === 1 ? "1 revisão pendente" : `${milhar(n)} revisões pendentes`;
 }
 
 const partesDaRodada = new Intl.DateTimeFormat("pt-BR", {

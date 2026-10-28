@@ -9,6 +9,7 @@ import {
   type FonteDaRevisao,
   type Revisao,
 } from "@/lib/revisao";
+import { milhar } from "@/lib/sugestao";
 import { isHttpUrl } from "@/lib/url";
 
 import { ChevronRightIcon } from "../icons";
@@ -77,7 +78,7 @@ export function ListaDeRevisoes({ revisoes, agora, total }: Props) {
       </ul>
       {total > revisoes.length && (
         <p className="mt-3 text-[13px] text-ink-3">
-          Mostrando as {revisoes.length.toLocaleString("pt-BR")} mais recentes de {total.toLocaleString("pt-BR")}.
+          Mostrando as {milhar(revisoes.length)} mais recentes de {milhar(total)}.
         </p>
       )}
     </>
@@ -106,9 +107,9 @@ function Mudanca({ revisao }: { revisao: Revisao }) {
     );
   }
   if (revisao.tipo === "cafe_novo") {
-    const p = (typeof revisao.valor_proposto === "object" && revisao.valor_proposto) || {};
-    const texto = (chave: string) => (typeof (p as Record<string, unknown>)[chave] === "string" ? String((p as Record<string, unknown>)[chave]) : null);
-    const local = [texto("endereco"), texto("bairro"), texto("cidade")].filter(Boolean).join(" · ");
+    const proposto: Record<string, unknown> =
+      typeof revisao.valor_proposto === "object" && revisao.valor_proposto ? (revisao.valor_proposto as Record<string, unknown>) : {};
+    const local = [proposto.endereco, proposto.bairro, proposto.cidade].filter((v) => typeof v === "string" && v).join(" · ");
     return <p className="text-[14px] text-espresso">{local || "Sem endereço na proposta."}</p>;
   }
   if (!revisao.campo) {

@@ -105,6 +105,11 @@ describe("getRevisaoById", () => {
     expect(banco.consultas).toHaveLength(0);
   });
 
+  it("existente vem com o nome da proposta", async () => {
+    banco.resposta.data = linha({ tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null, valor_proposto: { nome: "Novo" } });
+    expect(await getRevisaoById("00000000-0000-4000-8000-000000000001")).toMatchObject({ nome_proposto: "Novo" });
+  });
+
   it("inexistente → null", async () => {
     banco.resposta.data = null;
     expect(await getRevisaoById("00000000-0000-4000-8000-000000000001")).toBeNull();

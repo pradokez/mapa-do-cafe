@@ -223,6 +223,23 @@ describe("rodarRodada", () => {
     expect(revisoes.length).toBeGreaterThan(0);
   });
 
+  it("falha no extract é falha do café; página sem texto nenhum não gasta chamada do Gemini", async () => {
+    let n = 0;
+    const d = deps({
+      tavily: {
+        buscar: async () => [{ url: URL_SITE, titulo: "Guia", trecho: "" }],
+        extrair: async () => {
+          if (++n === 1) throw new Error("timeout");
+          return [];
+        },
+      },
+    });
+    const { rodada } = await rodarRodada(d);
+    expect(rodada.erro).toBe("falhas:extracao=1");
+    expect(d.gemini.extrair).not.toHaveBeenCalled();
+    expect(rodada.chamadas_gemini).toBe(0);
+  });
+
   it("falha no registro faz a rodada lançar", async () => {
     const d = deps({ registrar: vi.fn(async () => { throw new Error("MC429"); }) });
     await expect(rodarRodada(d)).rejects.toThrow("MC429");

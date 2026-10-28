@@ -1,0 +1,251 @@
+/**
+ * Propostas de curadoria sobre um café que já está no banco (#180, PRD #167) —
+ * sem React, sem Supabase. O modelo extrai fatos de páginas; este módulo decide
+ * o que vira revisão: normaliza pelos validadores do `cafe-dados`, propõe só o
+ * que difere do banco e nunca devolve o que a administradora rejeitou há pouco.
+ */
+
+import type { Cafe, DiaSemana } from "./cafe";
+import {
+  BOOLEANOS,
+  FAIXAS,
+  MAX_TEXTO,
+  normalizarInstagram,
+  normalizarTelefone,
+  textoAparado,
+  validarHorarioDia,
+} from "./cafe-dados";
+import { DIAS_DA_SEMANA } from "./cafe-hours";
+
+/** Um (café, campo, valor) rejeitado não volta por tantos dias. */
+export const DIAS_DE_REJEICAO = 90;
+
+const DIA_EM_MS = 24 * 60 * 60 * 1000;
+
+/** De onde o fato saiu: o que a administradora vê para conferir. */
+export type FonteDoFato = {
+  url: string;
+  titulo: string;
+  /** A data como aparece na página; `null` sem data visível. */
+  data_fonte: string | null;
+  /** Trecho literal da página de onde o fato saiu. */
+  trecho: string;
+};
+
+export type Fato<T> = FonteDoFato & { valor: T };
+
+/** Booleano extraído; `negacaoExplicita` só quando a fonte diz que NÃO tem ("não aceita pets"). */
+export type FatoBooleano = Fato<boolean> & { negacaoExplicita?: boolean };
+
+export const CAMPOS_BOOLEANOS = [...BOOLEANOS, "tem_ar_condicionado"] as const;
+export type CampoBooleano = (typeof CAMPOS_BOOLEANOS)[number];
+
+/** Campos de `cafes` que a revisão confere (endereço sem lat/lng, de propósito). */
+export type CampoRevisado =
+  | "horario_funcionamento"
+  | "instagram"
+  | "telefone"
+  | "endereco"
+  | "faixa_preco"
+  | CampoBooleano;
+
+export type Situacao = "permanente" | "temporaria";
+
+/** O que o modelo extraiu das páginas de um café. Tudo opcional; cada lista tem uma entrada por fonte. */
+export type FatosDoCafe = {
+  horario?: Fato<Partial<Record<DiaSemana, string>>>[];
+  instagram?: Fato<string>[];
+  telefone?: Fato<string>[];
+  endereco?: Fato<string>[];
+  faixa_preco?: Fato<string>[];
+  booleanos?: Partial<Record<CampoBooleano, FatoBooleano[]>>;
+  situacao?: Fato<Situacao>[];
+};
+
+export type Rejeitada = {
+  cafeId: string;
+  /** `null` para fechamento e indício. */
+  campo: string | null;
+  valor: unknown;
+  /** Quando foi rejeitada (ISO). */
+  rejeitadaEm: string;
+};
+
+/** Cada fonte da proposta com o valor que ela sustenta (já normalizado); fontes que discordam entram todas. */
+export type FonteDaProposta = FonteDoFato & { valor: unknown };
+
+export const FECHADO_PERMANENTEMENTE = "fechado_permanentemente";
+export const FECHADO_TEMPORARIAMENTE = "fechado_temporariamente";
+
+export type Proposta = {
+  tipo: "atualizacao" | "fechamento";
+  cafeId: string;
+  /** `null` em fechamento e no indício de fechado temporariamente. */
+  campo: CampoRevisado | null;
+  valorAtual: unknown;
+  valorProposto: unknown;
+  fontes: FonteDaProposta[];
+};
+
+type Candidato = { fonte: FonteDoFato; valor: unknown };
+
+/** JSON com chaves em ordem: o `jsonb` não preserva a ordem do horário. */
+function canonico(valor: unknown): string {
+  return JSON.stringify(valor, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
+  );
+}
+
+const fonteDe = ({ url, titulo, data_fonte, trecho }: FonteDoFato): FonteDoFato => ({ url, titulo, data_fonte, trecho });
+
+function rejeitadaRecente(
+  rejeitadas: Rejeitada[],
+  cafeId: string,
+  campo: string | null,
+  valor: unknown,
+  agora: Date,
+): boolean {
+  const chave = canonico(valor);
+  return rejeitadas.some(({ cafeId: id, campo: c, valor: v, rejeitadaEm }) => {
+    if (id !== cafeId || c !== campo || canonico(v) !== chave) return false;
+    const idade = agora.getTime() - new Date(rejeitadaEm).getTime();
+    return idade < DIAS_DE_REJEICAO * DIA_EM_MS;
+  });
+}
+
+/**
+ * Candidatos de um campo → proposta, ou `null`. O valor proposto é o mais
+ * sustentado entre os que diferem do banco e não foram rejeitados há pouco
+ * (empate: o que apareceu primeiro); as fontes são todas as válidas.
+ */
+function proporCampo(
+  cafe: Cafe,
+  campo: CampoRevisado,
+  candidatos: Candidato[],
+  rejeitadas: Rejeitada[],
+  agora: Date,
+): Proposta | null {
+  const atual = cafe[campo];
+  const chaveAtual = canonico(atual);
+
+  const votos = new Map<string, { valor: unknown; n: number }>();
+  for (const { valor } of candidatos) {
+    const chave = canonico(valor);
+    if (chave === chaveAtual || rejeitadaRecente(rejeitadas, cafe.id, campo, valor, agora)) continue;
+    const voto = votos.get(chave) ?? { valor, n: 0 };
+    voto.n += 1;
+    votos.set(chave, voto);
+  }
+  const vencedor = Array.from(votos.values()).reduce<{ valor: unknown; n: number } | null>(
+    (melhor, voto) => (melhor && melhor.n >= voto.n ? melhor : voto),
+    null,
+  );
+  if (!vencedor) return null;
+
+  return {
+    tipo: "atualizacao",
+    cafeId: cafe.id,
+    campo,
+    valorAtual: atual,
+    valorProposto: vencedor.valor,
+    fontes: candidatos.map(({ fonte, valor }) => ({ ...fonteDe(fonte), valor })),
+  };
+}
+
+function candidatosDeTexto(
+  fatos: Fato<string>[] | undefined,
+  normalizar: (valor: string) => string | null,
+): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    const valor = normalizar(fato.valor);
+    return valor === null ? [] : [{ fonte: fato, valor }];
+  });
+}
+
+/** Normalizador de `cafe-dados` → texto, ou `null` se inválido ou vazio (nunca propõe apagar). */
+const doNormalizador =
+  (normalizar: (valor: unknown) => ReturnType<typeof normalizarInstagram>) =>
+  (valor: string): string | null => {
+    const resultado = normalizar(valor);
+    return resultado.ok ? resultado.valor : null;
+  };
+
+function candidatosDeHorario(fatos: Fato<Partial<Record<DiaSemana, string>>>[] | undefined, cafe: Cafe): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    const horario = { ...cafe.horario_funcionamento };
+    let achou = false;
+    for (const dia of DIAS_DA_SEMANA) {
+      const texto = fato.valor[dia];
+      if (texto === undefined || validarHorarioDia(texto) !== null) continue;
+      horario[dia] = texto;
+      achou = true;
+    }
+    return achou ? [{ fonte: fato, valor: horario }] : [];
+  });
+}
+
+/**
+ * `false` só com negação explícita (nunca por falta de menção); `true` vale
+ * sempre. O `null` do ar-condicionado vira o valor que a fonte dá.
+ */
+function candidatosBooleanos(fatos: FatoBooleano[] | undefined): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    if (typeof fato.valor !== "boolean") return [];
+    if (!fato.valor && fato.negacaoExplicita !== true) return [];
+    return [{ fonte: fato, valor: fato.valor }];
+  });
+}
+
+function propostasDeSituacao(
+  cafe: Cafe,
+  situacoes: Fato<Situacao>[] | undefined,
+  rejeitadas: Rejeitada[],
+  agora: Date,
+): Proposta[] {
+  if (!cafe.ativo) return [];
+  const propostas: Proposta[] = [];
+  const casos: [Situacao, Proposta["tipo"], string][] = [
+    ["permanente", "fechamento", FECHADO_PERMANENTEMENTE],
+    ["temporaria", "atualizacao", FECHADO_TEMPORARIAMENTE],
+  ];
+  for (const [situacao, tipo, valorProposto] of casos) {
+    const fontes = (situacoes ?? []).filter((fato) => fato.valor === situacao);
+    if (fontes.length === 0 || rejeitadaRecente(rejeitadas, cafe.id, null, valorProposto, agora)) continue;
+    propostas.push({
+      tipo,
+      cafeId: cafe.id,
+      campo: null,
+      valorAtual: null,
+      valorProposto,
+      fontes: fontes.map((fato) => ({ ...fonteDe(fato), valor: valorProposto })),
+    });
+  }
+  return propostas;
+}
+
+/**
+ * Fatos extraídos de um café + o café no banco + as rejeitadas → propostas de
+ * `atualizacao` e `fechamento`. Igual ao banco, inválido, ou rejeitado há menos
+ * de 90 dias → nada.
+ */
+export function proporRevisoes(fatos: FatosDoCafe, cafe: Cafe, rejeitadas: Rejeitada[], agora: Date): Proposta[] {
+  const porCampo: [CampoRevisado, Candidato[]][] = [
+    ["horario_funcionamento", candidatosDeHorario(fatos.horario, cafe)],
+    ["instagram", candidatosDeTexto(fatos.instagram, doNormalizador(normalizarInstagram))],
+    ["telefone", candidatosDeTexto(fatos.telefone, doNormalizador(normalizarTelefone))],
+    [
+      "endereco",
+      candidatosDeTexto(fatos.endereco, (valor) => {
+        const texto = textoAparado(valor);
+        return texto && texto.length <= MAX_TEXTO.endereco ? texto : null;
+      }),
+    ],
+    ["faixa_preco", candidatosDeTexto(fatos.faixa_preco, (valor) => FAIXAS.find((f) => f === textoAparado(valor)) ?? null)],
+    ...CAMPOS_BOOLEANOS.map((campo): [CampoRevisado, Candidato[]] => [campo, candidatosBooleanos(fatos.booleanos?.[campo])]),
+  ];
+
+  const propostas = porCampo.flatMap(([campo, candidatos]) => proporCampo(cafe, campo, candidatos, rejeitadas, agora) ?? []);
+  return [...propostasDeSituacao(cafe, fatos.situacao, rejeitadas, agora), ...propostas];
+}

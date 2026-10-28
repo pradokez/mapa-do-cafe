@@ -5,6 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Revisao } from "@/lib/revisao";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/lib/admin/revisoes-actions", () => ({ aprovarRevisao: vi.fn(), rejeitarRevisao: vi.fn() }));
+// `useFormState`/`useFormStatus` vêm do React canary do Next; o `react-dom` do Vitest não os tem.
+vi.mock("react-dom", async (original) => ({
+  ...(await original<typeof import("react-dom")>()),
+  useFormState: (_acao: unknown, inicial: unknown) => [inicial, vi.fn()],
+  useFormStatus: () => ({ pending: false }),
+}));
 
 import { CartaoRevisoes } from "./cartao-revisoes";
 import { FiltroDeStatus, TrocaDeFiltro } from "./filtro-de-status";
@@ -128,6 +135,58 @@ describe("ListaDeRevisoes", () => {
     );
     expect(container.querySelector("script")).toBeNull();
     expect(screen.getByText("<script>x</script>")).toBeTruthy();
+  });
+});
+
+describe("decisões na fila (#182)", () => {
+  const botoes = (item: HTMLElement) =>
+    within(item)
+      .queryAllByRole("button")
+      .map((b) => b.textContent);
+
+  it("atualizada: Aprovar num clique e Rejeitar, cada um um form com o id", () => {
+    render(<ListaDeRevisoes revisoes={[revisao({})]} agora={AGORA} total={1} />);
+    const item = screen.getByText("Telefone").closest("li")!;
+
+    expect(botoes(item)).toEqual(["Aprovar", "Rejeitar"]);
+    for (const form of Array.from(item.querySelectorAll("form"))) {
+      expect(form.querySelector<HTMLInputElement>('input[name="id"]')?.value).toBe("r1");
+      expect(form.querySelector('input[name="confirmacao"]')).toBeNull();
+    }
+  });
+
+  it("antiga: Aprovar abre a confirmação com a idade da fonte, que envia confirmacao=1", () => {
+    const fontes = [{ ...FONTE, data_fonte: "2024-03-10", atualidade: "antiga" as const }];
+    render(<ListaDeRevisoes revisoes={[revisao({ atualidade: "antiga", fontes })]} agora={AGORA} total={1} />);
+    const confirmacao = screen.getByText("Aprovar…").closest("details")!;
+
+    expect(confirmacao.textContent).toContain("A fonte mais recente tem 2 anos. Aprovar mesmo assim?");
+    const enviar = within(confirmacao).getByRole("button", { name: "Aprovar mesmo assim", hidden: true });
+    expect(enviar.closest("form")?.querySelector<HTMLInputElement>('input[name="confirmacao"]')?.value).toBe("1");
+  });
+
+  it("fechado temporariamente: Ver café e Arquivar, sem Aprovar", () => {
+    render(<ListaDeRevisoes revisoes={[revisao({ campo: null })]} agora={AGORA} total={1} />);
+    const item = screen.getByText(/Indício sem campo/).closest("li")!;
+
+    expect(botoes(item)).toEqual(["Arquivar"]);
+    expect(within(item).getByRole("link", { name: "Ver café" }).getAttribute("href")).toBe("/admin/cafes/c1");
+  });
+
+  it("café novo só se rejeita; revisão decidida não tem botão", () => {
+    render(
+      <ListaDeRevisoes
+        revisoes={[
+          revisao({ id: "n", tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null, nome_proposto: "Novo" }),
+          revisao({ id: "d", cafe_id: "c2", status: "aprovada", cafe: { nome: "Café B", slug: "b", ativo: true } }),
+        ]}
+        agora={AGORA}
+        total={2}
+      />,
+    );
+
+    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="n"]')!)).toEqual(["Rejeitar"]);
+    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="d"]')!)).toEqual([]);
   });
 });
 

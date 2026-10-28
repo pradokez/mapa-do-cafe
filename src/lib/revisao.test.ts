@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  acoesDaRevisao,
   agruparPorCafe,
   alternarStatus,
+  avisoDeConfirmacao,
   formatarUltimaRodada,
   formatarValor,
+  mesmoValor,
   ordenarRevisoes,
   rotuloDeAtualidade,
   rotuloDePendentes,
@@ -142,5 +145,67 @@ describe("cartão do /admin", () => {
 
   it("última rodada em Recife: DD/MM, HH:MM", () => {
     expect(formatarUltimaRodada("2026-10-28T02:30:00Z")).toBe("27/10, 23:30");
+  });
+});
+
+describe("mesmoValor", () => {
+  it("compara pelo conteúdo, sem depender da ordem das chaves (o jsonb não a guarda)", () => {
+    expect(mesmoValor({ segunda: "8:00", terca: "9:00" }, { terca: "9:00", segunda: "8:00" })).toBe(true);
+    expect(mesmoValor({ segunda: "8:00" }, { segunda: "9:00" })).toBe(false);
+    expect(mesmoValor(null, false)).toBe(false);
+    expect(mesmoValor("@a", "@a")).toBe(true);
+  });
+});
+
+describe("acoesDaRevisao", () => {
+  it("atualização com campo e fechamento pendentes: Aprovar e Rejeitar", () => {
+    expect(acoesDaRevisao(rev({}))).toEqual({ aprovar: true, descartar: "Rejeitar", verCafe: false });
+    expect(acoesDaRevisao(rev({ tipo: "fechamento", campo: null }))).toEqual({
+      aprovar: true,
+      descartar: "Rejeitar",
+      verCafe: false,
+    });
+  });
+
+  it("fechado temporariamente (indício sem campo) não tem Aprovar: só Ver café e Arquivar", () => {
+    expect(acoesDaRevisao(rev({ campo: null }))).toEqual({ aprovar: false, descartar: "Arquivar", verCafe: true });
+  });
+
+  it("café novo, nesta fatia, só se rejeita", () => {
+    expect(acoesDaRevisao(rev({ tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null }))).toEqual({
+      aprovar: false,
+      descartar: "Rejeitar",
+      verCafe: false,
+    });
+  });
+
+  it.each(["aprovada", "rejeitada", "obsoleta"] as const)("revisão %s não tem ação", (status) => {
+    expect(acoesDaRevisao(rev({ status }))).toEqual({ aprovar: false, descartar: null, verCafe: false });
+  });
+});
+
+describe("avisoDeConfirmacao", () => {
+  const agora = new Date("2026-10-28T12:00:00Z");
+  const fonte = (data_fonte: string | null) => ({ url: "https://x", titulo: "x", data_fonte, trecho: "x", atualidade: "antiga" as const });
+
+  it("atualizada se aprova num clique: sem aviso", () => {
+    expect(avisoDeConfirmacao(rev({ atualidade: "atualizada" }), agora)).toBeNull();
+  });
+
+  it("antiga diz a idade da fonte mais recente, quando dá para saber", () => {
+    expect(avisoDeConfirmacao(rev({ atualidade: "antiga", fontes: [fonte("2024-03-10"), fonte("2024-09-01")] }), agora)).toBe(
+      "A fonte mais recente tem 2 anos.",
+    );
+    expect(avisoDeConfirmacao(rev({ atualidade: "antiga", fontes: [fonte("2026-02-01")] }), agora)).toBe(
+      "A fonte mais recente tem 8 meses.",
+    );
+    expect(avisoDeConfirmacao(rev({ atualidade: "antiga", fontes: [fonte("março de 2024")] }), agora)).toBe(
+      "A fonte mais recente é antiga.",
+    );
+  });
+
+  it("sem data e conflito dizem por que pedem confirmação", () => {
+    expect(avisoDeConfirmacao(rev({ atualidade: "sem_data" }), agora)).toBe("As fontes não têm data.");
+    expect(avisoDeConfirmacao(rev({ atualidade: "conflito" }), agora)).toBe("As fontes discordam entre si.");
   });
 });

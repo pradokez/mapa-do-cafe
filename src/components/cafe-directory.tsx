@@ -165,6 +165,7 @@ export function CafeDirectory({
               cafes={filtrados}
               userPosition={coords}
               focus={focus}
+              agora={agoraDoFiltro}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

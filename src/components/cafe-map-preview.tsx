@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { Distancia } from "@/components/distancia";
+import { HorarioAgora } from "@/components/horario-agora";
 import { ChevronRightIcon, XIcon } from "@/components/icons";
 import { caminhoDoCafe, type Cafe } from "@/lib/cafe";
 import { resolveCafePhotos } from "@/lib/cafe-photos";
@@ -10,6 +11,8 @@ import { PREVIEW_WIDTH } from "@/lib/map-preview-placement";
 
 type Props = {
   cafe: Cafe;
+  /** Sem ele (o mini mapa, que não tem preview), nada de linha de horário. */
+  agora?: Date;
   onClose: () => void;
   linkRef?: React.Ref<HTMLAnchorElement>;
   style?: React.CSSProperties;
@@ -20,7 +23,7 @@ type Props = {
  * `<CafeMap />` decide onde ele fica e passa a posição por `style`. O cartão
  * inteiro leva ao detalhe; o X é irmão do link, não botão dentro dele.
  */
-export function CafeMapPreview({ cafe, onClose, linkRef, style }: Props) {
+export function CafeMapPreview({ cafe, agora, onClose, linkRef, style }: Props) {
   const [photo] = resolveCafePhotos(cafe);
 
   return (
@@ -37,6 +40,7 @@ export function CafeMapPreview({ cafe, onClose, linkRef, style }: Props) {
             {localLabel(cafe)}
             <Distancia destino={cafe} />
           </span>
+          {agora && <HorarioAgora horario={cafe.horario_funcionamento} agora={agora} compacto />}
           <span className="mt-1 inline-flex items-center gap-1 text-[12.5px] font-semibold text-terracotta group-hover:text-terracotta-hover">
             Ver detalhes
             <ChevronRightIcon size={13} strokeWidth={2.2} />

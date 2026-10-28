@@ -17,3 +17,20 @@ describe("CafeMapPreview — foto", () => {
     expect(link.querySelector("img")?.getAttribute("alt")).toBe("");
   });
 });
+
+describe("CafeMapPreview — horário de agora", () => {
+  it("repete a linha do card", () => {
+    // 2026-10-08, quinta, 10:00 em Recife.
+    const base = cafe("fiore");
+    const horario = { ...base.horario_funcionamento, quinta: "08:00 – 18:00" };
+    render(
+      <CafeMapPreview
+        cafe={{ ...base, horario_funcionamento: horario }}
+        agora={new Date("2026-10-08T13:00:00Z")}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("link").textContent).toContain("Aberto até 18h");
+  });
+});

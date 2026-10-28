@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 
 import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
-import { Fontes } from "@/components/admin/lista-de-revisoes";
+import { Fontes, Sinais } from "@/components/admin/lista-de-revisoes";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { cadastrarCafe, coordenadasDoLink } from "@/lib/admin/cafe-actions";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { getRevisaoById } from "@/lib/cafe-repository";
 import { cadastroDaRevisao, type Revisao } from "@/lib/revisao";
 import type { Sinal } from "@/lib/revisao-proposta";
-import { isHttpUrl } from "@/lib/url";
 
 export const metadata: Metadata = { title: "Novo café" };
 
@@ -55,7 +54,7 @@ export default async function NovoCafe({ searchParams }: Props) {
   );
 }
 
-/** O que sustenta a proposta, à vista enquanto a administradora completa o cadastro. Textos da web: texto puro. */
+/** O que sustenta a proposta, à vista enquanto a administradora completa o cadastro. */
 function DaRevisao({ revisao, sinais }: { revisao: Revisao; sinais: Sinal[] }) {
   return (
     <section
@@ -73,32 +72,9 @@ function DaRevisao({ revisao, sinais }: { revisao: Revisao; sinais: Sinal[] }) {
       </div>
       <div>
         <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">Sinais de café especial</h3>
-        {sinais.length === 0 ? (
-          <p className="mt-1 text-[13.5px] text-ink-3">Nenhum sinal na proposta.</p>
-        ) : (
-          <ul className="mt-2 flex flex-col gap-2.5 text-[13.5px]">
-            {sinais.map((sinal, i) => (
-              <li key={i} className="border-l-2 border-line-strong pl-3">
-                <p className="font-medium text-espresso [overflow-wrap:anywhere]">
-                  {isHttpUrl(sinal.url) ? (
-                    <a
-                      href={sinal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 hover:text-terracotta"
-                    >
-                      {sinal.sinal}
-                      <span className="sr-only"> (abre em nova aba)</span>
-                    </a>
-                  ) : (
-                    sinal.sinal
-                  )}
-                </p>
-                <blockquote className="mt-0.5 whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">“{sinal.trecho}”</blockquote>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="mt-2">
+          <Sinais sinais={sinais} />
+        </div>
       </div>
       <Fontes fontes={revisao.fontes} />
     </section>

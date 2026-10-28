@@ -10,6 +10,7 @@ import {
   type FonteDaRevisao,
   type Revisao,
 } from "@/lib/revisao";
+import type { Sinal } from "@/lib/revisao-proposta";
 import { milhar } from "@/lib/sugestao";
 import { isHttpUrl } from "@/lib/url";
 
@@ -156,6 +157,26 @@ function Item({ revisao, agora }: { revisao: Revisao; agora: Date }) {
   );
 }
 
+/** Título da fonte (ou do sinal) em link de nova aba, só se for http(s): o texto vem da web. */
+function TituloDaFonte({ titulo, url }: { titulo: string; url: string }) {
+  return (
+    <p className="font-medium text-espresso [overflow-wrap:anywhere]">
+      {isHttpUrl(url) ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-terracotta">
+          {titulo}
+          <span className="sr-only"> (abre em nova aba)</span>
+        </a>
+      ) : (
+        titulo
+      )}
+    </p>
+  );
+}
+
+function Trecho({ trecho }: { trecho: string }) {
+  return <blockquote className="mt-1 whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">“{trecho}”</blockquote>;
+}
+
 /** As fontes de uma revisão, recolhidas: na fila e no cadastro aberto por um café novo (#187). */
 export function Fontes({ fontes }: { fontes: FonteDaRevisao[] }) {
   if (fontes.length === 0) return <p className="text-[13px] text-ink-3">Sem fontes.</p>;
@@ -167,26 +188,27 @@ export function Fontes({ fontes }: { fontes: FonteDaRevisao[] }) {
       <ul className="mt-2 flex flex-col gap-3">
         {fontes.map((fonte, i) => (
           <li key={i} className="border-l-2 border-line-strong pl-3">
-            <p className="font-medium text-espresso [overflow-wrap:anywhere]">
-              {isHttpUrl(fonte.url) ? (
-                <a
-                  href={fonte.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-2 hover:text-terracotta"
-                >
-                  {fonte.titulo}
-                  <span className="sr-only"> (abre em nova aba)</span>
-                </a>
-              ) : (
-                fonte.titulo
-              )}
-            </p>
+            <TituloDaFonte titulo={fonte.titulo} url={fonte.url} />
             <p className="text-ink-3">{fonte.data_fonte ? `Data na página: ${fonte.data_fonte}` : "Sem data na página"}</p>
-            <blockquote className="mt-1 whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">“{fonte.trecho}”</blockquote>
+            <Trecho trecho={fonte.trecho} />
           </li>
         ))}
       </ul>
     </details>
+  );
+}
+
+/** Os sinais de café especial de uma proposta de café novo (#187), cada um com o trecho de onde saiu. */
+export function Sinais({ sinais }: { sinais: Sinal[] }) {
+  if (sinais.length === 0) return <p className="text-[13.5px] text-ink-3">Nenhum sinal na proposta.</p>;
+  return (
+    <ul className="flex flex-col gap-3 text-[13.5px]">
+      {sinais.map((sinal, i) => (
+        <li key={i} className="border-l-2 border-line-strong pl-3">
+          <TituloDaFonte titulo={sinal.sinal} url={sinal.url} />
+          <Trecho trecho={sinal.trecho} />
+        </li>
+      ))}
+    </ul>
   );
 }

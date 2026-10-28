@@ -15,7 +15,7 @@ vi.mock("react-dom", async (original) => ({
 
 import { CartaoRevisoes } from "./cartao-revisoes";
 import { FiltroDeStatus, TrocaDeFiltro } from "./filtro-de-status";
-import { ListaDeRevisoes } from "./lista-de-revisoes";
+import { ListaDeRevisoes, Sinais } from "./lista-de-revisoes";
 
 afterEach(cleanup);
 
@@ -230,5 +230,28 @@ describe("CartaoRevisoes", () => {
   it("sem rodada: 'O robô ainda não rodou'", () => {
     render(<CartaoRevisoes pendentes={0} rodada={null} />);
     expect(screen.getByText(/O robô ainda não rodou/)).toBeTruthy();
+  });
+});
+
+describe("Sinais do café novo (#187)", () => {
+  it("cada sinal com o trecho; o link só vale se for http(s), e o texto sai puro", () => {
+    render(
+      <Sinais
+        sinais={[
+          { sinal: "Torra própria", trecho: "torramos aqui", url: "https://cafe.example/sobre" },
+          { sinal: "<b>SCA</b>", trecho: "barista certificado", url: "javascript:alert(1)" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Torra própria/ }).getAttribute("href")).toBe("https://cafe.example/sobre");
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByText("<b>SCA</b>")).toBeTruthy();
+    expect(screen.getByText("“torramos aqui”")).toBeTruthy();
+  });
+
+  it("sem sinal, diz que a proposta não trouxe nenhum", () => {
+    render(<Sinais sinais={[]} />);
+    expect(screen.getByText("Nenhum sinal na proposta.")).toBeTruthy();
   });
 });

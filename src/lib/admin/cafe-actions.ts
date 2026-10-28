@@ -22,6 +22,7 @@ import { createSessionClient } from "@/lib/supabase-server";
 import { bloqueioDeEscrita } from "./escrita";
 import { requireAdmin } from "./require-admin";
 import { revalidarCafe } from "./revalidar";
+import { marcarRevisaoAprovada } from "./revisoes";
 
 export type ResultadoSalvar = { ok: true; cafe: Cafe } | { ok: false; erro: string | null; erros?: ErrosDados };
 
@@ -75,9 +76,11 @@ export type ResultadoCadastro = { ok: true; id: string } | { ok: false; erro: st
 /**
  * Cadastra um café **fora do ar**: a administradora sobe as fotos e o põe no ar
  * pela seção Status (#47), que revalida o site. O `id` sai daqui, para reler o
- * café pelo repositório sem `.select` na escrita.
+ * café pelo repositório sem `.select` na escrita. Com `revisaoId` (o cadastro
+ * aberto pelo "Aprovar" de um café novo, #187), marca aprovada essa revisão,
+ * se ainda for um `cafe_novo` pendente.
  */
-export async function cadastrarCafe(campos: unknown): Promise<ResultadoCadastro> {
+export async function cadastrarCafe(campos: unknown, revisaoId?: string): Promise<ResultadoCadastro> {
   await requireAdmin();
   const bloqueio = bloqueioDeEscrita();
   if (bloqueio) return { ok: false, erro: bloqueio };
@@ -93,7 +96,13 @@ export async function cadastrarCafe(campos: unknown): Promise<ResultadoCadastro>
   if (error?.code === SLUG_REPETIDO) return slugRepetido(slug);
   if (error) return { ok: false, erro: ERRO_GERAL };
 
-  // Fora do ar, o site público não muda; só a lista do painel.
+  // Sem transação: se a marcação não pegar (decidida em outra aba), o café fica
+  // criado e a revisão segue na fila, para rejeitar à mão.
+  if (typeof revisaoId === "string" && isUuid(revisaoId)) {
+    await marcarRevisaoAprovada(revisaoId, "cafe_novo", null);
+  }
+
+  // Fora do ar, o site público não muda; só a lista do painel (e a fila de revisões).
   revalidatePath("/admin", "layout");
   return { ok: true, id };
 }

@@ -39,7 +39,7 @@ type Props = {
 export function RascunhoSheet({ titulo, trigger, cafes, festivais, origem, filters, onAplicar, children }: Props) {
   const [aberto, setAberto] = useState(false);
   const [rascunho, setRascunho] = useState(filters);
-  const [agora, setAgora] = useState<Date | null>(null);
+  const [agora, setAgora] = useState<Date>();
 
   const abrirOuFechar = (abrir: boolean) => {
     if (abrir) {
@@ -62,7 +62,7 @@ export function RascunhoSheet({ titulo, trigger, cafes, festivais, origem, filte
         <button
           type="button"
           onClick={() => {
-            onAplicar(efetivo, agora ?? undefined);
+            onAplicar(efetivo, agora);
             setAberto(false);
           }}
           className="mt-3.5 h-12 flex-none rounded-full bg-espresso text-[15px] font-semibold text-cream"

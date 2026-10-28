@@ -122,6 +122,10 @@ function montarErro(teto: boolean, falhas: Map<string, number>): string | null {
   return partes.length > 0 ? partes.join(";").slice(0, MAX_ERRO) : null;
 }
 
+function fontesParaRegistrar(fontes: { url: string; titulo: string; data_fonte: string | null; trecho: string; atualidade: string }[]): RevisaoParaRegistrar["fontes"] {
+  return fontes.map(({ url, titulo, data_fonte, trecho, atualidade }) => ({ url, titulo, data_fonte, trecho, atualidade }));
+}
+
 function revisaoDaProposta(proposta: Proposta, agora: Date): RevisaoParaRegistrar {
   const { fontes, atualidade } = atualidadeDasFontes(proposta.fontes, proposta.campo, agora);
   return {
@@ -130,13 +134,7 @@ function revisaoDaProposta(proposta: Proposta, agora: Date): RevisaoParaRegistra
     campo: proposta.campo,
     valor_atual: proposta.valorAtual,
     valor_proposto: proposta.valorProposto,
-    fontes: fontes.map(({ url, titulo, data_fonte, trecho, atualidade: daFonte }) => ({
-      url,
-      titulo,
-      data_fonte,
-      trecho,
-      atualidade: daFonte,
-    })),
+    fontes: fontesParaRegistrar(fontes),
     atualidade,
     nome_normalizado: null,
   };
@@ -154,7 +152,7 @@ function revisaoDeCafeNovo(proposta: PropostaCafeNovo, agora: Date): RevisaoPara
     campo: null,
     valor_atual: null,
     valor_proposto: proposta.valorProposto,
-    fontes: fontes.map(({ url, titulo, data_fonte, trecho, atualidade: daFonte }) => ({ url, titulo, data_fonte, trecho, atualidade: daFonte })),
+    fontes: fontesParaRegistrar(fontes),
     atualidade,
     nome_normalizado: proposta.nomeNormalizado,
   };

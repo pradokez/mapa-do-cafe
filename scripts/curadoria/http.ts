@@ -2,6 +2,8 @@
  * `fetch` com timeout e uma retentativa curta (429 e 5xx, ou rede), para os
  * adaptadores. O erro nunca leva URL, cabeçalho nem corpo: só o status.
  */
+const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function postarJson(
   url: string,
   init: { headers: Record<string, string>; corpo: unknown; timeoutMs?: number; esperaEntreTentativasMs?: number },
@@ -17,14 +19,14 @@ export async function postarJson(
       });
       if (resposta.ok) return await resposta.json();
       if (tentativa === 0 && (resposta.status === 429 || resposta.status >= 500)) {
-        await new Promise((resolve) => setTimeout(resolve, esperaEntreTentativasMs));
+        await esperar(esperaEntreTentativasMs);
         continue;
       }
       throw new Error(`HTTP ${resposta.status}`);
     } catch (erro) {
       const doHttp = erro instanceof Error && erro.message.startsWith("HTTP ");
       if (tentativa === 0 && !doHttp) {
-        await new Promise((resolve) => setTimeout(resolve, esperaEntreTentativasMs));
+        await esperar(esperaEntreTentativasMs);
         continue;
       }
       throw doHttp ? erro : new Error("rede ou timeout");

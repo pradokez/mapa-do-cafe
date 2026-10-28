@@ -162,24 +162,6 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
   let verificados = 0;
   let teto = false;
 
-  for (const cafe of daSemana) {
-    if (creditos + CREDITOS_POR_CAFE > limites.creditosTavily || chamadasGemini + 1 > limites.chamadasGemini) {
-      teto = true;
-      log("teto de chamadas atingido; encerrando a rodada");
-      break;
-    }
-    verificados += 1;
-    try {
-      const propostas = await verificar(cafe);
-      for (const proposta of propostas) revisoes.push(revisaoDaProposta(proposta, agora));
-    } catch (erro) {
-      // Só o código: a mensagem pode trazer URL, chave ou trecho de página.
-      const codigo = erro instanceof FalhaDoCafe ? erro.codigo : "inesperada";
-      falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
-      log(`café ${cafe.id}: falha (${codigo})`);
-    }
-  }
-
   async function verificar(cafe: CafeDoContexto): Promise<Proposta[]> {
     let resultados: ResultadoDeBusca[];
     try {
@@ -233,6 +215,24 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
       return pagina !== undefined && trechoExisteNaPagina(fonte.trecho, pagina.texto);
     });
     return proporRevisoes(fatos, cafe as Cafe, rejeitadas, agora);
+  }
+
+  for (const cafe of daSemana) {
+    if (creditos + CREDITOS_POR_CAFE > limites.creditosTavily || chamadasGemini + 1 > limites.chamadasGemini) {
+      teto = true;
+      log("teto de chamadas atingido; encerrando a rodada");
+      break;
+    }
+    verificados += 1;
+    try {
+      const propostas = await verificar(cafe);
+      for (const proposta of propostas) revisoes.push(revisaoDaProposta(proposta, agora));
+    } catch (erro) {
+      // Só o código: a mensagem pode trazer URL, chave ou trecho de página.
+      const codigo = erro instanceof FalhaDoCafe ? erro.codigo : "inesperada";
+      falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
+      log(`café ${cafe.id}: falha (${codigo})`);
+    }
   }
 
   const rodada: Rodada = {

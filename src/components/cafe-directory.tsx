@@ -76,6 +76,11 @@ export function CafeDirectory({
     () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords, agora: agoraDoFiltro }), coords),
     [cafes, filters, festivais, coords, agoraDoFiltro],
   );
+  // O círculo do raio no mapa (#165): só com posição, como o filtro.
+  const raio = useMemo(
+    () => (coords && filters.raioKm ? { centro: coords, km: filters.raioKm } : null),
+    [coords, filters.raioKm],
+  );
   // Pins apagados (#165), com ou sem o filtro: o mesmo instante do "Aberto agora".
   const fechados = useMemo(() => fechadosAgora(cafes, agoraDoFiltro), [cafes, agoraDoFiltro]);
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
@@ -167,6 +172,7 @@ export function CafeDirectory({
               userPosition={coords}
               focus={focus}
               fechados={fechados}
+              raio={raio}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

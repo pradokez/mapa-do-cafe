@@ -12,7 +12,7 @@ import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
 import { enquadramentoFantasma } from "@/lib/enquadramento-fantasma";
-import { FIT_PADDING, MAX_ZOOM } from "@/lib/map-enquadramento";
+import { FIT_PADDING, MAX_ZOOM, circuloDoRaio, limitesDoCirculo } from "@/lib/map-enquadramento";
 import { placePreview } from "@/lib/map-preview-placement";
 
 /** O que um pin precisa. O mini mapa do admin (#53) mostra um café que ainda não existe. */
@@ -32,6 +32,11 @@ type Props = (
       focus?: Coordenadas[] | null;
       /** Ids dos cafés fechados agora (`fechadosAgora`, #165): pin apagado, com ", fechado agora" no nome. */
       fechados?: ReadonlySet<string>;
+      /**
+       * Raio de distância ligado (#161, #165): o círculo em volta do "Você está aqui", e o mapa
+       * enquadra nele a cada raio novo — vence o `focus`. Desligar não mexe na câmera.
+       */
+      raio?: { centro: Coordenadas; km: number } | null;
     }
   | {
       /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
@@ -40,6 +45,7 @@ type Props = (
       userPosition?: never;
       focus?: never;
       fechados?: never;
+      raio?: never;
     }
 ) & {
   hoveredId?: string | null;
@@ -65,6 +71,11 @@ const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
 const SEM_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 const NENHUM: ReadonlySet<string> = new Set();
+
+// Círculo do raio (#165): `brasa`, 2 px e preenchimento a 8%, como no design.
+const RAIO_FONTE = "raio";
+const RAIO_COR = "#E58A5F";
+const SEM_RAIO = { type: "FeatureCollection", features: [] } as const;
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.
@@ -154,6 +165,7 @@ export function CafeMap({
   userPosition = null,
   focus = null,
   fechados = NENHUM,
+  raio = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const molduraRef = useRef<HTMLDivElement>(null);
@@ -172,6 +184,10 @@ export function CafeMap({
   const focusAtual = useRef(focus);
   focusAtual.current = focus;
   const enquadrou = useRef(false);
+  // O raio mais recente (o mapa que nasce com ele já nasce nele) e o último que a câmera enquadrou.
+  const raioAtual = useRef(raio);
+  raioAtual.current = raio;
+  const raioEnquadrado = useRef<string | null>(null);
   // Arrastou, deu zoom (gesto, teclado ou +/−): o mapa fica onde a pessoa deixou.
   const mexeu = useRef(false);
 
@@ -187,10 +203,12 @@ export function CafeMap({
       mapboxRef.current = mapboxgl;
       const cafes = initialCafes.current;
       const isMini = variant === "mini";
+      const raioInicial = isMini ? null : raioAtual.current;
       const foco = isMini ? null : focusAtual.current;
-      const pontos = isMini ? [] : (foco ?? cafes);
+      const pontos = isMini ? [] : raioInicial ? limitesDoCirculo(raioInicial.centro, raioInicial.km) : (foco ?? cafes);
       const bounds = pontos.length > 0 ? limites(pontos) : undefined;
-      enquadrou.current = foco !== null;
+      enquadrou.current = foco !== null || raioInicial !== null;
+      raioEnquadrado.current = raioInicial && chaveDoRaio(raioInicial);
       mexeu.current = false;
 
       try {
@@ -284,12 +302,13 @@ export function CafeMap({
       const cafe = cafes.slice(0, 1);
       return enquadramentoFantasma(cafe, cafe, { ...tamanho, padding: SEM_PADDING, maxZoom: MINI_ZOOM });
     }
-    return enquadramentoFantasma(focus ?? initialCafes.current, cafes, {
+    const enquadrar = raio ? limitesDoCirculo(raio.centro, raio.km) : (focus ?? initialCafes.current);
+    return enquadramentoFantasma(enquadrar, cafes, {
       ...tamanho,
       padding: FIT_PADDING,
       maxZoom: MAX_ZOOM,
     });
-  }, [estado, tamanho, variant, cafes, focus]);
+  }, [estado, tamanho, variant, cafes, focus, raio]);
 
   // Um pin por café, sincronizado por id. Pin que já existe vai para a posição nova, se mudou.
   useEffect(() => {
@@ -319,10 +338,50 @@ export function CafeMap({
   // aproxima uma vez, se a pessoa ainda não mexeu. Com `prefers-reduced-motion`, o próprio
   // Mapbox troca a animação por um salto (nada aqui pede `essential`).
   useEffect(() => {
-    if (!map || !focus || enquadrou.current || mexeu.current) return;
+    if (!map || !focus || enquadrou.current || mexeu.current || raioAtual.current) return;
     enquadrou.current = true;
     map.fitBounds(limites(focus), { padding: FIT_PADDING, maxZoom: MAX_ZOOM });
   }, [map, focus]);
+
+  // Raio ligado ou trocado: o círculo e a câmera nele, mesmo que a pessoa tenha mexido — é um
+  // pedido explícito, e o filtro é espacial (exceção consciente ao "filtrar não mexe no mapa").
+  // Também conta como o enquadramento da posição: o `focus` que chegar depois não o desfaz.
+  // Desligado: o círculo some e a câmera fica.
+  const chave = raio && chaveDoRaio(raio);
+  useEffect(() => {
+    if (!chave) {
+      // Ligar de novo o mesmo raio volta a enquadrar.
+      raioEnquadrado.current = null;
+      return;
+    }
+    if (!map || chave === raioEnquadrado.current) return;
+    const [lat, lng, km] = chave.split(",").map(Number);
+    raioEnquadrado.current = chave;
+    enquadrou.current = true;
+    map.fitBounds(limites(limitesDoCirculo({ lat, lng }, km)), { padding: FIT_PADDING, maxZoom: MAX_ZOOM });
+  }, [map, chave]);
+
+  // As camadas precisam do estilo carregado: só no `pronto`.
+  useEffect(() => {
+    if (!map || estado !== "pronto") return;
+    if (!map.getSource(RAIO_FONTE)) {
+      map.addSource(RAIO_FONTE, { type: "geojson", data: SEM_RAIO });
+      map.addLayer({ id: "raio-fill", type: "fill", source: RAIO_FONTE, paint: { "fill-color": RAIO_COR, "fill-opacity": 0.08 } });
+      map.addLayer({ id: "raio-line", type: "line", source: RAIO_FONTE, paint: { "line-color": RAIO_COR, "line-width": 2 } });
+    }
+    const fonte = map.getSource(RAIO_FONTE);
+    if (fonte?.type !== "geojson") return;
+    if (!chave) {
+      fonte.setData(SEM_RAIO);
+      return;
+    }
+    const [lat, lng, km] = chave.split(",").map(Number);
+    fonte.setData({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Polygon", coordinates: [circuloDoRaio({ lat, lng }, km)] },
+    });
+  }, [map, estado, chave]);
 
   // Ponto parado de quem usa, sem `GeolocateControl` (pediria a permissão de novo, por
   // conta própria). Quem está longe não afasta o mapa: o enquadramento vem de `focus`.
@@ -519,6 +578,11 @@ export function CafeMap({
       )}
     </div>
   );
+}
+
+/** O raio como chave estável: o efeito só roda quando centro ou km mudam, não a cada render. */
+function chaveDoRaio({ centro, km }: { centro: Coordenadas; km: number }): string {
+  return `${centro.lat},${centro.lng},${km}`;
 }
 
 /** Retângulo (sudoeste, nordeste) que contém todos os pontos. */

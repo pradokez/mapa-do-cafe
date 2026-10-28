@@ -45,7 +45,7 @@ export function DistanciaDropdown({ raioKm, semPosicao, onTentar, onEscolher }: 
         aria-busy={(semPosicao && tentando) || undefined}
         className={chipClass(semPosicao ? "apagado" : ativo, "hidden gap-2 pl-[15px] pr-3 font-medium lg:inline-flex")}
       >
-        <IconeDaDistancia semPosicao={semPosicao} size={16} />
+        <IconeDaDistancia semPosicao={semPosicao} tentando={tentando} size={16} />
         {label}
         <ChevronDownIcon size={15} strokeWidth={2} />
       </DropdownMenuTrigger>

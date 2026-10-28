@@ -51,7 +51,7 @@ export function DistanciaSheet({ cafes, festivais, origem, filters, onTentar, on
           }}
           className={chipClass(origem ? ativo : "apagado", "gap-1.5 pl-[13px] pr-[11px] font-medium lg:hidden")}
         >
-          <IconeDaDistancia semPosicao={!origem} size={15} />
+          <IconeDaDistancia semPosicao={!origem} tentando={tentando} size={15} />
           {label}
           <ChevronDownIcon size={14} strokeWidth={2} />
         </button>

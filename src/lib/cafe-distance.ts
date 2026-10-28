@@ -1,6 +1,6 @@
 export type Coordenadas = { lat: number; lng: number };
 
-const RAIO_TERRA_KM = 6371;
+export const RAIO_TERRA_KM = 6371;
 const rad = (graus: number) => (graus * Math.PI) / 180;
 
 /**

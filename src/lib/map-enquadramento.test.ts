@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { pontosParaEnquadrar } from "./map-enquadramento";
+import { distanciaKm } from "./cafe-distance";
+import { circuloDoRaio, limitesDoCirculo, pontosParaEnquadrar } from "./map-enquadramento";
 
 const GRACAS = { lat: -8.047, lng: -34.9 };
 
@@ -37,5 +38,43 @@ describe("pontosParaEnquadrar", () => {
   it("nenhum café para mostrar → nada a enquadrar (não aproxima num mapa vazio)", () => {
     expect(pontosParaEnquadrar([], GRACAS)).toBeNull();
     expect(pontosParaEnquadrar([{ lat: Number.NaN, lng: Number.NaN }], GRACAS)).toBeNull();
+  });
+});
+
+describe("circuloDoRaio", () => {
+  it("cada ponto do anel fica a km do centro, e o anel fecha no primeiro ponto", () => {
+    const anel = circuloDoRaio(GRACAS, 3);
+
+    expect(anel.length).toBeGreaterThan(32);
+    expect(anel.at(-1)).toEqual(anel[0]);
+    for (const [lng, lat] of anel) {
+      expect(distanciaKm(GRACAS, { lat, lng })).toBeCloseTo(3, 6);
+    }
+  });
+});
+
+describe("limitesDoCirculo", () => {
+  it("os cantos sudoeste e nordeste do círculo, que o contém inteiro", () => {
+    const [so, ne] = limitesDoCirculo(GRACAS, 1);
+
+    for (const [lng, lat] of circuloDoRaio(GRACAS, 1)) {
+      expect(lng).toBeGreaterThanOrEqual(so.lng - 1e-9);
+      expect(lng).toBeLessThanOrEqual(ne.lng + 1e-9);
+      expect(lat).toBeGreaterThanOrEqual(so.lat - 1e-9);
+      expect(lat).toBeLessThanOrEqual(ne.lat + 1e-9);
+    }
+    // As bordas encostam no círculo: a 1 km do centro, ao sul e a leste.
+    expect(distanciaKm(GRACAS, { lat: so.lat, lng: GRACAS.lng })).toBeCloseTo(1, 6);
+    expect(distanciaKm(GRACAS, { lat: GRACAS.lat, lng: ne.lng })).toBeCloseTo(1, 6);
+  });
+
+  it("raio maior, limites maiores", () => {
+    const [so1, ne1] = limitesDoCirculo(GRACAS, 1);
+    const [so7, ne7] = limitesDoCirculo(GRACAS, 7);
+
+    expect(so7.lat).toBeLessThan(so1.lat);
+    expect(so7.lng).toBeLessThan(so1.lng);
+    expect(ne7.lat).toBeGreaterThan(ne1.lat);
+    expect(ne7.lng).toBeGreaterThan(ne1.lng);
   });
 });

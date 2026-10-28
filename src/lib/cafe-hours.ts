@@ -117,6 +117,19 @@ function turnosDoDia(horario: string | null): TurnoEmMinutos[] | null {
   return turnos;
 }
 
+/**
+ * Ids dos cafés fechados no instante dado: os pins apagados do mapa (#165).
+ * Sem informação hoje não entra — não sabemos se está fechado.
+ */
+export function fechadosAgora(
+  cafes: readonly { id: string; horario_funcionamento: unknown }[],
+  agora: Date,
+): Set<string> {
+  return new Set(
+    cafes.filter((cafe) => estadoAgora(cafe.horario_funcionamento, agora).estado === "fechado").map((c) => c.id),
+  );
+}
+
 export interface RotuloDoDetalhe {
   /** Em negrito, `open` quando aberto e `terracotta` quando fechado. */
   estado: "Aberto agora" | "Fechado agora" | "Fechado";

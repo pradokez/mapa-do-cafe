@@ -16,6 +16,7 @@ import { useFilterParams } from "@/hooks/use-filter-params";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import type { Cafe } from "@/lib/cafe";
 import { ordenarPorDistancia } from "@/lib/cafe-distance";
+import { fechadosAgora } from "@/lib/cafe-hours";
 import { bairrosDisponiveis, filtrarCafes, temFiltroAtivo } from "@/lib/cafe-filter";
 import { combosDaEdicao, type Edicao, type FestivaisNoAr } from "@/lib/festival";
 import { pontosParaEnquadrar } from "@/lib/map-enquadramento";
@@ -75,6 +76,13 @@ export function CafeDirectory({
     () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords, agora: agoraDoFiltro }), coords),
     [cafes, filters, festivais, coords, agoraDoFiltro],
   );
+  // O círculo do raio no mapa (#165): só com posição, como o filtro.
+  const raio = useMemo(
+    () => (coords && filters.raioKm ? { centro: coords, km: filters.raioKm } : null),
+    [coords, filters.raioKm],
+  );
+  // Pins apagados (#165), com ou sem o filtro: o mesmo instante do "Aberto agora".
+  const fechados = useMemo(() => fechadosAgora(cafes, agoraDoFiltro), [cafes, agoraDoFiltro]);
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
   const focus = useMemo(() => pontosParaEnquadrar(cafes, coords), [cafes, coords]);
 
@@ -163,6 +171,8 @@ export function CafeDirectory({
               cafes={filtrados}
               userPosition={coords}
               focus={focus}
+              fechados={fechados}
+              raio={raio}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}
               onHover={hoverFrom("pin")}

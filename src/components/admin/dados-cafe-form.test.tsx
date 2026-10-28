@@ -36,6 +36,7 @@ function renderizar(salvar = vi.fn(), buscarCoordenadas = vi.fn()) {
 const valor = (rotulo: string) => (screen.getByLabelText(rotulo) as HTMLInputElement).value;
 
 const salvarBotao = () => screen.getByRole("button", { name: "Salvar alterações" });
+const cadastrarBotao = () => screen.getByRole("button", { name: "Cadastrar café" });
 
 describe("DadosCafeForm", () => {
   it("erro de validação aparece no campo, ligado por ARIA, sem perder o que foi digitado nem chamar o servidor", async () => {
@@ -152,8 +153,6 @@ describe("DadosCafeForm — café novo", () => {
     return cadastrar;
   }
 
-  const cadastrarBotao = () => screen.getByRole("button", { name: "Cadastrar café" });
-
   /** O mínimo para passar na validação: todo dia fechado. */
   async function preencher() {
     await userEvent.type(screen.getByLabelText("Nome"), "Café da Praça");
@@ -217,6 +216,72 @@ describe("DadosCafeForm — café novo", () => {
     await userEvent.click(cadastrarBotao());
 
     expect(cadastrar.mock.calls[0][0]).toMatchObject({ slug: "cafe-da-praca", bairro: "Poço da Panela", faixa_preco: "$$" });
+    expect(push).toHaveBeenCalledWith("/admin/cafes/c0ffee?novo=1");
+  });
+
+  it("sem revisão, o cadastro não manda id de revisão", async () => {
+    const cadastrar = renderizarNovo(vi.fn().mockResolvedValue({ ok: true, id: "c0ffee" }));
+    await preencher();
+    await userEvent.click(cadastrarBotao());
+
+    expect(cadastrar.mock.calls[0][1]).toBeUndefined();
+  });
+});
+
+describe("DadosCafeForm — café novo de uma revisão (#187)", () => {
+  const REVISAO = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
+  const campos = {
+    nome: "Café da Ladeira",
+    bairro: "Carmo",
+    endereco: "R. do Amparo, 20",
+    cidade: "Olinda" as const,
+    instagram: "https://instagram.com/ladeira",
+    telefone: "(81) 99908-4986",
+    aceita_pets: true,
+    horario_funcionamento: { segunda: "08:00 – 12:00, 14:00 – 18:00", domingo: "Fechado" },
+  };
+
+  function renderizarDaRevisao(cadastrar = vi.fn().mockResolvedValue({ ok: true, id: "c0ffee" })) {
+    render(<DadosCafeForm cadastrar={cadastrar} revisao={{ id: REVISAO, campos }} buscarCoordenadas={vi.fn()} />);
+    return cadastrar;
+  }
+
+  it("abre preenchido com a proposta; slug sai do nome, coordenadas e faixa ficam em branco", () => {
+    renderizarDaRevisao();
+
+    expect(valor("Nome")).toBe("Café da Ladeira");
+    expect(valor("Bairro")).toBe("Carmo");
+    expect(valor("Endereço")).toBe("R. do Amparo, 20");
+    expect(valor("Instagram (opcional)")).toBe("https://instagram.com/ladeira");
+    expect(valor("Telefone (opcional)")).toBe("(81) 99908-4986");
+    expect(valor("Cidade")).toBe("Olinda");
+    expect((screen.getByLabelText(/Aceita pets/) as HTMLInputElement).checked).toBe(true);
+    expect(valor("Endereço no site")).toBe("cafe-da-ladeira");
+    expect([valor("Latitude"), valor("Longitude")]).toEqual(["", ""]);
+
+    const segunda = within(screen.getByRole("group", { name: "Segunda" }));
+    expect(segunda.getAllByDisplayValue(/^\d{2}:\d{2}$/).map((e) => (e as HTMLInputElement).value)).toEqual([
+      "08:00",
+      "12:00",
+      "14:00",
+      "18:00",
+    ]);
+    expect((within(screen.getByRole("group", { name: "Domingo" })).getByLabelText("Fechado") as HTMLInputElement).checked).toBe(
+      true,
+    );
+  });
+
+  it("cadastrar manda o id da revisão junto", async () => {
+    const cadastrar = renderizarDaRevisao();
+    await userEvent.type(screen.getByLabelText("Latitude"), "-8,01");
+    await userEvent.type(screen.getByLabelText("Longitude"), "-34,85");
+    await userEvent.click(screen.getByLabelText(/Moderado/));
+    for (const dia of ["Terça", "Quarta", "Quinta", "Sexta", "Sábado"]) {
+      await userEvent.click(within(screen.getByRole("group", { name: dia })).getByLabelText("Fechado"));
+    }
+    await userEvent.click(cadastrarBotao());
+
+    expect(cadastrar).toHaveBeenCalledWith(expect.objectContaining({ nome: "Café da Ladeira", cidade: "Olinda" }), REVISAO);
     expect(push).toHaveBeenCalledWith("/admin/cafes/c0ffee?novo=1");
   });
 });

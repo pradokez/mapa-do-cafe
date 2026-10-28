@@ -156,7 +156,8 @@ function Item({ revisao, agora }: { revisao: Revisao; agora: Date }) {
   );
 }
 
-function Fontes({ fontes }: { fontes: FonteDaRevisao[] }) {
+/** As fontes de uma revisão, recolhidas: na fila e no cadastro aberto por um café novo (#187). */
+export function Fontes({ fontes }: { fontes: FonteDaRevisao[] }) {
   if (fontes.length === 0) return <p className="text-[13px] text-ink-3">Sem fontes.</p>;
   return (
     <details className="group text-[13.5px]">

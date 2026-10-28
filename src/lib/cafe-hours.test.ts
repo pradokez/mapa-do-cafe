@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Cafe, DiaSemana } from "./cafe";
 
-import { diasComHoje, estadoAgora, formatarHorario, rotuloDoDetalhe } from "./cafe-hours";
+import { diasComHoje, estadoAgora, fechadosAgora, formatarHorario, rotuloDoDetalhe } from "./cafe-hours";
 
 // 2026-10-05 é uma segunda-feira. Meio-dia em Recife (UTC−3) = 15:00Z.
 const em = (dia: number) => new Date(Date.UTC(2026, 9, 5 + dia, 15));
@@ -314,5 +314,20 @@ describe("formatarHorario", () => {
   it("deixa 'Fechado' e texto fora do formato como estão", () => {
     expect(formatarHorario("Fechado")).toBe("Fechado");
     expect(formatarHorario("sob consulta")).toBe("sob consulta");
+  });
+});
+
+describe("fechadosAgora", () => {
+  const cafe = (id: string, horario: unknown) => ({ id, horario_funcionamento: horario });
+  const ABERTO = cafe("aberto", SEMANA);
+  const FECHADO = cafe("fechado", { ...SEMANA, segunda: "14:00 – 18:00" });
+  const SEM_INFORMACAO = cafe("sem-informacao", { ...SEMANA, segunda: undefined });
+
+  it("só os fechados neste instante: sem informação hoje não conta como fechado", () => {
+    expect(fechadosAgora([ABERTO, FECHADO, SEM_INFORMACAO], recife(0, "10:00"))).toEqual(new Set(["fechado"]));
+  });
+
+  it("o instante decide: às 19h de segunda, quem fecha às 18h também está fechado", () => {
+    expect(fechadosAgora([ABERTO, FECHADO], recife(0, "19:00"))).toEqual(new Set(["aberto", "fechado"]));
   });
 });

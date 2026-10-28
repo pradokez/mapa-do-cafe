@@ -35,7 +35,7 @@ let push: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   // A barra rola o chip focado para dentro; o jsdom não implementa scrollIntoView.
   Element.prototype.scrollIntoView = vi.fn();
-  geo = { status: "granted", coords: MARCO_ZERO };
+  geo = { status: "granted", coords: MARCO_ZERO, tentando: false };
   window.matchMedia = vi.fn().mockReturnValue({
     matches: false,
     addEventListener: () => {},
@@ -224,7 +224,7 @@ describe("Filtro de distância — com posição", () => {
 
 describe("Filtro de distância — sem posição", () => {
   it("o raio escolhido não filtra, não conta no badge nem esconde a vitrine", async () => {
-    geo = { status: "denied", coords: null };
+    geo = { status: "denied", coords: null, tentando: false };
     renderHome();
 
     await escolherNoSheet("Até 1 km");

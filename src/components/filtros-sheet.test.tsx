@@ -53,11 +53,11 @@ describe("FiltrosSheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ver 1 café" }));
 
     expect(onAplicar).toHaveBeenCalledOnce();
-    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, pets: true, precos: ["$"] });
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, pets: true, precos: ["$"] }, expect.any(Date));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("organiza em seções: selos e comodidades em chips, faixa de preço em linhas; sem bairro (que tem sheet próprio)", async () => {
+  it("organiza em seções: horário, selos e comodidades em chips, faixa de preço em linhas; sem bairro (que tem sheet próprio)", async () => {
     renderSheet();
     await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
 
@@ -65,6 +65,7 @@ describe("FiltrosSheet", () => {
       within(screen.getByRole("group", { name: secao }))
         .getAllByRole("button")
         .map((el) => el.getAttribute("aria-label"));
+    expect(chips("Horário")).toEqual(["Aberto agora"]);
     expect(chips("Selos")).toEqual(["Recife Coffee", "Eu Amo Café"]);
     expect(chips("Comodidades")).toEqual([
       "Aceita pets",
@@ -87,7 +88,7 @@ describe("FiltrosSheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Aceita pets" }));
 
     await userEvent.click(screen.getByRole("button", { name: "Ver 1 café" }));
-    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, euAmoCafe: true, pets: true });
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, euAmoCafe: true, pets: true }, expect.any(Date));
 
     cleanup();
     renderSheet({ ...FILTROS_VAZIOS, euAmoCafe: true });

@@ -27,7 +27,7 @@ afterEach(cleanup);
 
 describe("CafeDirectory — mobile", () => {
   it("abre na lista; o FAB alterna para o mapa e de volta, sem mexer nos filtros", async () => {
-    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={{ edicoes: [], agora: new Date() }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} agora={new Date()} />);
 
     expect(screen.getByText("1 café encontrado")).toBeDefined();
     await userEvent.click(screen.getByRole("button", { name: "Ver mapa" }));
@@ -43,7 +43,7 @@ describe("CafeDirectory — mobile", () => {
 describe("CafeDirectory — festival", () => {
   it("o link com o filtro do festival filtra os participantes da edição no ar", () => {
     window.history.replaceState(null, "", "/?eu_amo_cafe=true");
-    render(<CafeDirectory cafes={CAFES} festivais={{ "eu-amo-cafe": ["b"] }} vitrines={{ edicoes: [], agora: new Date() }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{ "eu-amo-cafe": ["b"] }} vitrines={[]} agora={new Date()} />);
 
     expect(screen.getByText("1 café encontrado")).toBeDefined();
     expect(screen.getByRole("link", { name: "Café B" })).toBeDefined();
@@ -51,7 +51,7 @@ describe("CafeDirectory — festival", () => {
 
   it("fora da edição, o mesmo link abre a home sem filtro, sem chip nem selo", () => {
     window.history.replaceState(null, "", "/?eu_amo_cafe=true&ascape=true");
-    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={{ edicoes: [], agora: new Date() }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} agora={new Date()} />);
 
     expect(screen.getByText("2 cafés encontrados")).toBeDefined();
     expect(screen.queryByRole("button", { name: "Eu Amo Café" })).toBeNull();
@@ -61,16 +61,14 @@ describe("CafeDirectory — festival", () => {
 });
 
 describe("CafeDirectory — Me paga um café?", () => {
-  const vitrines = { edicoes: [], agora: new Date() };
-
   it("sem o Pix configurado, o botão não aparece", () => {
-    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={vitrines} pix={null} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} agora={new Date()} pix={null} />);
     expect(screen.queryByRole("button", { name: "Me paga um café?" })).toBeNull();
   });
 
   it("com o Pix, o botão entra no header (o do desktop e o do mobile)", () => {
     const pix = { chave: "chave-aleatoria", nome: "Fulana", cidade: "Recife" };
-    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={vitrines} pix={pix} />);
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} agora={new Date()} pix={pix} />);
     expect(screen.getAllByRole("button", { name: "Me paga um café?" })).toHaveLength(2);
   });
 });

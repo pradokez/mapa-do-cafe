@@ -2,7 +2,7 @@
 
 import { chipClass } from "@/components/filter-chip";
 import { ChevronDownIcon, LocateIcon } from "@/components/icons";
-import { RaioOpcoes, RascunhoSheet } from "@/components/rascunho-sheet";
+import { RaioOpcoes, RascunhoSheet, type AplicarFiltros } from "@/components/rascunho-sheet";
 import type { Cafe } from "@/lib/cafe";
 import { distanciaChipLabel, type Coordenadas } from "@/lib/cafe-distance";
 import type { CafeFilters } from "@/lib/cafe-filter";
@@ -13,7 +13,7 @@ type Props = {
   festivais: FestivaisNoAr;
   origem: Coordenadas | null;
   filters: CafeFilters;
-  onAplicar: (next: CafeFilters) => void;
+  onAplicar: AplicarFiltros;
 };
 
 /**

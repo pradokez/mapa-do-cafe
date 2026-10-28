@@ -1,5 +1,6 @@
 import type { Cafe, FaixaPreco } from "./cafe";
 import { dentroDoRaio, type Coordenadas, type RaioKm } from "./cafe-distance";
+import { estadoAgora } from "./cafe-hours";
 import type { FestivaisNoAr, FestivalSlug } from "./festival";
 
 /**
@@ -23,9 +24,17 @@ const FILTROS_DE_ATRIBUTO = {
   arCondicionado: { campo: "tem_ar_condicionado", param: "ar_condicionado" },
 } as const satisfies Record<string, { campo: keyof Cafe; param: string }>;
 
+/**
+ * "Aberto agora" (#162): passa quem está aberto no instante do contexto
+ * (`estadoAgora`, no relógio de Recife); sem informação para hoje não passa.
+ */
+const FILTROS_DE_HORARIO = {
+  abertoAgora: { param: "aberto_agora" },
+} as const satisfies Record<string, { param: string }>;
+
 type FiltroDeFestival = keyof typeof FILTROS_DE_FESTIVAL;
 type FiltroDeAtributo = keyof typeof FILTROS_DE_ATRIBUTO;
-export type FiltroBooleano = FiltroDeFestival | FiltroDeAtributo;
+export type FiltroBooleano = FiltroDeFestival | FiltroDeAtributo | keyof typeof FILTROS_DE_HORARIO;
 
 /** Params que já foram de filtro: ignorados na leitura e apagados na escrita. */
 const PARAMS_ANTIGOS = ["ascape"];
@@ -54,6 +63,7 @@ export const FILTROS_VAZIOS: CafeFilters = {
   pcd: false,
   vegetariano: false,
   arCondicionado: false,
+  abertoAgora: false,
   bairros: [],
   precos: [],
   q: "",
@@ -62,9 +72,9 @@ export const FILTROS_VAZIOS: CafeFilters = {
 
 const FESTIVAIS = Object.keys(FILTROS_DE_FESTIVAL) as FiltroDeFestival[];
 const ATRIBUTOS = Object.keys(FILTROS_DE_ATRIBUTO) as FiltroDeAtributo[];
-const CHAVES: FiltroBooleano[] = [...FESTIVAIS, ...ATRIBUTOS];
+const CHAVES: FiltroBooleano[] = [...FESTIVAIS, ...ATRIBUTOS, "abertoAgora"];
 const PARAM = Object.fromEntries(
-  Object.entries({ ...FILTROS_DE_FESTIVAL, ...FILTROS_DE_ATRIBUTO }).map(([chave, { param }]) => [chave, param]),
+  Object.entries({ ...FILTROS_DE_FESTIVAL, ...FILTROS_DE_ATRIBUTO, ...FILTROS_DE_HORARIO }).map(([chave, { param }]) => [chave, param]),
 ) as Record<FiltroBooleano, string>;
 
 /** Ordem canônica das faixas, na URL e no estado. */
@@ -79,19 +89,22 @@ export type ContextoDoFiltro = {
   festivais?: FestivaisNoAr;
   /** Posição do navegador, o centro do raio; sem ela, o raio não filtra. */
   origem?: Coordenadas | null;
+  /** Instante do "Aberto agora" (o do request ou o do clique); sem ele, o filtro não exclui ninguém. */
+  agora?: Date | null;
 };
 
 /**
  * Interseção dos filtros ligados — dentro de bairro e de preço, a união das
  * opções marcadas; na busca, cada palavra precisa casar com o nome ou o
  * bairro; num festival, os participantes da edição no ar (`festivais`); no
- * raio, os cafés a até `raioKm` da `origem`. Filtro desligado, de festival
- * fora do ar ou raio sem origem não exclui ninguém. Preserva a ordem.
+ * raio, os cafés a até `raioKm` da `origem`; no "Aberto agora", os abertos
+ * em `agora`. Filtro desligado, de festival fora do ar, raio sem origem ou
+ * "Aberto agora" sem instante não exclui ninguém. Preserva a ordem.
  */
 export function filtrarCafes(
   cafes: Cafe[],
   filters: CafeFilters,
-  { festivais = {}, origem = null }: ContextoDoFiltro = {},
+  { festivais = {}, origem = null, agora = null }: ContextoDoFiltro = {},
 ): Cafe[] {
   const atributos = ATRIBUTOS.filter((chave) => filters[chave]);
   const participantes = FESTIVAIS.filter((chave) => filters[chave])
@@ -99,13 +112,15 @@ export function filtrarCafes(
     .filter((ids) => ids !== undefined);
   const palavras = normalizar(filters.q).split(/\s+/).filter(Boolean);
   const noRaio = filters.raioKm === null ? cafes : dentroDoRaio(cafes, origem, filters.raioKm);
+  const instante = filters.abertoAgora ? agora : null;
   return noRaio.filter(
     (cafe) =>
       atributos.every((chave) => cafe[FILTROS_DE_ATRIBUTO[chave].campo]) &&
       participantes.every((ids) => ids.includes(cafe.id)) &&
       aceita(filters.bairros, cafe.bairro_slug) &&
       aceita(filters.precos, cafe.faixa_preco) &&
-      casaBusca(cafe, palavras),
+      casaBusca(cafe, palavras) &&
+      (instante === null || estadoAgora(cafe.horario_funcionamento, instante).estado === "aberto"),
   );
 }
 

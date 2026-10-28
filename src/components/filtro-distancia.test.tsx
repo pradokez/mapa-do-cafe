@@ -78,7 +78,7 @@ function renderHome() {
     <CafeDirectory
       cafes={CAFES}
       festivais={{ "eu-amo-cafe": ["perto"] }}
-      vitrines={{ edicoes: [EDICAO], agora: DURANTE }}
+      vitrines={[EDICAO]} agora={DURANTE}
     />,
   );
 }
@@ -132,6 +132,18 @@ describe("Filtro de distância — com posição", () => {
     await userEvent.click(chipDoMenu("Distância: Até 1 km"));
     await userEvent.click(screen.getByRole("menuitemradio", { name: "Qualquer distância" }));
     expect(nomes()).toEqual(["Perto", "Longe"]);
+  });
+
+  it("escolher só o raio não reescreve a URL, nem com um param velho nela", async () => {
+    replaceState(null, "", "/?ascape=true");
+    renderHome();
+
+    await userEvent.click(chipDoMenu("Distância"));
+    await userEvent.click(screen.getByRole("menuitemradio", { name: "Até 1 km" }));
+
+    expect(nomes()).toEqual(["Perto"]);
+    expect(window.location.search).toBe("?ascape=true");
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("combina com os outros filtros e com a busca; sem café no raio, o estado vazio de sempre", async () => {

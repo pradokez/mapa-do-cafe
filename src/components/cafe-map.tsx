@@ -117,7 +117,7 @@ const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="tr
 </g></svg>`;
 
 // Ponto de quem usa: o azul de posição dos apps de mapa (não lembra pin nem pin ativo), borda `cream`.
-// Abaixo dos pins (o `z-[1]` deles vence a ordem no DOM) e sem receber clique.
+// Abaixo dos pins (o `z-index` deles, 1 a 10, vence a ordem no DOM) e sem receber clique.
 const VOCE_HTML = `<span class="absolute inset-0 rounded-full bg-map-voce/20 motion-safe:animate-ping"></span>
 <span class="relative block size-4 rounded-full border-[3px] border-cream bg-map-voce shadow-[0_1px_4px_rgba(0,0,0,.5)]"></span>`;
 
@@ -208,7 +208,11 @@ export function CafeMap({
       const isMini = variant === "mini";
       const raioInicial = isMini ? null : raioAtual.current;
       const foco = isMini || raioInicial ? null : focusAtual.current;
-      const pontos = isMini ? [] : raioInicial ? limitesDoRaio(raioInicial.centro, raioInicial.km) : (foco ?? cafes);
+      const pontos = isMini
+        ? []
+        : raioInicial
+          ? limitesDoRaio(raioInicial.centro, raioInicial.km)
+          : (foco ?? cafes);
       const bounds = pontos.length > 0 ? limites(pontos) : undefined;
       enquadrou.current = foco !== null || raioInicial !== null;
       raioEnquadrado.current = raioInicial && chaveDoRaio(raioInicial);
@@ -229,7 +233,10 @@ export function CafeMap({
             "LogoControl.Title": "Site do Mapbox",
           },
           ...(bounds
-            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: raioInicial ? ZOOM_DO_MAPBOX : MAX_ZOOM } }
+            ? {
+                bounds,
+                fitBoundsOptions: { padding: FIT_PADDING, maxZoom: raioInicial ? ZOOM_DO_MAPBOX : MAX_ZOOM },
+              }
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
         });
       } catch {
@@ -393,7 +400,12 @@ export function CafeMap({
       return;
     }
     map.addSource(RAIO_FONTE, { type: "geojson", data: dados });
-    map.addLayer({ id: "raio-preenchimento", type: "fill", source: RAIO_FONTE, paint: { "fill-color": BRASA, "fill-opacity": 0.08 } });
+    map.addLayer({
+      id: "raio-preenchimento",
+      type: "fill",
+      source: RAIO_FONTE,
+      paint: { "fill-color": BRASA, "fill-opacity": 0.08 },
+    });
     map.addLayer({ id: "raio-contorno", type: "line", source: RAIO_FONTE, paint: { "line-color": BRASA, "line-width": 2 } });
   }, [map, pronto, chave]);
 
@@ -437,9 +449,13 @@ export function CafeMap({
   // Sem informação hoje fica com o pin normal (não se sabe se está fechado). O mini mapa não apaga.
   const fechados = useMemo(
     () =>
-      variant === "full" && agora
-        ? new Set((cafes as Cafe[]).filter((c) => estadoAgora(c.horario_funcionamento, agora).estado === "fechado").map((c) => c.id))
-        : new Set<string>(),
+      new Set(
+        variant === "full" && agora
+          ? (cafes as Cafe[])
+              .filter((c) => estadoAgora(c.horario_funcionamento, agora).estado === "fechado")
+              .map((c) => c.id)
+          : [],
+      ),
     [variant, cafes, agora],
   );
   useEffect(() => {

@@ -105,13 +105,13 @@ type Props = {
   aviso: string | null;
 };
 
-/** Os botões de uma revisão: Aprovar (direto ou com confirmação), Ver café, Rejeitar ou Arquivar. */
+/** Os botões de uma revisão: Aprovar (direto ou com confirmação), Editar no café, Ver café, Rejeitar ou Arquivar. */
 export function AcoesDaRevisao({ revisao, aviso }: Props) {
   const contexto = useContext(DecisoesContexto);
   if (!contexto) throw new Error("AcoesDaRevisao fora de DecisoesDaFila");
   const { aprovar, rejeitar, estado, aoEnviar } = contexto;
   const acoes = acoesDaRevisao(revisao);
-  if (!acoes.aprovar && !acoes.descartar && !acoes.verCafe) return null;
+  if (!acoes.aprovar && !acoes.descartar && !acoes.verCafe && !acoes.editar) return null;
 
   const erro = estado && !estado.ok && estado.id === revisao.id ? estado.erro : null;
   const campoId = <input type="hidden" name="id" value={revisao.id} />;
@@ -142,6 +142,11 @@ export function AcoesDaRevisao({ revisao, aviso }: Props) {
               <Botao className={ctaClass}>Aprovar</Botao>
             </form>
           ))}
+        {acoes.editar && revisao.cafe_id && (
+          <Link href={`/admin/cafes/${revisao.cafe_id}?revisao=${revisao.id}`} className={neutroClass}>
+            Editar no café
+          </Link>
+        )}
         {acoes.verCafe && revisao.cafe_id && (
           <Link href={`/admin/cafes/${revisao.cafe_id}`} className={neutroClass}>
             Ver café

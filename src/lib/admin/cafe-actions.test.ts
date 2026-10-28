@@ -123,6 +123,39 @@ describe("salvarDadosCafe — endereço", () => {
   });
 });
 
+describe("salvarDadosCafe — a partir de uma revisão (#186)", () => {
+  const REVISAO = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
+
+  it("sem revisão, não mexe em revisões", async () => {
+    expect(await salvarDadosCafe(ID, campos())).toMatchObject({ ok: true });
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
+  });
+
+  it("com revisão, salvar marca aprovada só a atualização pendente deste café", async () => {
+    expect(await salvarDadosCafe(ID, campos(), REVISAO)).toMatchObject({ ok: true });
+    expect(revisoes.marcarRevisaoAprovada).toHaveBeenCalledWith(REVISAO, "atualizacao", ID);
+  });
+
+  it("revisão que não marca (outro café, já decidida) não desfaz o salvamento", async () => {
+    revisoes.marcarRevisaoAprovada.mockResolvedValue(false);
+    expect(await salvarDadosCafe(ID, campos(), REVISAO)).toMatchObject({ ok: true });
+  });
+
+  it("id de revisão malformado é ignorado", async () => {
+    expect(await salvarDadosCafe(ID, campos(), "nao-e-uuid")).toMatchObject({ ok: true });
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
+  });
+
+  it("modo leitura, dados inválidos e erro do banco não marcam", async () => {
+    expect(await salvarDadosCafe(ID, campos({ nome: "" }), REVISAO)).toMatchObject({ ok: false });
+    banco.resposta.atual = { error: { code: "XX000", message: "falhou" } };
+    expect(await salvarDadosCafe(ID, campos(), REVISAO)).toMatchObject({ ok: false });
+    vi.stubEnv("ADMIN_ESCRITA_LIBERADA", "");
+    expect(await salvarDadosCafe(ID, campos(), REVISAO)).toMatchObject({ ok: false });
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
+  });
+});
+
 describe("cadastrarCafe — a partir de uma revisão (#187)", () => {
   const REVISAO = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
   const novo = () => ({ ...ANTES, slug: "cafe-novo", nome: "Café Novo" });

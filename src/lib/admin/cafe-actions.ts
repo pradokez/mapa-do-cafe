@@ -41,9 +41,10 @@ const slugRepetido = (slug: string) => ({
 /**
  * Grava os dados editáveis e o endereço (nunca `id`, `fotos` nem `ativo`) e
  * devolve o café como ficou. Trocar o slug (#155) quebra os links do endereço
- * antigo, de propósito: não há redirect.
+ * antigo, de propósito: não há redirect. Com `revisaoId` (o "Editar no café"
+ * da fila, #186), marca aprovada a atualização pendente deste café.
  */
-export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<ResultadoSalvar> {
+export async function salvarDadosCafe(cafeId: string, campos: unknown, revisaoId?: string): Promise<ResultadoSalvar> {
   await requireAdmin();
   const bloqueio = bloqueioDeEscrita();
   if (bloqueio) return { ok: false, erro: bloqueio };
@@ -62,6 +63,11 @@ export async function salvarDadosCafe(cafeId: string, campos: unknown): Promise<
   // Relido pelo repositório (escrita não usa `.select`): o formulário recebe o que o banco guardou.
   const salvo = await getCafeById(cafe.id);
   if (!salvo) return { ok: false, erro: ERRO_GERAL };
+
+  // Sem transação: se a marcação não pegar (decidida em outra aba), o café fica salvo.
+  if (typeof revisaoId === "string" && isUuid(revisaoId)) {
+    await marcarRevisaoAprovada(revisaoId, "atualizacao", cafe.id);
+  }
 
   revalidarCafe(salvo.slug);
   // Endereço trocado (#155): o antigo passa a dar 404, sem redirect.

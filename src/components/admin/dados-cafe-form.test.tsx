@@ -362,3 +362,37 @@ describe("DadosCafeForm — endereço na edição (#155)", () => {
     expect(salvar).toHaveBeenCalledWith(expect.objectContaining({ slug: "cafe-antigo" }));
   });
 });
+
+describe("DadosCafeForm — editar a partir de uma revisão (#186)", () => {
+  const REVISAO = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
+
+  function aberto(revisao: { campo: "telefone" | "aceita_pets"; valor: unknown }) {
+    const salvar = vi.fn(async (campos: unknown) => ({ ok: true as const, cafe: { ...CAFE, ...(campos as object) } }));
+    render(
+      <DadosCafeForm
+        cafe={{ ...CAFE, telefone: "(81) 3071-6834" }}
+        ativo
+        salvar={salvar}
+        revisao={{ id: REVISAO, ...revisao }}
+        buscarCoordenadas={vi.fn()}
+      />,
+    );
+    return salvar;
+  }
+
+  it("abre com o valor proposto no campo, marcado como não salvo, e salvar envia o id da revisão", async () => {
+    const salvar = aberto({ campo: "telefone", valor: "(81) 99908-4986" });
+
+    expect(screen.getByLabelText<HTMLInputElement>(/Telefone/).value).toBe("(81) 99908-4986");
+    expect(screen.getByText("Alterações não salvas")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(salvar).toHaveBeenCalledWith(expect.objectContaining({ telefone: "(81) 99908-4986" }), REVISAO);
+  });
+
+  it("booleano proposto vem marcado", () => {
+    aberto({ campo: "aceita_pets", valor: true });
+    expect(screen.getByLabelText<HTMLInputElement>("Aceita pets").checked).toBe(true);
+  });
+});

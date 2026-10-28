@@ -13,35 +13,35 @@ describe("rodizio", () => {
     expect(rodizio([], segunda(0))).toEqual([]);
   });
 
-  it("todo café ativo cai em exatamente uma das 4 semanas do ciclo", () => {
+  it("todo café ativo cai em exatamente uma das 8 semanas do ciclo", () => {
     const lista = cafes(51);
-    const vistos = [0, 1, 2, 3].flatMap((s) => ids(rodizio(lista, segunda(s))));
+    const vistos = [0, 1, 2, 3, 4, 5, 6, 7].flatMap((s) => ids(rodizio(lista, segunda(s))));
     expect(vistos.sort()).toEqual(ids(lista).sort());
   });
 
   it("os grupos têm tamanho parecido (no máximo 1 de diferença)", () => {
-    const tamanhos = [0, 1, 2, 3].map((s) => rodizio(cafes(51), segunda(s)).length);
+    const tamanhos = [0, 1, 2, 3, 4, 5, 6, 7].map((s) => rodizio(cafes(51), segunda(s)).length);
     expect(Math.max(...tamanhos) - Math.min(...tamanhos)).toBeLessThanOrEqual(1);
   });
 
-  it("cada grupo volta a cada 4 semanas", () => {
+  it("cada grupo volta a cada 8 semanas", () => {
     const lista = cafes(23);
-    for (const s of [0, 1, 2, 3]) {
-      expect(ids(rodizio(lista, segunda(s + 4)))).toEqual(ids(rodizio(lista, segunda(s))));
-      expect(ids(rodizio(lista, segunda(s + 40)))).toEqual(ids(rodizio(lista, segunda(s))));
+    for (const s of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      expect(ids(rodizio(lista, segunda(s + 8)))).toEqual(ids(rodizio(lista, segunda(s))));
+      expect(ids(rodizio(lista, segunda(s + 80)))).toEqual(ids(rodizio(lista, segunda(s))));
     }
   });
 
   it("o ciclo não quebra na virada do ano (semana ISO 53 → 1)", () => {
-    const lista = cafes(12);
+    const lista = cafes(24);
     const anterior = new Date(Date.UTC(2026, 11, 28, 15)); // segunda, semana 53
     const seguinte = new Date(Date.UTC(2027, 0, 4, 15)); // segunda, semana 1
     const depois = new Date(Date.UTC(2027, 0, 11, 15));
     const g = (d: Date) => ids(rodizio(lista, d));
     expect(g(anterior)).not.toEqual(g(seguinte));
     expect(g(seguinte)).not.toEqual(g(depois));
-    // 4 semanas depois de 2026-12-28 é 2027-01-25
-    expect(g(new Date(Date.UTC(2027, 0, 25, 15)))).toEqual(g(anterior));
+    // 8 semanas depois de 2026-12-28 é 2027-02-22
+    expect(g(new Date(Date.UTC(2027, 1, 22, 15)))).toEqual(g(anterior));
   });
 
   it("a semana vai de segunda a domingo", () => {
@@ -64,22 +64,22 @@ describe("rodizio", () => {
   it("a ordem de entrada não muda os grupos", () => {
     const lista = cafes(20);
     const embaralhada = [...lista].reverse();
-    for (const s of [0, 1, 2, 3]) {
+    for (const s of [0, 1, 2, 3, 4, 5, 6, 7]) {
       expect(ids(rodizio(embaralhada, segunda(s)))).toEqual(ids(rodizio(lista, segunda(s))));
     }
   });
 
   it("devolve o próprio café, com os outros campos", () => {
     const lista = [{ id: "a", nome: "A" }];
-    const todos = [0, 1, 2, 3].flatMap((s) => rodizio(lista, segunda(s)));
+    const todos = [0, 1, 2, 3, 4, 5, 6, 7].flatMap((s) => rodizio(lista, segunda(s)));
     expect(todos).toEqual([{ id: "a", nome: "A" }]);
   });
 
   it("café novo desloca poucos cafés: os grupos seguem equilibrados", () => {
     const antes = cafes(40);
     const depois = [...antes, { id: "cafe-0205" }];
-    const tamanhos = [0, 1, 2, 3].map((s) => rodizio(depois, segunda(s)).length);
+    const tamanhos = [0, 1, 2, 3, 4, 5, 6, 7].map((s) => rodizio(depois, segunda(s)).length);
     expect(Math.max(...tamanhos) - Math.min(...tamanhos)).toBeLessThanOrEqual(1);
-    expect(GRUPOS_DO_RODIZIO).toBe(4);
+    expect(GRUPOS_DO_RODIZIO).toBe(8);
   });
 });

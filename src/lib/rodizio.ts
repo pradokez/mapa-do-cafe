@@ -1,12 +1,12 @@
 /**
  * Rodízio de verificação do robô de curadoria (#179, PRD #167): a cada semana,
- * um quarto dos cafés ativos, para que cada café seja revisto uma vez por mês.
+ * um oitavo dos cafés ativos, para que cada café seja revisto a cada 2 meses.
  * Puro e determinístico: sem relógio, sem sorteio.
  */
 
 import { hojeEmRecife } from "./foto-upload";
 
-export const GRUPOS_DO_RODIZIO = 4;
+export const GRUPOS_DO_RODIZIO = 8;
 
 const MS_POR_DIA = 86_400_000;
 // 1970-01-01 foi quinta; a primeira segunda-feira (dia 4) abre a semana 0.
@@ -14,7 +14,7 @@ const PRIMEIRA_SEGUNDA = 4;
 
 /**
  * Número da semana (segunda a domingo) desde 1970, no dia de `America/Recife`.
- * Contínuo: a semana ISO do ano reinicia em janeiro e quebraria o ciclo de 4.
+ * Contínuo: a semana ISO do ano reinicia em janeiro e quebraria o ciclo de 8.
  */
 export function semanaDeRecife(agora: Date): number {
   const [ano, mes, dia] = hojeEmRecife(agora).split("-").map(Number);
@@ -23,11 +23,11 @@ export function semanaDeRecife(agora: Date): number {
 }
 
 /**
- * Os cafés da semana de `agora`. Ordenados por `id` e distribuídos em 4 grupos
- * alternados (o 1º, o 5º, o 9º… no grupo 0): todo café cai em exatamente um
+ * Os cafés da semana de `agora`. Ordenados por `id` e distribuídos em 8 grupos
+ * alternados (o 1º, o 9º, o 17º… no grupo 0): todo café cai em exatamente um
  * grupo e os tamanhos diferem em no máximo 1, então café novo nunca
  * desequilibra. Em troca, um `id` novo no meio da ordem muda o grupo dos que
- * vêm depois dele — no pior caso, um café é revisto duas vezes no mês ou
+ * vêm depois dele — no pior caso, um café é revisto duas vezes em 2 meses ou
  * espera mais um.
  */
 export function rodizio<T extends { id: string }>(cafes: readonly T[], agora: Date): T[] {

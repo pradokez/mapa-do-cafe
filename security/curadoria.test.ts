@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -251,7 +253,8 @@ suite("curadoria (revisões, rodadas e as RPCs do robô)", () => {
       ["errado", "0".repeat(64)],
       ["vazio", ""],
       ["nulo", null],
-      ["o próprio hash", "1695619b399524fcd7bc53374f52f99e6b5ee886c4918db1cda71b16374bd975"],
+      // O valor guardado em `private.curadoria_segredo`: quem o lesse não ganharia a porta.
+      ["o próprio hash", createHash("sha256").update(CURADORIA_SEGREDO).digest("hex")],
       ["o certo com um espaço", `${CURADORIA_SEGREDO} `],
       ["o certo em maiúsculas", CURADORIA_SEGREDO.toUpperCase()],
     ];

@@ -24,7 +24,7 @@ vi.mock("next/navigation", () => ({
     ),
 }));
 
-// Posição dublada: o Marco Zero, ou nenhuma.
+// Posição dublada: o Marco Zero. Sem posição, o hook real em `distancia-sem-posicao.test.tsx`.
 const MARCO_ZERO = { lat: -8.0631, lng: -34.8711 };
 let geo: GeoState;
 vi.mock("@/hooks/use-geolocation", () => ({ useGeolocation: () => geo }));
@@ -219,20 +219,5 @@ describe("Filtro de distância — com posição", () => {
 
     expect(window.location.search).toBe("?pets=true");
     expect(screen.getByRole("button", { name: "Filtros, 2 ativos" })).toBeDefined();
-  });
-});
-
-describe("Filtro de distância — sem posição", () => {
-  it("o raio escolhido não filtra, não conta no badge nem esconde a vitrine", async () => {
-    geo = { status: "denied", coords: null, tentando: false };
-    renderHome();
-
-    await escolherNoSheet("Até 1 km");
-    await userEvent.click(screen.getByRole("button", { name: "Ver 2 cafés" }));
-
-    expect(nomes()).toEqual(["Longe", "Perto"]);
-    expect(screen.getByRole("button", { name: "Filtros" })).toBeDefined();
-    expect(vitrine()).not.toBeNull();
-    expect(chipDoSheet("Distância")).toBeDefined();
   });
 });

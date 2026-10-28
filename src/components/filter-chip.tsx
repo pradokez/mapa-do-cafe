@@ -4,9 +4,11 @@ import { CHIP_FORMA } from "@/components/medidas";
 const CHIP = `${CHIP_FORMA} inline-flex items-center border text-[13px] transition-colors duration-200 motion-reduce:transition-none lg:text-[13.5px]`;
 export const CHIP_ON = "border-terracotta bg-terracotta text-on-terracotta hover:border-terracotta-hover hover:bg-terracotta-hover";
 export const CHIP_OFF = "border-chip-line text-espresso hover:bg-hover-soft";
+/** Chip indisponível ("Distância" sem posição, #164): tracejado, texto `ink-3` (5,26:1 no `cream`). */
+const CHIP_APAGADO = "border-dashed border-chip-line text-ink-3";
 
-export function chipClass(ativo: boolean, extra: string): string {
-  return `${CHIP} ${ativo ? CHIP_ON : CHIP_OFF} ${extra}`;
+export function chipClass(ativo: boolean | "apagado", extra: string): string {
+  return `${CHIP} ${ativo === "apagado" ? CHIP_APAGADO : ativo ? CHIP_ON : CHIP_OFF} ${extra}`;
 }
 
 type AtributoChipProps = {

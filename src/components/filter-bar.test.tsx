@@ -30,6 +30,7 @@ function renderBar(filters: CafeFilters = FILTROS_VAZIOS, festivais: FestivaisNo
       onLimparBairros={vi.fn()}
       onTogglePreco={vi.fn()}
       onEscolherRaio={vi.fn()}
+      onTentarLocalizacao={vi.fn()}
       onAplicar={vi.fn()}
     />,
   );

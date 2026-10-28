@@ -4,19 +4,23 @@
 // importa `mapbox-gl`. Quem usa o mapa fala só a língua desta interface.
 import "mapbox-gl/dist/mapbox-gl.css";
 
-import type { Map as MapboxMap, Marker } from "mapbox-gl";
+import type { GeoJSONSource, Map as MapboxMap, Marker } from "mapbox-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CafeMapPreview } from "@/components/cafe-map-preview";
 import { PilulaDoMapa } from "@/components/pilula-do-mapa";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
+import { estadoAgora } from "@/lib/cafe-hours";
 import { enquadramentoFantasma } from "@/lib/enquadramento-fantasma";
-import { FIT_PADDING, MAX_ZOOM } from "@/lib/map-enquadramento";
+import { circuloDoRaio, FIT_PADDING, limitesDoRaio, MAX_ZOOM } from "@/lib/map-enquadramento";
 import { placePreview } from "@/lib/map-preview-placement";
 
 /** O que um pin precisa. O mini mapa do admin (#53) mostra um café que ainda não existe. */
 type Pin = Pick<Cafe, "id" | "nome" | "lat" | "lng">;
+
+/** O raio de distância ligado (#161): o círculo em volta de quem usa, com o mapa enquadrado nele. */
+export type RaioNoMapa = { centro: Coordenadas; km: number };
 
 type Props = (
   | {
@@ -30,7 +34,12 @@ type Props = (
        * Uma vez por mapa, e só se a pessoa ainda não arrastou nem deu zoom.
        */
       focus?: Coordenadas[] | null;
-      /** Instante da linha de horário do preview (#163): o mesmo dos cards. */
+      /**
+       * Círculo do raio (#165). Ligar ou trocar enquadra nele, mesmo depois de a pessoa mexer
+       * (o filtro é espacial), e vence o `focus`; desligar não mexe na câmera.
+       */
+      raio?: RaioNoMapa | null;
+      /** Instante da linha de horário do preview (#163) e dos pins apagados (#165): o mesmo dos cards. */
       agora: Date;
     }
   | {
@@ -39,6 +48,7 @@ type Props = (
       cafes: Pin[];
       userPosition?: never;
       focus?: never;
+      raio?: never;
       agora?: never;
     }
 ) & {
@@ -64,6 +74,12 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const RECIFE: [number, number] = [-34.9, -8.06];
 const MINI_ZOOM = 15;
 const SEM_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+// Teto do Mapbox, que o `fitBounds` usa sem `maxZoom`: o raio de 1 km enquadra mais perto que o `MAX_ZOOM`.
+const ZOOM_DO_MAPBOX = 22;
+
+// Círculo do raio (#165) em `brasa`: 2 px de contorno, 8% de preenchimento (6,63:1 no `map-bg`).
+const BRASA = "#E58A5F";
+const RAIO_FONTE = "raio";
 
 // dark-v11 recolorido para os tons do mapa ilustrativo do design. Camada que
 // sumir do estilo é ignorada: o mapa fica mais frio, mas não quebra.
@@ -91,10 +107,12 @@ const PAINT: [layer: string, prop: string, value: string][] = [
 ];
 
 // Pin 32×40 do design. O Mapbox controla o `transform` do elemento externo,
-// então escala e cores vivem no filho, guiadas por `data-active` no externo.
+// então escala e cores vivem no filho, guiadas por `data-active` e `data-fechado` no externo.
+// Fechado agora (#165), "luz apagada": `map-control` com contorno e xícara `pin-apagado`; ativo,
+// contorno `brasa` e xícara `map-control-fg`, sem virar terracota (o estado continua à vista).
 const PIN_SVG = `<svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="true">
-<path d="M16 1C7.7 1 1 7.6 1 15.8 1 26.6 16 39 16 39s15-12.4 15-23.2C31 7.6 24.3 1 16 1z" stroke-width="1.5" class="fill-map-pin stroke-espresso transition-colors group-data-[active=true]:fill-terracotta group-data-[active=true]:stroke-on-terracotta"/>
-<g transform="translate(8.6 8.2) scale(0.62)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="stroke-espresso transition-colors group-data-[active=true]:stroke-on-terracotta">
+<path d="M16 1C7.7 1 1 7.6 1 15.8 1 26.6 16 39 16 39s15-12.4 15-23.2C31 7.6 24.3 1 16 1z" stroke-width="1.5" class="fill-map-pin stroke-espresso transition-colors group-data-[active=true]:fill-terracotta group-data-[active=true]:stroke-on-terracotta group-data-[fechado=true]:fill-map-control group-data-[fechado=true]:stroke-pin-apagado group-[[data-active=true][data-fechado=true]]:fill-map-control group-[[data-active=true][data-fechado=true]]:stroke-brasa group-[[data-active=true][data-fechado=true]]:stroke-[2.2]"/>
+<g transform="translate(8.6 8.2) scale(0.62)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="stroke-espresso transition-colors group-data-[active=true]:stroke-on-terracotta group-data-[fechado=true]:stroke-pin-apagado group-[[data-active=true][data-fechado=true]]:stroke-map-control-fg">
 <path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>
 </g></svg>`;
 
@@ -149,6 +167,7 @@ export function CafeMap({
   className = "",
   userPosition = null,
   focus = null,
+  raio = null,
   agora,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -168,6 +187,10 @@ export function CafeMap({
   const focusAtual = useRef(focus);
   focusAtual.current = focus;
   const enquadrou = useRef(false);
+  // O raio mais recente (o mapa que nasce depois da escolha, no mobile, já nasce nele) e o último enquadrado.
+  const raioAtual = useRef(raio);
+  raioAtual.current = raio;
+  const raioEnquadrado = useRef<string | null>(null);
   // Arrastou, deu zoom (gesto, teclado ou +/−): o mapa fica onde a pessoa deixou.
   const mexeu = useRef(false);
 
@@ -183,10 +206,12 @@ export function CafeMap({
       mapboxRef.current = mapboxgl;
       const cafes = initialCafes.current;
       const isMini = variant === "mini";
-      const foco = isMini ? null : focusAtual.current;
-      const pontos = isMini ? [] : (foco ?? cafes);
+      const raioInicial = isMini ? null : raioAtual.current;
+      const foco = isMini || raioInicial ? null : focusAtual.current;
+      const pontos = isMini ? [] : raioInicial ? limitesDoRaio(raioInicial.centro, raioInicial.km) : (foco ?? cafes);
       const bounds = pontos.length > 0 ? limites(pontos) : undefined;
-      enquadrou.current = foco !== null;
+      enquadrou.current = foco !== null || raioInicial !== null;
+      raioEnquadrado.current = raioInicial && chaveDoRaio(raioInicial);
       mexeu.current = false;
 
       try {
@@ -204,7 +229,7 @@ export function CafeMap({
             "LogoControl.Title": "Site do Mapbox",
           },
           ...(bounds
-            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: MAX_ZOOM } }
+            ? { bounds, fitBoundsOptions: { padding: FIT_PADDING, maxZoom: raioInicial ? ZOOM_DO_MAPBOX : MAX_ZOOM } }
             : { center: cafes[0] ? [cafes[0].lng, cafes[0].lat] : RECIFE, zoom: isMini ? MINI_ZOOM : 12 }),
         });
       } catch {
@@ -280,12 +305,19 @@ export function CafeMap({
       const cafe = cafes.slice(0, 1);
       return enquadramentoFantasma(cafe, cafe, { ...tamanho, padding: SEM_PADDING, maxZoom: MINI_ZOOM });
     }
+    if (raio) {
+      return enquadramentoFantasma(limitesDoRaio(raio.centro, raio.km), cafes, {
+        ...tamanho,
+        padding: FIT_PADDING,
+        maxZoom: ZOOM_DO_MAPBOX,
+      });
+    }
     return enquadramentoFantasma(focus ?? initialCafes.current, cafes, {
       ...tamanho,
       padding: FIT_PADDING,
       maxZoom: MAX_ZOOM,
     });
-  }, [estado, tamanho, variant, cafes, focus]);
+  }, [estado, tamanho, variant, cafes, focus, raio]);
 
   // Um pin por café, sincronizado por id. Pin que já existe vai para a posição nova, se mudou.
   useEffect(() => {
@@ -315,10 +347,55 @@ export function CafeMap({
   // aproxima uma vez, se a pessoa ainda não mexeu. Com `prefers-reduced-motion`, o próprio
   // Mapbox troca a animação por um salto (nada aqui pede `essential`).
   useEffect(() => {
-    if (!map || !focus || enquadrou.current || mexeu.current) return;
+    if (!map || !focus || enquadrou.current || mexeu.current || raioAtual.current) return;
     enquadrou.current = true;
     map.fitBounds(limites(focus), { padding: FIT_PADDING, maxZoom: MAX_ZOOM });
   }, [map, focus]);
+
+  // Raio ligado ou trocado (#165): enquadra no círculo, mesmo que a pessoa tenha mexido — o filtro
+  // é espacial, e o círculo fora da tela não diria nada. Desligar não mexe na câmera.
+  const chave = raio && chaveDoRaio(raio);
+  useEffect(() => {
+    const atual = raioAtual.current;
+    if (!map || !chave || !atual) {
+      raioEnquadrado.current = null;
+      return;
+    }
+    if (chave === raioEnquadrado.current) return;
+    raioEnquadrado.current = chave;
+    enquadrou.current = true;
+    map.fitBounds(limites(limitesDoRaio(atual.centro, atual.km)), { padding: FIT_PADDING });
+  }, [map, chave]);
+
+  // O círculo é uma camada do estilo (abaixo dos pins, que são HTML): só depois do `load`.
+  const pronto = estado === "pronto";
+  useEffect(() => {
+    const atual = raioAtual.current;
+    if (!map || !pronto) return;
+    const dados: Parameters<GeoJSONSource["setData"]>[0] = {
+      type: "FeatureCollection",
+      features: atual
+        ? [
+            {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "Polygon",
+                coordinates: [circuloDoRaio(atual.centro, atual.km).map((p) => [p.lng, p.lat])],
+              },
+            },
+          ]
+        : [],
+    };
+    const fonte = map.getSource<GeoJSONSource>(RAIO_FONTE);
+    if (fonte) {
+      fonte.setData(dados);
+      return;
+    }
+    map.addSource(RAIO_FONTE, { type: "geojson", data: dados });
+    map.addLayer({ id: "raio-preenchimento", type: "fill", source: RAIO_FONTE, paint: { "fill-color": BRASA, "fill-opacity": 0.08 } });
+    map.addLayer({ id: "raio-contorno", type: "line", source: RAIO_FONTE, paint: { "line-color": BRASA, "line-width": 2 } });
+  }, [map, pronto, chave]);
 
   // Ponto parado de quem usa, sem `GeolocateControl` (pediria a permissão de novo, por
   // conta própria). Quem está longe não afasta o mapa: o enquadramento vem de `focus`.
@@ -355,6 +432,26 @@ export function CafeMap({
       marker.getElement().dataset.active = String(id === hoveredId || id === selectedId);
     });
   }, [map, cafes, hoveredId, selectedId]);
+
+  // Fechados agora (#165), pelo mesmo instante dos cards: muda no clique (#162), sem recriar os pins.
+  // Sem informação hoje fica com o pin normal (não se sabe se está fechado). O mini mapa não apaga.
+  const fechados = useMemo(
+    () =>
+      variant === "full" && agora
+        ? new Set((cafes as Cafe[]).filter((c) => estadoAgora(c.horario_funcionamento, agora).estado === "fechado").map((c) => c.id))
+        : new Set<string>(),
+    [variant, cafes, agora],
+  );
+  useEffect(() => {
+    if (!map) return;
+    const nomes = new Map(cafes.map((c) => [c.id, c.nome]));
+    markers.current.forEach((marker, id) => {
+      const el = marker.getElement();
+      const fechado = fechados.has(id);
+      el.dataset.fechado = String(fechado);
+      el.setAttribute("aria-label", fechado ? `${nomes.get(id)}, fechado agora` : (nomes.get(id) ?? ""));
+    });
+  }, [map, cafes, fechados]);
 
   // Preview só no mapa navegável da home: o mini mapa usa `selectedId` só para pintar o pin.
   // Fora do `mini`, `cafes` é `Cafe[]` (o tipo das props garante; a desestruturação perde o vínculo).
@@ -507,6 +604,11 @@ export function CafeMap({
   );
 }
 
+/** O que muda o círculo: trocar o raio ou a posição reenquadra; o mesmo raio de novo, não. */
+function chaveDoRaio({ centro, km }: RaioNoMapa): string {
+  return `${centro.lat},${centro.lng},${km}`;
+}
+
 /** Retângulo (sudoeste, nordeste) que contém todos os pontos. */
 function limites(pontos: readonly Coordenadas[]): [[number, number], [number, number]] {
   const lngs = pontos.map((p) => p.lng);
@@ -524,7 +626,8 @@ function createPinElement(
 ): HTMLElement {
   const interactive = Boolean(handlers.current.onSelect);
   const el = document.createElement(interactive ? "button" : "div");
-  el.className = `group block z-[1] data-[active=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
+  // Acima do "Você está aqui"; os abertos acima dos apagados quando se sobrepõem (#165), o ativo acima de todos.
+  el.className = `group block z-[2] data-[active=false]:data-[fechado=true]:z-[1] data-[active=true]:z-10 ${interactive ? "cursor-pointer" : ""}`;
   el.setAttribute("aria-label", cafe.nome);
   if (interactive) {
     el.setAttribute("type", "button");

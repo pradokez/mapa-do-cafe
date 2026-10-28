@@ -85,6 +85,11 @@ export function CafeDirectory({
   );
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
   const focus = useMemo(() => pontosParaEnquadrar(cafes, coords), [cafes, coords]);
+  // O círculo do raio no mapa (#165): só com posição, como o filtro.
+  const raio = useMemo(
+    () => (coords && filters.raioKm ? { centro: coords, km: filters.raioKm } : null),
+    [coords, filters.raioKm],
+  );
 
   // Os cafés dos combos saem da lista que já veio, sem repetir no payload.
   const combosDasVitrines = useMemo(
@@ -173,6 +178,7 @@ export function CafeDirectory({
               cafes={filtrados}
               userPosition={coords}
               focus={focus}
+              raio={raio}
               agora={agoraDoFiltro}
               hoveredId={hoveredVisivel?.id ?? null}
               selectedId={selectedId}

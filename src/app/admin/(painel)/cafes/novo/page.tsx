@@ -6,7 +6,8 @@ import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { cadastrarCafe, coordenadasDoLink } from "@/lib/admin/cafe-actions";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { getRevisaoById } from "@/lib/cafe-repository";
-import { cadastroDaRevisao, type Revisao, type SinalDeCafeEspecial } from "@/lib/revisao";
+import { cadastroDaRevisao, type Revisao } from "@/lib/revisao";
+import type { Sinal } from "@/lib/revisao-proposta";
 import { isHttpUrl } from "@/lib/url";
 
 export const metadata: Metadata = { title: "Novo café" };
@@ -55,7 +56,7 @@ export default async function NovoCafe({ searchParams }: Props) {
 }
 
 /** O que sustenta a proposta, à vista enquanto a administradora completa o cadastro. Textos da web: texto puro. */
-function DaRevisao({ revisao, sinais }: { revisao: Revisao; sinais: SinalDeCafeEspecial[] }) {
+function DaRevisao({ revisao, sinais }: { revisao: Revisao; sinais: Sinal[] }) {
   return (
     <section
       aria-labelledby="da-revisao"
@@ -79,7 +80,7 @@ function DaRevisao({ revisao, sinais }: { revisao: Revisao; sinais: SinalDeCafeE
             {sinais.map((sinal, i) => (
               <li key={i} className="border-l-2 border-line-strong pl-3">
                 <p className="font-medium text-espresso [overflow-wrap:anywhere]">
-                  {sinal.url && isHttpUrl(sinal.url) ? (
+                  {isHttpUrl(sinal.url) ? (
                     <a
                       href={sinal.url}
                       target="_blank"

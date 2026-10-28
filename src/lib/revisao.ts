@@ -18,7 +18,7 @@ import {
 } from "./cafe-dados";
 import { DIAS_DA_SEMANA, formatarHorario, horarioDaSemana, isRegistro, NOME_DO_DIA } from "./cafe-hours";
 import { alternarEm, statusDoParam } from "./filtro-de-status";
-import { canonico } from "./revisao-proposta";
+import { canonico, type Sinal } from "./revisao-proposta";
 import { milhar } from "./sugestao";
 
 export const STATUS_REVISAO = ["pendente", "aprovada", "rejeitada", "obsoleta"] as const;
@@ -232,9 +232,6 @@ export function acoesDaRevisao(revisao: Pick<Revisao, "tipo" | "campo" | "status
   return { aprovar: true, descartar: "Rejeitar", verCafe: false };
 }
 
-/** Um indício de café especial do `cafe_novo`, com o trecho literal de onde saiu. */
-export type SinalDeCafeEspecial = { sinal: string; trecho: string; url: string | null };
-
 /** O que o cadastro recebe pronto: nunca slug nem coordenadas, conferidos à mão. */
 export type PreenchimentoDoCadastro = Partial<
   Omit<DadosCafe, "lat" | "lng" | "bairro_slug" | "horario_funcionamento"> & {
@@ -251,7 +248,7 @@ const ehUm = <T extends string>(lista: readonly T[], valor: unknown): valor is T
  * das três, dia de horário inválido, Instagram de outro site) fica de fora, e
  * o formulário mantém o padrão dele. Quem valida o café inteiro é o cadastro.
  */
-export function cadastroDaRevisao(valor: unknown): { campos: PreenchimentoDoCadastro; sinais: SinalDeCafeEspecial[] } {
+export function cadastroDaRevisao(valor: unknown): { campos: PreenchimentoDoCadastro; sinais: Sinal[] } {
   if (!isRegistro(valor)) return { campos: {}, sinais: [] };
   const campos: PreenchimentoDoCadastro = {};
 
@@ -276,12 +273,11 @@ export function cadastroDaRevisao(valor: unknown): { campos: PreenchimentoDoCada
     if (dias.length > 0) campos.horario_funcionamento = Object.fromEntries(dias.map((dia) => [dia, proposto[dia] as string]));
   }
 
-  const sinais = (Array.isArray(valor.sinais) ? valor.sinais : []).flatMap((s): SinalDeCafeEspecial[] => {
+  // Como no `proporCafeNovo`: sinal sem texto, trecho ou link não sustenta nada.
+  const sinais = (Array.isArray(valor.sinais) ? valor.sinais : []).flatMap((s): Sinal[] => {
     if (!isRegistro(s)) return [];
-    const sinal = textoAparado(s.sinal);
-    const trecho = textoAparado(s.trecho);
-    const url = textoAparado(s.url);
-    return sinal && trecho ? [{ sinal, trecho, url: url || null }] : [];
+    const [sinal, trecho, url] = [s.sinal, s.trecho, s.url].map(textoAparado);
+    return sinal && trecho && url ? [{ sinal, trecho, url }] : [];
   });
   return { campos, sinais };
 }

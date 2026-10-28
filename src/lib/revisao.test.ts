@@ -273,11 +273,17 @@ describe("cadastroDaRevisao", () => {
     expect(campos).toEqual({ horario_funcionamento: { terca: "09:00 – 17:00" } });
   });
 
-  it("sinal sem texto ou sem trecho cai; o link pode faltar", () => {
+  it("sinal sem texto, trecho ou link cai", () => {
     const { sinais } = cadastroDaRevisao({
-      sinais: [{ sinal: "SCA", trecho: "barista SCA" }, { sinal: "", trecho: "x" }, { sinal: "x" }, "lixo"],
+      sinais: [
+        { sinal: "SCA", trecho: "barista SCA", url: "https://x.com" },
+        { sinal: "SCA", trecho: "barista SCA" },
+        { sinal: "", trecho: "x", url: "https://x.com" },
+        { sinal: "x", url: "https://x.com" },
+        "lixo",
+      ],
     });
-    expect(sinais).toEqual([{ sinal: "SCA", trecho: "barista SCA", url: null }]);
+    expect(sinais).toEqual([{ sinal: "SCA", trecho: "barista SCA", url: "https://x.com" }]);
   });
 
   it.each([null, "texto", [], 3])("valor proposto fora do contrato (%j) → nada", (valor) => {

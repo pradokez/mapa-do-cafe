@@ -71,10 +71,10 @@ export function CafeDirectory({
   // lista muda de identidade.
   const { coords } = useGeolocation();
   // Sem posição, o chip "Distância" tenta de novo (#164); a falha avisa num
-  // toast no rodapé da coluna da lista (desktop) ou acima do FAB (mobile),
+  // toast no rodapé da coluna da lista (desktop) ou sobre o FAB (mobile, na mesma base: cobre o botão por 4,5 s),
   // abaixo dos sheets (z-40).
   const { tentar: tentarLocalizacao, aviso: avisoDeLocalizacao } = useTentativaDeLocalizacao(
-    "fixed inset-x-[18px] bottom-[90px] z-[35] lg:inset-x-auto lg:bottom-7 lg:left-[22.5%] lg:w-max lg:max-w-[520px] lg:-translate-x-1/2",
+    "fixed inset-x-[18px] bottom-[26px] z-[35] lg:inset-x-auto lg:bottom-7 lg:left-[22.5%] lg:w-max lg:max-w-[520px] lg:-translate-x-1/2",
   );
   // Sem posição, o raio não tem centro: não filtra, não conta no badge, não
   // esconde a vitrine e o chip fica em "Distância". Com ela, o escolhido vale.

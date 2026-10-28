@@ -1,7 +1,7 @@
 export type Coordenadas = { lat: number; lng: number };
 
 export const RAIO_TERRA_KM = 6371;
-const rad = (graus: number) => (graus * Math.PI) / 180;
+export const rad = (graus: number) => (graus * Math.PI) / 180;
 
 /**
  * Distância em linha reta (haversine), em km. Sem origem conhecida (permissão

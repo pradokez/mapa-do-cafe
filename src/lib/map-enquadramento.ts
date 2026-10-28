@@ -4,7 +4,7 @@
  */
 
 import { dentroDaRegiao } from "./cafe-dados";
-import { distanciaKm, ordenarPorDistancia, RAIO_TERRA_KM, type Coordenadas } from "./cafe-distance";
+import { distanciaKm, ordenarPorDistancia, RAIO_TERRA_KM, rad, type Coordenadas } from "./cafe-distance";
 
 /**
  * Como o mapa enquadra pontos (`fitBounds`): o `cafe-map` e os pins-fantasma
@@ -32,6 +32,8 @@ export function pontosParaEnquadrar(
   const maisPerto = ordenarPorDistancia(validos, posicao).slice(0, CAFES_NO_ENQUADRAMENTO);
   return maisPerto.length > 0 ? [posicao, ...maisPerto] : null;
 }
+
+const graus = (radianos: number) => (radianos * 180) / Math.PI;
 
 /** Pontos do anel: múltiplo de 4, para os extremos (norte, leste, sul, oeste) estarem nele. */
 const PASSOS_DO_CIRCULO = 64;
@@ -67,6 +69,3 @@ export function limitesDoRaio(centro: Coordenadas, km: number): [Coordenadas, Co
     { lat: Math.max(...lats), lng: Math.max(...lngs) },
   ];
 }
-
-const rad = (g: number) => (g * Math.PI) / 180;
-const graus = (r: number) => (r * 180) / Math.PI;

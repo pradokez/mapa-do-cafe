@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { pontosParaEnquadrar } from "./map-enquadramento";
+import { distanciaKm } from "./cafe-distance";
+import { circuloDoRaio, limitesDoRaio, pontosParaEnquadrar } from "./map-enquadramento";
 
 const GRACAS = { lat: -8.047, lng: -34.9 };
 
@@ -37,5 +38,41 @@ describe("pontosParaEnquadrar", () => {
   it("nenhum café para mostrar → nada a enquadrar (não aproxima num mapa vazio)", () => {
     expect(pontosParaEnquadrar([], GRACAS)).toBeNull();
     expect(pontosParaEnquadrar([{ lat: Number.NaN, lng: Number.NaN }], GRACAS)).toBeNull();
+  });
+});
+
+describe("circuloDoRaio", () => {
+  it("todo ponto do anel fica a km do centro", () => {
+    for (const km of [1, 3, 7]) {
+      for (const ponto of circuloDoRaio(GRACAS, km)) {
+        expect(distanciaKm(GRACAS, ponto)).toBeCloseTo(km, 2);
+      }
+    }
+  });
+
+  it("o anel fecha: o último ponto repete o primeiro (polígono do GeoJSON)", () => {
+    const anel = circuloDoRaio(GRACAS, 3);
+    expect(anel.at(-1)).toEqual(anel[0]);
+    expect(anel.length).toBeGreaterThan(32);
+  });
+});
+
+describe("limitesDoRaio", () => {
+  it("sudoeste e nordeste do círculo, simétricos em volta do centro", () => {
+    const [so, ne] = limitesDoRaio(GRACAS, 3);
+    expect(GRACAS.lat - so.lat).toBeCloseTo(ne.lat - GRACAS.lat, 9);
+    expect(GRACAS.lng - so.lng).toBeCloseTo(ne.lng - GRACAS.lng, 9);
+    expect(distanciaKm(GRACAS, { lat: ne.lat, lng: GRACAS.lng })).toBeCloseTo(3, 2);
+    expect(distanciaKm(GRACAS, { lat: GRACAS.lat, lng: ne.lng })).toBeCloseTo(3, 2);
+  });
+
+  it("contém o anel inteiro", () => {
+    const [so, ne] = limitesDoRaio(GRACAS, 7);
+    for (const { lat, lng } of circuloDoRaio(GRACAS, 7)) {
+      expect(lat).toBeGreaterThanOrEqual(so.lat - 1e-9);
+      expect(lat).toBeLessThanOrEqual(ne.lat + 1e-9);
+      expect(lng).toBeGreaterThanOrEqual(so.lng - 1e-9);
+      expect(lng).toBeLessThanOrEqual(ne.lng + 1e-9);
+    }
   });
 });

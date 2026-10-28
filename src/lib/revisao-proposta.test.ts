@@ -1,215 +1,177 @@
 import { describe, expect, it } from "vitest";
 import { cafe } from "./cafe.fixture";
-import { propostasDeAtualizacao, type FatosDoCafe, type Fato, type Rejeitada } from "./revisao-proposta";
+import {
+  FECHADO_PERMANENTEMENTE,
+  FECHADO_TEMPORARIAMENTE,
+  proporRevisoes,
+  type Fato,
+  type FatoBooleano,
+  type FatosDoCafe,
+  type Rejeitada,
+} from "./revisao-proposta";
 
-const AGORA = new Date("2026-10-28T15:00:00Z");
+const AGORA = new Date("2026-10-28T12:00:00Z");
 const DIA = 24 * 60 * 60 * 1000;
-const fonte = (url = "https://exemplo.com/a") => ({
-  url,
-  titulo: "Página",
-  data_fonte: "10/10/2026",
-  trecho: "trecho literal",
+
+const fonte = (n = 1) => ({
+  url: `https://exemplo.com/${n}`,
+  titulo: `Fonte ${n}`,
+  data_fonte: "12/10/2026",
+  trecho: `trecho ${n}`,
 });
-const fato = <T,>(valor: T, extra: Partial<Fato<T>> = {}): Fato<T> => ({ valor, fonte: fonte(), ...extra });
+const fato = <T>(valor: T, n = 1): Fato<T> => ({ ...fonte(n), valor });
+const booleano = (valor: boolean, negacaoExplicita?: boolean, n = 1): FatoBooleano => ({
+  ...fato(valor, n),
+  negacaoExplicita,
+});
 
-function propor(fatos: FatosDoCafe, atual = cafe("a"), rejeitadas: Rejeitada[] = []) {
-  return propostasDeAtualizacao(fatos, atual, rejeitadas, AGORA);
-}
+const propor = (fatos: FatosDoCafe, atributos = {}, rejeitadas: Rejeitada[] = []) =>
+  proporRevisoes(fatos, cafe("a", atributos), rejeitadas, AGORA);
 
-describe("igual ao banco", () => {
-  it("não propõe nada quando todos os fatos coincidem com o café", () => {
-    const atual = cafe("a", {
-      instagram: "https://instagram.com/cafe",
-      telefone: "(81) 99908-4986",
-      endereco: "Rua X, 1",
-      faixa_preco: "$$",
-      aceita_pets: true,
+describe("proporRevisoes", () => {
+  it("igual ao banco → nada", () => {
+    const atual = cafe("a", { instagram: "https://instagram.com/casa", telefone: "(81) 3071-6834", faixa_preco: "$$" });
+    const propostas = proporRevisoes(
+      {
+        instagram: [fato("@casa")],
+        telefone: [fato("81 3071 6834")],
+        faixa_preco: [fato("$$")],
+        endereco: [fato(atual.endereco)],
+        horario: [fato(atual.horario_funcionamento)],
+        booleanos: { aceita_pets: [booleano(false, true)] },
+      },
+      atual,
+      [],
+      AGORA,
+    );
+    expect(propostas).toEqual([]);
+  });
+
+  it("Instagram e telefone saem no formato do banco", () => {
+    const propostas = propor({ instagram: [fato("@casa.cafe")], telefone: [fato("81999084986")] });
+    expect(propostas.map((p) => [p.campo, p.valorProposto])).toEqual([
+      ["instagram", "https://instagram.com/casa.cafe"],
+      ["telefone", "(81) 99908-4986"],
+    ]);
+    expect(propostas[0]).toMatchObject({ tipo: "atualizacao", cafeId: "a", valorAtual: null });
+  });
+
+  it("inválido pelo cafe-dados → descartado", () => {
+    const propostas = propor({
+      instagram: [fato("https://instagram.com/p/ABC123/")],
+      telefone: [fato("123")],
+      faixa_preco: [fato("$$$$")],
+      horario: [fato({ segunda: "25:00 – 18:00", terca: "oito às seis" })],
     });
-    const fatos: FatosDoCafe = {
-      instagram: [fato("@cafe")],
-      telefone: [fato("81 99908-4986")],
-      endereco: [fato("rua x,  1")],
-      faixa_preco: [fato("$$")],
-      aceita_pets: [fato(true)],
-      horario_funcionamento: [fato({ segunda: "Fechado" })],
-    };
-    expect(propor(fatos, atual)).toEqual([]);
+    expect(propostas).toEqual([]);
   });
 
-  it("sem fatos, nada", () => {
-    expect(propor({})).toEqual([]);
-  });
-});
-
-describe("formato do banco", () => {
-  it("Instagram vira a URL do perfil", () => {
-    const [p] = propor({ instagram: [fato("@novo.cafe")] });
-    expect(p).toMatchObject({ tipo: "atualizacao", campo: "instagram", valor_atual: null, valor_proposto: "https://instagram.com/novo.cafe" });
-  });
-
-  it("telefone sai como (81) 99908-4986", () => {
-    const [p] = propor({ telefone: [fato("8199908-4986")] });
-    expect(p).toMatchObject({ campo: "telefone", valor_proposto: "(81) 99908-4986" });
-  });
-
-  it("horário muda só os dias informados e mantém o resto do banco", () => {
-    const atual = cafe("a", { horario_funcionamento: { ...cafe("x").horario_funcionamento, segunda: "08:00 – 18:00" } });
-    const [p] = propor({ horario_funcionamento: [fato({ terca: "09:00 – 17:00" })] }, atual);
-    expect(p).toMatchObject({ campo: "horario_funcionamento" });
-    expect(p.tipo === "atualizacao" && p.campo === "horario_funcionamento" && p.valor_proposto).toMatchObject({
+  it("horário: só os dias válidos entram, sobre o horário atual", () => {
+    const [proposta] = propor({ horario: [fato({ segunda: "08:00 – 18:00", terca: "lixo", sabado: "09:00 – 13:00, 15:00 – 20:00" })] });
+    expect(proposta.campo).toBe("horario_funcionamento");
+    expect(proposta.valorProposto).toMatchObject({
       segunda: "08:00 – 18:00",
-      terca: "09:00 – 17:00",
-      domingo: "Fechado",
+      terca: "Fechado",
+      sabado: "09:00 – 13:00, 15:00 – 20:00",
     });
   });
 
-  it("faixa de preço e endereço", () => {
-    const ps = propor({ faixa_preco: [fato("$$$")], endereco: [fato("  Rua Y, 2 ")] });
-    expect(ps.map((p) => [p.tipo === "atualizacao" && p.campo, p.tipo === "atualizacao" && "valor_proposto" in p && p.valor_proposto])).toEqual([
-      ["endereco", "Rua Y, 2"],
-      ["faixa_preco", "$$$"],
-    ]);
-  });
-});
-
-describe("inválido pelo cafe-dados é descartado", () => {
-  it("Instagram de outro site, telefone sem DDD, faixa e dia fora do formato", () => {
-    expect(
-      propor({
-        instagram: [fato("https://facebook.com/cafe")],
-        telefone: [fato("12345")],
-        faixa_preco: [fato("$$$$")],
-        horario_funcionamento: [fato({ segunda: "das 8 às 18" })],
-        endereco: [fato("   ")],
-      }),
-    ).toEqual([]);
+  it("endereço sem coordenadas", () => {
+    const [proposta] = propor({ endereco: [fato("  Rua Nova, 10 ")] });
+    expect(proposta).toMatchObject({ campo: "endereco", valorProposto: "Rua Nova, 10" });
+    expect(JSON.stringify(proposta)).not.toMatch(/"lat"|"lng"/);
   });
 
-  it("dia inválido sai, os válidos ficam", () => {
-    const ps = propor({ horario_funcionamento: [fato({ segunda: "lixo", terca: "09:00 – 17:00" })] });
-    expect(ps).toHaveLength(1);
-  });
-
-  it("fonte inválida não entra na proposta, a válida sim", () => {
-    const ps = propor({ telefone: [fato("12345"), fato("81 3071-6834", { fonte: fonte("https://b.com") })] });
-    expect(ps).toHaveLength(1);
-    expect(ps[0].tipo === "atualizacao" && ps[0].campo === "telefone" && ps[0].fontes.map((f) => f.url)).toEqual(["https://b.com"]);
-  });
-});
-
-describe("atributos", () => {
-  it("true → false só com negação explícita", () => {
-    const atual = cafe("a", { aceita_pets: true });
-    expect(propor({ aceita_pets: [fato(false)] }, atual)).toEqual([]);
-    expect(propor({ aceita_pets: [fato(false, { negacao_explicita: false })] }, atual)).toEqual([]);
-    const [p] = propor({ aceita_pets: [fato(false, { negacao_explicita: true })] }, atual);
-    expect(p).toMatchObject({ campo: "aceita_pets", valor_atual: true, valor_proposto: false });
-  });
-
-  it("false → true basta a afirmação", () => {
-    const [p] = propor({ tem_estacionamento: [fato(true)] });
-    expect(p).toMatchObject({ campo: "tem_estacionamento", valor_proposto: true });
-  });
-
-  it("null → valor no ar-condicionado, com ou sem negação explícita", () => {
-    expect(propor({ tem_ar_condicionado: [fato(true)] })[0]).toMatchObject({ campo: "tem_ar_condicionado", valor_atual: null, valor_proposto: true });
-    expect(propor({ tem_ar_condicionado: [fato(false)] })[0]).toMatchObject({ valor_proposto: false });
-  });
-
-  it("ar-condicionado true → false também pede negação explícita", () => {
-    const atual = cafe("a", { tem_ar_condicionado: true });
-    expect(propor({ tem_ar_condicionado: [fato(false)] }, atual)).toEqual([]);
-  });
-
-  it("valor que não é booleano é descartado", () => {
-    expect(propor({ aceita_pets: [fato("sim" as unknown as boolean)] })).toEqual([]);
-  });
-});
-
-describe("endereço", () => {
-  it("a proposta nunca carrega coordenadas", () => {
-    const entrada = { endereco: [fato("Rua Y, 2", { lat: -8, lng: -34.9 } as never)] } as FatosDoCafe;
-    const [p] = propor(entrada);
-    expect(JSON.stringify(p)).not.toMatch(/lat|lng/);
-  });
-});
-
-describe("fechamento", () => {
-  it("permanente → fechamento", () => {
-    const [p] = propor({ fechamento: [{ situacao: "permanente", fonte: fonte() }] });
-    expect(p).toMatchObject({ tipo: "fechamento", cafe_id: "a" });
-  });
-
-  it("temporário → indício, sem campo", () => {
-    const [p] = propor({ fechamento: [{ situacao: "temporario", fonte: fonte() }] });
-    expect(p).toMatchObject({ tipo: "atualizacao", campo: null, indicio: "fechado_temporariamente" });
-  });
-
-  it("permanente e temporário juntos: o permanente vence", () => {
-    const ps = propor({ fechamento: [{ situacao: "temporario", fonte: fonte() }, { situacao: "permanente", fonte: fonte("https://b.com") }] });
-    expect(ps.map((p) => p.tipo)).toEqual(["fechamento"]);
-  });
-
-  it("café já fora do ar não gera fechamento", () => {
-    expect(propor({ fechamento: [{ situacao: "permanente", fonte: fonte() }] }, cafe("a", { ativo: false }))).toEqual([]);
-  });
-
-  it("fechamento rejeitado há pouco não volta", () => {
-    const rejeitada: Rejeitada = { cafe_id: "a", campo: "fechamento", valor: null, rejeitada_em: new Date(AGORA.getTime() - 10 * DIA) };
-    expect(propor({ fechamento: [{ situacao: "permanente", fonte: fonte() }] }, cafe("a"), [rejeitada])).toEqual([]);
-  });
-});
-
-describe("rejeitadas", () => {
-  const rejeitadaHa = (dias: number, valor: unknown = "https://instagram.com/novo"): Rejeitada => ({
-    cafe_id: "a",
-    campo: "instagram",
-    valor,
-    rejeitada_em: new Date(AGORA.getTime() - dias * DIA),
-  });
-
-  it("rejeitado há 89 dias → nada; há 91 → volta", () => {
-    const fatos = { instagram: [fato("@novo")] };
-    expect(propor(fatos, cafe("a"), [rejeitadaHa(89)])).toEqual([]);
-    expect(propor(fatos, cafe("a"), [rejeitadaHa(91)])).toHaveLength(1);
-  });
-
-  it("outro valor, outro campo ou outro café não bloqueiam", () => {
-    const fatos = { instagram: [fato("@novo")] };
-    expect(propor(fatos, cafe("a"), [rejeitadaHa(1, "https://instagram.com/outro")])).toHaveLength(1);
-    expect(propor(fatos, cafe("a"), [{ ...rejeitadaHa(1), campo: "telefone" }])).toHaveLength(1);
-    expect(propor(fatos, cafe("a"), [{ ...rejeitadaHa(1), cafe_id: "b" }])).toHaveLength(1);
-  });
-
-  it("horário rejeitado é comparado pelo conteúdo", () => {
-    const atual = cafe("a");
-    const proposto = { ...atual.horario_funcionamento, segunda: "08:00 – 18:00" };
-    const r: Rejeitada = { cafe_id: "a", campo: "horario_funcionamento", valor: proposto, rejeitada_em: new Date(AGORA.getTime() - DIA) };
-    expect(propor({ horario_funcionamento: [fato({ segunda: "08:00 – 18:00" })] }, atual, [r])).toEqual([]);
-  });
-});
-
-describe("fontes que discordam", () => {
-  it("aparecem todas, cada uma com o seu valor", () => {
-    const [p] = propor({
-      telefone: [fato("81 99908-4986", { fonte: fonte("https://a.com") }), fato("81 3071-6834", { fonte: fonte("https://b.com") })],
+  describe("booleanos", () => {
+    it("true → false só com negação explícita", () => {
+      expect(propor({ booleanos: { aceita_pets: [booleano(false)] } }, { aceita_pets: true })).toEqual([]);
+      const [proposta] = propor({ booleanos: { aceita_pets: [booleano(false, true)] } }, { aceita_pets: true });
+      expect(proposta).toMatchObject({ campo: "aceita_pets", valorAtual: true, valorProposto: false });
     });
-    expect(p.tipo === "atualizacao" && p.campo === "telefone" && p.fontes.map((f) => [f.url, f.valor])).toEqual([
-      ["https://a.com", "(81) 99908-4986"],
-      ["https://b.com", "(81) 3071-6834"],
+
+    it("false → true não pede negação", () => {
+      const [proposta] = propor({ booleanos: { acessivel_pcd: [booleano(true)] } });
+      expect(proposta).toMatchObject({ campo: "acessivel_pcd", valorProposto: true });
+    });
+
+    it("null → valor no ar-condicionado", () => {
+      const [proposta] = propor({ booleanos: { tem_ar_condicionado: [booleano(true)] } });
+      expect(proposta).toMatchObject({ campo: "tem_ar_condicionado", valorAtual: null, valorProposto: true });
+    });
+  });
+
+  describe("situação", () => {
+    it("permanente → fechamento sem campo", () => {
+      const [proposta] = propor({ situacao: [fato("permanente" as const)] });
+      expect(proposta).toMatchObject({ tipo: "fechamento", campo: null, valorProposto: FECHADO_PERMANENTEMENTE });
+    });
+
+    it("temporária → indício, atualização sem campo", () => {
+      const [proposta] = propor({ situacao: [fato("temporaria" as const)] });
+      expect(proposta).toMatchObject({ tipo: "atualizacao", campo: null, valorProposto: FECHADO_TEMPORARIAMENTE });
+    });
+
+    it("café que já está fora do ar não gera fechamento", () => {
+      expect(propor({ situacao: [fato("permanente" as const)] }, { ativo: false })).toEqual([]);
+    });
+  });
+
+  describe("rejeitadas", () => {
+    const rejeitadaHa = (dias: number, extra: Partial<Rejeitada> = {}): Rejeitada => ({
+      cafeId: "a",
+      campo: "instagram",
+      valor: "https://instagram.com/casa",
+      rejeitadaEm: new Date(AGORA.getTime() - dias * DIA).toISOString(),
+      ...extra,
+    });
+    const fatos = { instagram: [fato("@casa")] };
+
+    it("rejeitado há 89 dias → nada", () => {
+      expect(propor(fatos, {}, [rejeitadaHa(89)])).toEqual([]);
+    });
+
+    it("rejeitado há 91 dias → volta", () => {
+      expect(propor(fatos, {}, [rejeitadaHa(91)])).toHaveLength(1);
+    });
+
+    it("outro valor, outro campo ou outro café não bloqueiam", () => {
+      expect(propor(fatos, {}, [rejeitadaHa(1, { valor: "https://instagram.com/outra" })])).toHaveLength(1);
+      expect(propor(fatos, {}, [rejeitadaHa(1, { campo: "telefone" })])).toHaveLength(1);
+      expect(propor(fatos, {}, [rejeitadaHa(1, { cafeId: "b" })])).toHaveLength(1);
+    });
+
+    it("horário rejeitado casa mesmo com as chaves em outra ordem", () => {
+      const horario = { ...cafe("a").horario_funcionamento, segunda: "08:00 – 18:00" };
+      const embaralhado = Object.fromEntries(Object.entries(horario).reverse());
+      const rejeitada = rejeitadaHa(5, { campo: "horario_funcionamento", valor: embaralhado });
+      expect(propor({ horario: [fato({ segunda: "08:00 – 18:00" })] }, {}, [rejeitada])).toEqual([]);
+    });
+
+    it("fechamento rejeitado há pouco não volta", () => {
+      const rejeitada = rejeitadaHa(10, { campo: null, valor: FECHADO_PERMANENTEMENTE });
+      expect(propor({ situacao: [fato("permanente" as const)] }, {}, [rejeitada])).toEqual([]);
+    });
+
+    it("com dois valores, o rejeitado cai e o outro fica", () => {
+      const propostas = propor({ instagram: [fato("@casa", 1), fato("@casa2", 2)] }, {}, [rejeitadaHa(5)]);
+      expect(propostas[0].valorProposto).toBe("https://instagram.com/casa2");
+    });
+  });
+
+  it("fontes discordando aparecem todas, cada uma com o seu valor", () => {
+    const [proposta] = propor({ instagram: [fato("@casa", 1), fato("@casa", 2), fato("@outra", 3)] });
+    expect(proposta.valorProposto).toBe("https://instagram.com/casa");
+    expect(proposta.fontes.map((f) => [f.url, f.valor])).toEqual([
+      ["https://exemplo.com/1", "https://instagram.com/casa"],
+      ["https://exemplo.com/2", "https://instagram.com/casa"],
+      ["https://exemplo.com/3", "https://instagram.com/outra"],
     ]);
-    expect(p.tipo === "atualizacao" && p.campo === "telefone" && p.discordam).toBe(true);
+    expect(proposta.fontes[2]).toMatchObject({ titulo: "Fonte 3", data_fonte: "12/10/2026", trecho: "trecho 3" });
   });
 
-  it("uma fonte igual ao banco e outra diferente: propõe a diferente e mostra as duas", () => {
-    const atual = cafe("a", { telefone: "(81) 3071-6834" });
-    const [p] = propor({ telefone: [fato("81 3071-6834", { fonte: fonte("https://a.com") }), fato("81 99908-4986", { fonte: fonte("https://b.com") })] }, atual);
-    expect(p).toMatchObject({ valor_proposto: "(81) 99908-4986", discordam: true });
-    expect(p.tipo === "atualizacao" && p.campo === "telefone" && p.fontes).toHaveLength(2);
-  });
-
-  it("fontes que concordam não discordam", () => {
-    const [p] = propor({ telefone: [fato("81 99908-4986"), fato("(81) 99908-4986", { fonte: fonte("https://b.com") })] });
-    expect(p).toMatchObject({ discordam: false });
+  it("fonte que concorda com o banco entra como evidência quando outra discorda", () => {
+    const [proposta] = propor({ faixa_preco: [fato("$$", 1), fato("$$$", 2)] });
+    expect(proposta.valorProposto).toBe("$$$");
+    expect(proposta.fontes).toHaveLength(2);
   });
 });

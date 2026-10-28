@@ -1,218 +1,251 @@
 /**
- * Revisão de cafés existentes (PRD #167, #180) — sem React, sem Supabase, sem
- * rede: o robô de curadoria extrai fatos de páginas e este módulo decide o que
- * vira proposta. O modelo extrai, o código decide.
+ * Propostas de curadoria sobre um café que já está no banco (#180, PRD #167) —
+ * sem React, sem Supabase. O modelo extrai fatos de páginas; este módulo decide
+ * o que vira revisão: normaliza pelos validadores do `cafe-dados`, propõe só o
+ * que difere do banco e nunca devolve o que a administradora rejeitou há pouco.
  */
 
 import type { Cafe, DiaSemana } from "./cafe";
-import { FAIXAS, MAX_TEXTO, normalizarInstagram, normalizarTelefone, validarHorarioDia } from "./cafe-dados";
-import { DIAS_DA_SEMANA, isRegistro } from "./cafe-hours";
+import {
+  BOOLEANOS,
+  FAIXAS,
+  MAX_TEXTO,
+  normalizarInstagram,
+  normalizarTelefone,
+  textoAparado,
+  validarHorarioDia,
+} from "./cafe-dados";
+import { DIAS_DA_SEMANA } from "./cafe-hours";
 
-/** Um (café, campo, valor) rejeitado só volta depois disto. */
-export const DIAS_SEM_VOLTAR = 90;
+/** Um (café, campo, valor) rejeitado não volta por tantos dias. */
+export const DIAS_DE_REJEICAO = 90;
+
 const DIA_EM_MS = 24 * 60 * 60 * 1000;
 
+/** De onde o fato saiu: o que a administradora vê para conferir. */
 export type FonteDoFato = {
   url: string;
   titulo: string;
-  /** A data como aparece na página; `null` se não aparece. */
+  /** A data como aparece na página; `null` sem data visível. */
   data_fonte: string | null;
-  /** Trecho literal de onde o fato saiu. */
+  /** Trecho literal da página de onde o fato saiu. */
   trecho: string;
 };
 
-/** O que uma fonte disse. Só `valor`, `fonte` e `negacao_explicita` são lidos: qualquer outra chave do modelo (lat, lng…) é ignorada. */
-export type Fato<T> = {
-  valor: T;
-  fonte: FonteDoFato;
-  /** Atributo booleano: a fonte nega com todas as letras ("não aceita pets"), não só deixa de citar. */
-  negacao_explicita?: boolean;
-};
+export type Fato<T> = FonteDoFato & { valor: T };
 
-export const ATRIBUTOS_VERIFICADOS = [
-  "aceita_pets",
-  "tem_estacionamento",
-  "permite_coffee_office",
-  "acessivel_pcd",
-  "opcoes_vegetarianas",
-  "tem_ar_condicionado",
-] as const satisfies ReadonlyArray<keyof Cafe>;
+/** Booleano extraído; `negacaoExplicita` só quando a fonte diz que NÃO tem ("não aceita pets"). */
+export type FatoBooleano = Fato<boolean> & { negacaoExplicita?: boolean };
 
-export type AtributoVerificado = (typeof ATRIBUTOS_VERIFICADOS)[number];
+export const CAMPOS_BOOLEANOS = [...BOOLEANOS, "tem_ar_condicionado"] as const;
+export type CampoBooleano = (typeof CAMPOS_BOOLEANOS)[number];
 
-export type CampoVerificado =
+/** Campos de `cafes` que a revisão confere (endereço sem lat/lng, de propósito). */
+export type CampoRevisado =
   | "horario_funcionamento"
   | "instagram"
   | "telefone"
   | "endereco"
   | "faixa_preco"
-  | AtributoVerificado;
+  | CampoBooleano;
 
-export type FechamentoDoFato = { situacao: "permanente" | "temporario"; fonte: FonteDoFato };
+export type Situacao = "permanente" | "temporaria";
 
-/** Fatos extraídos de um café, por campo; cada campo traz uma entrada por fonte, e as fontes podem discordar. */
+/** O que o modelo extraiu das páginas de um café. Tudo opcional; cada lista tem uma entrada por fonte. */
 export type FatosDoCafe = {
-  /** Só os dias que a fonte informa. */
-  horario_funcionamento?: Fato<Partial<Record<DiaSemana, string>>>[];
+  horario?: Fato<Partial<Record<DiaSemana, string>>>[];
   instagram?: Fato<string>[];
   telefone?: Fato<string>[];
   endereco?: Fato<string>[];
   faixa_preco?: Fato<string>[];
-  fechamento?: FechamentoDoFato[];
-} & { [A in AtributoVerificado]?: Fato<boolean>[] };
-
-export type Rejeitada = {
-  cafe_id: string;
-  /** Um `CampoVerificado`, `"fechamento"` ou `"fechamento_temporario"` (o indício). */
-  campo: string;
-  valor: unknown;
-  rejeitada_em: Date;
+  booleanos?: Partial<Record<CampoBooleano, FatoBooleano[]>>;
+  situacao?: Fato<Situacao>[];
 };
 
-/** A fonte com o valor que ela deu, já no formato do banco. */
-export type FonteComValor = FonteDoFato & { valor: unknown };
+export type Rejeitada = {
+  cafeId: string;
+  /** `null` para fechamento e indício. */
+  campo: string | null;
+  valor: unknown;
+  /** Quando foi rejeitada (ISO). */
+  rejeitadaEm: string;
+};
 
-export type Proposta =
-  | {
-      tipo: "atualizacao";
-      cafe_id: string;
-      campo: CampoVerificado;
-      valor_atual: unknown;
-      valor_proposto: unknown;
-      fontes: FonteComValor[];
-      /** As fontes que valem deram valores diferentes. */
-      discordam: boolean;
-    }
-  // "Fechado temporariamente": indício, nada a aplicar no café.
-  | { tipo: "atualizacao"; cafe_id: string; campo: null; indicio: "fechado_temporariamente"; fontes: FonteDoFato[] }
-  | { tipo: "fechamento"; cafe_id: string; fontes: FonteDoFato[] };
+/** Cada fonte da proposta com o valor que ela sustenta (já normalizado); fontes que discordam entram todas. */
+export type FonteDaProposta = FonteDoFato & { valor: unknown };
 
-const CAMPOS: readonly CampoVerificado[] = [
-  "horario_funcionamento",
-  "instagram",
-  "telefone",
-  "endereco",
-  "faixa_preco",
-  ...ATRIBUTOS_VERIFICADOS,
-];
+export const FECHADO_PERMANENTEMENTE = "fechado_permanentemente";
+export const FECHADO_TEMPORARIAMENTE = "fechado_temporariamente";
 
-const ehAtributo = (campo: CampoVerificado): campo is AtributoVerificado =>
-  (ATRIBUTOS_VERIFICADOS as readonly string[]).includes(campo);
+export type Proposta = {
+  tipo: "atualizacao" | "fechamento";
+  cafeId: string;
+  /** `null` em fechamento e no indício de fechado temporariamente. */
+  campo: CampoRevisado | null;
+  valorAtual: unknown;
+  valorProposto: unknown;
+  fontes: FonteDaProposta[];
+};
 
-/** Sem caixa, acento nem espaço repetido: "Rua X,  1" e "rua x, 1" são o mesmo endereço. */
-function textoComparavel(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
+type Candidato = { fonte: FonteDoFato; valor: unknown };
 
-/** O valor do fato no formato do banco, ou `null` se não valida pelo `cafe-dados`. */
-function normalizar(campo: CampoVerificado, valor: unknown, cafe: Cafe): { valor: unknown } | null {
-  switch (campo) {
-    case "instagram": {
-      const r = normalizarInstagram(valor);
-      return r.ok && r.valor !== null ? { valor: r.valor } : null;
-    }
-    case "telefone": {
-      const r = normalizarTelefone(valor);
-      return r.ok && r.valor !== null ? { valor: r.valor } : null;
-    }
-    case "endereco": {
-      const texto = typeof valor === "string" ? valor.trim().replace(/\s+/g, " ") : "";
-      return texto && texto.length <= MAX_TEXTO.endereco ? { valor: texto } : null;
-    }
-    case "faixa_preco":
-      return FAIXAS.find((f) => f === valor) ? { valor } : null;
-    case "horario_funcionamento": {
-      if (!isRegistro(valor)) return null;
-      const horario = { ...cafe.horario_funcionamento };
-      let algum = false;
-      for (const dia of DIAS_DA_SEMANA) {
-        if (valor[dia] === undefined || validarHorarioDia(valor[dia]) !== null) continue;
-        horario[dia] = valor[dia] as string;
-        algum = true;
-      }
-      return algum ? { valor: horario } : null;
-    }
-    default:
-      return typeof valor === "boolean" ? { valor } : null;
-  }
-}
-
-function igual(campo: CampoVerificado, a: unknown, b: unknown): boolean {
-  switch (campo) {
-    case "horario_funcionamento":
-      return isRegistro(a) && isRegistro(b) && DIAS_DA_SEMANA.every((dia) => a[dia] === b[dia]);
-    case "instagram":
-    case "endereco":
-      return typeof a === "string" && typeof b === "string" && textoComparavel(a) === textoComparavel(b);
-    default:
-      return a === b;
-  }
-}
-
-function rejeitadaRecentemente(rejeitadas: Rejeitada[], cafeId: string, campo: string, valor: unknown, agora: Date): boolean {
-  return rejeitadas.some(
-    (r) =>
-      r.cafe_id === cafeId &&
-      r.campo === campo &&
-      agora.getTime() - r.rejeitada_em.getTime() < DIAS_SEM_VOLTAR * DIA_EM_MS &&
-      (campo === "fechamento" || igual(campo as CampoVerificado, r.valor, valor)),
+/** JSON com chaves em ordem: o `jsonb` não preserva a ordem do horário. */
+function canonico(valor: unknown): string {
+  return JSON.stringify(valor, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+      : v,
   );
 }
 
+const fonteDe = ({ url, titulo, data_fonte, trecho }: FonteDoFato): FonteDoFato => ({ url, titulo, data_fonte, trecho });
+
+function rejeitadaRecente(
+  rejeitadas: Rejeitada[],
+  cafeId: string,
+  campo: string | null,
+  valor: unknown,
+  agora: Date,
+): boolean {
+  const chave = canonico(valor);
+  return rejeitadas.some(({ cafeId: id, campo: c, valor: v, rejeitadaEm }) => {
+    if (id !== cafeId || c !== campo || canonico(v) !== chave) return false;
+    const idade = agora.getTime() - new Date(rejeitadaEm).getTime();
+    return idade < DIAS_DE_REJEICAO * DIA_EM_MS;
+  });
+}
+
 /**
- * Propostas de atualização e fechamento de um café já no banco: só o que difere
- * dele, no formato do banco, e sem o que a administradora rejeitou nos últimos
- * 90 dias. Dados que não passam pelo `cafe-dados` caem em silêncio. Endereço
- * novo nunca leva lat/lng: o pin se confere à mão.
+ * Candidatos de um campo → proposta, ou `null`. O valor proposto é o mais
+ * sustentado entre os que diferem do banco e não foram rejeitados há pouco
+ * (empate: o que apareceu primeiro); as fontes são todas as válidas.
  */
-export function propostasDeAtualizacao(
-  fatos: FatosDoCafe,
+function proporCampo(
   cafe: Cafe,
+  campo: CampoRevisado,
+  candidatos: Candidato[],
+  rejeitadas: Rejeitada[],
+  agora: Date,
+): Proposta | null {
+  const atual = cafe[campo];
+  const chaveAtual = canonico(atual);
+
+  const votos = new Map<string, { valor: unknown; n: number }>();
+  for (const { valor } of candidatos) {
+    const chave = canonico(valor);
+    if (chave === chaveAtual || rejeitadaRecente(rejeitadas, cafe.id, campo, valor, agora)) continue;
+    const voto = votos.get(chave) ?? { valor, n: 0 };
+    voto.n += 1;
+    votos.set(chave, voto);
+  }
+  const vencedor = Array.from(votos.values()).reduce<{ valor: unknown; n: number } | null>(
+    (melhor, voto) => (melhor && melhor.n >= voto.n ? melhor : voto),
+    null,
+  );
+  if (!vencedor) return null;
+
+  return {
+    tipo: "atualizacao",
+    cafeId: cafe.id,
+    campo,
+    valorAtual: atual,
+    valorProposto: vencedor.valor,
+    fontes: candidatos.map(({ fonte, valor }) => ({ ...fonteDe(fonte), valor })),
+  };
+}
+
+function candidatosDeTexto(
+  fatos: Fato<string>[] | undefined,
+  normalizar: (valor: string) => string | null,
+): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    const valor = normalizar(fato.valor);
+    return valor === null ? [] : [{ fonte: fato, valor }];
+  });
+}
+
+/** Normalizador de `cafe-dados` → texto, ou `null` se inválido ou vazio (nunca propõe apagar). */
+const doNormalizador =
+  (normalizar: (valor: unknown) => ReturnType<typeof normalizarInstagram>) =>
+  (valor: string): string | null => {
+    const resultado = normalizar(valor);
+    return resultado.ok ? resultado.valor : null;
+  };
+
+function candidatosDeHorario(fatos: Fato<Partial<Record<DiaSemana, string>>>[] | undefined, cafe: Cafe): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    const horario = { ...cafe.horario_funcionamento };
+    let achou = false;
+    for (const dia of DIAS_DA_SEMANA) {
+      const texto = fato.valor[dia];
+      if (texto === undefined || validarHorarioDia(texto) !== null) continue;
+      horario[dia] = texto;
+      achou = true;
+    }
+    return achou ? [{ fonte: fato, valor: horario }] : [];
+  });
+}
+
+/**
+ * `false` só com negação explícita (nunca por falta de menção); `true` vale
+ * sempre. O `null` do ar-condicionado vira o valor que a fonte dá.
+ */
+function candidatosBooleanos(fatos: FatoBooleano[] | undefined): Candidato[] {
+  return (fatos ?? []).flatMap((fato) => {
+    if (typeof fato.valor !== "boolean") return [];
+    if (!fato.valor && fato.negacaoExplicita !== true) return [];
+    return [{ fonte: fato, valor: fato.valor }];
+  });
+}
+
+function propostasDeSituacao(
+  cafe: Cafe,
+  situacoes: Fato<Situacao>[] | undefined,
   rejeitadas: Rejeitada[],
   agora: Date,
 ): Proposta[] {
+  if (!cafe.ativo) return [];
   const propostas: Proposta[] = [];
-
-  const fechamentos = cafe.ativo ? (fatos.fechamento ?? []) : [];
-  const permanentes = fechamentos.filter((f) => f.situacao === "permanente").map((f) => f.fonte);
-  const temporarios = fechamentos.filter((f) => f.situacao === "temporario").map((f) => f.fonte);
-  if (permanentes.length > 0) {
-    if (!rejeitadaRecentemente(rejeitadas, cafe.id, "fechamento", null, agora)) {
-      propostas.push({ tipo: "fechamento", cafe_id: cafe.id, fontes: permanentes });
-    }
-  } else if (temporarios.length > 0 && !rejeitadaRecentemente(rejeitadas, cafe.id, "fechamento_temporario", null, agora)) {
-    propostas.push({ tipo: "atualizacao", cafe_id: cafe.id, campo: null, indicio: "fechado_temporariamente", fontes: temporarios });
-  }
-
-  for (const campo of CAMPOS) {
-    const atual = cafe[campo];
-    const validos: { fonte: FonteComValor; valor: unknown }[] = [];
-    for (const fato of (fatos[campo] ?? []) as Fato<unknown>[]) {
-      const normalizado = normalizar(campo, fato.valor, cafe);
-      if (!normalizado) continue;
-      // Sem negação explícita, "não citou" não vira "não tem": true → false é descartado.
-      if (ehAtributo(campo) && atual === true && normalizado.valor === false && fato.negacao_explicita !== true) continue;
-      validos.push({ fonte: { ...fato.fonte, valor: normalizado.valor }, valor: normalizado.valor });
-    }
-
-    const novo = validos.find((v) => !igual(campo, v.valor, atual));
-    if (!novo || rejeitadaRecentemente(rejeitadas, cafe.id, campo, novo.valor, agora)) continue;
-
+  const casos: [Situacao, Proposta["tipo"], string][] = [
+    ["permanente", "fechamento", FECHADO_PERMANENTEMENTE],
+    ["temporaria", "atualizacao", FECHADO_TEMPORARIAMENTE],
+  ];
+  for (const [situacao, tipo, valorProposto] of casos) {
+    const fontes = (situacoes ?? []).filter((fato) => fato.valor === situacao);
+    if (fontes.length === 0 || rejeitadaRecente(rejeitadas, cafe.id, null, valorProposto, agora)) continue;
     propostas.push({
-      tipo: "atualizacao",
-      cafe_id: cafe.id,
-      campo,
-      valor_atual: atual,
-      valor_proposto: novo.valor,
-      fontes: validos.map((v) => v.fonte),
-      discordam: validos.some((v) => !igual(campo, v.valor, novo.valor)),
+      tipo,
+      cafeId: cafe.id,
+      campo: null,
+      valorAtual: null,
+      valorProposto,
+      fontes: fontes.map((fato) => ({ ...fonteDe(fato), valor: valorProposto })),
     });
   }
-
   return propostas;
+}
+
+/**
+ * Fatos extraídos de um café + o café no banco + as rejeitadas → propostas de
+ * `atualizacao` e `fechamento`. Igual ao banco, inválido, ou rejeitado há menos
+ * de 90 dias → nada.
+ */
+export function proporRevisoes(fatos: FatosDoCafe, cafe: Cafe, rejeitadas: Rejeitada[], agora: Date): Proposta[] {
+  const porCampo: [CampoRevisado, Candidato[]][] = [
+    ["horario_funcionamento", candidatosDeHorario(fatos.horario, cafe)],
+    ["instagram", candidatosDeTexto(fatos.instagram, doNormalizador(normalizarInstagram))],
+    ["telefone", candidatosDeTexto(fatos.telefone, doNormalizador(normalizarTelefone))],
+    [
+      "endereco",
+      candidatosDeTexto(fatos.endereco, (valor) => {
+        const texto = textoAparado(valor);
+        return texto && texto.length <= MAX_TEXTO.endereco ? texto : null;
+      }),
+    ],
+    ["faixa_preco", candidatosDeTexto(fatos.faixa_preco, (valor) => FAIXAS.find((f) => f === textoAparado(valor)) ?? null)],
+    ...CAMPOS_BOOLEANOS.map((campo): [CampoRevisado, Candidato[]] => [campo, candidatosBooleanos(fatos.booleanos?.[campo])]),
+  ];
+
+  const propostas = porCampo.flatMap(([campo, candidatos]) => proporCampo(cafe, campo, candidatos, rejeitadas, agora) ?? []);
+  return [...propostasDeSituacao(cafe, fatos.situacao, rejeitadas, agora), ...propostas];
 }

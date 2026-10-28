@@ -131,7 +131,7 @@ function chaveDoEndereco(endereco: string): string {
  * Chave para comparar valores de um campo: o `canonico`, e no endereço a
  * `chaveDoEndereco` — o mesmo lugar escrito de outro jeito não é outro valor.
  */
-export function chaveDoValor(campo: CampoRevisado | null, valor: unknown): string {
+export function chaveDoValor(campo: string | null, valor: unknown): string {
   return campo === "endereco" && typeof valor === "string" ? chaveDoEndereco(valor) : canonico(valor);
 }
 
@@ -144,9 +144,9 @@ function rejeitadaRecente(
   valor: unknown,
   agora: Date,
 ): boolean {
-  const chave = chaveDoValor(campo as CampoRevisado | null, valor);
+  const chave = chaveDoValor(campo, valor);
   return rejeitadas.some(({ cafeId: id, campo: c, valor: v, rejeitadaEm }) => {
-    if (id !== cafeId || c !== campo || chaveDoValor(c as CampoRevisado | null, v) !== chave) return false;
+    if (id !== cafeId || c !== campo || chaveDoValor(c, v) !== chave) return false;
     const idade = agora.getTime() - new Date(rejeitadaEm).getTime();
     return idade < DIAS_DE_REJEICAO * DIA_EM_MS;
   });

@@ -274,6 +274,20 @@ describe("rodarRodada", () => {
     expect(log).not.toContain(CORPO);
     expect(log).not.toContain(URL_SITE);
   });
+
+  it("o log diz o motivo da falha do adaptador (status ou timeout), nunca outra mensagem", async () => {
+    const erros = [new Error("timeout"), new Error("HTTP 503"), new Error(`Unexpected token in ${CORPO}`)];
+    let n = 0;
+    const d = deps({ gemini: { extrair: async () => { throw erros[n++ % erros.length]; } } });
+    await rodarRodada(d);
+    const linhas = d.log.mock.calls.map(([m]) => m as string).filter((m) => m.includes("falha"));
+    expect(linhas[0]).toContain("falha (gemini: timeout)");
+    expect(linhas[1]).toContain("falha (gemini: HTTP 503)");
+    expect(linhas[2]).toMatch(/falha \(gemini\)$/);
+    expect(linhas.join("\n")).not.toContain(CORPO);
+    // O `erro` da rodada segue só com o código.
+    expect(d.registrar.mock.calls[0][0].erro).toBe(`falhas:gemini=${DA_SEMANA.length}`);
+  });
 });
 
 

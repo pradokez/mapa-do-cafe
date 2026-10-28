@@ -52,9 +52,17 @@ export function criarGemini(chave: string, modelo: string = MODELO_PADRAO): Gemi
     const resposta = (await postarJson(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       headers: { "x-goog-api-key": chave },
       timeoutMs: 90_000,
+      // Um timeout já custou 90 s e um pedido da cota diária; repetir dobraria os dois (#190).
+      retentarTimeout: false,
       corpo: {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0 },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseJsonSchema: schema,
+          temperature: 0,
+          // Copiar fatos de páginas não pede raciocínio longo; o padrão (alto) passava dos 90 s (#190).
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       },
     })) as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] };
     const texto = resposta.candidates?.[0]?.content?.parts?.[0]?.text;

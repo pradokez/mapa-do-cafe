@@ -20,7 +20,8 @@ concurrency:
 jobs:
   rodada:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Pior caso: 18 chamadas Gemini de até 90 s, mais as pausas de 15 s.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

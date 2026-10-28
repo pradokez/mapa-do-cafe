@@ -17,6 +17,12 @@ export const SUPABASE_URL = process.env.SECURITY_SUPABASE_URL ?? "";
 export const PUBLISHABLE_KEY = process.env.SECURITY_PUBLISHABLE_KEY ?? "";
 export const SECRET_KEY = process.env.SECURITY_SECRET_KEY ?? "";
 export const APP_URL = process.env.SECURITY_APP_URL ?? "";
+/**
+ * Segredo do robô de curadoria **do descartável** (#188): um valor de teste
+ * cujo SHA-256 se grava em `private.curadoria_segredo` só lá. Nunca o de
+ * produção, que só existe no secret `CURADORIA_SEGREDO` do GitHub.
+ */
+export const CURADORIA_SEGREDO = process.env.SECURITY_CURADORIA_SEGREDO ?? "";
 
 /** Leitura/negação precisam só de URL + publishable. */
 export const PODE_LER = Boolean(SUPABASE_URL && PUBLISHABLE_KEY);

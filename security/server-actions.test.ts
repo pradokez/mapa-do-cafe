@@ -14,7 +14,7 @@ import { APP_URL, motivoSemEscrita, PODE_ESCREVER } from "./env";
  * (`SECURITY_APP_URL`) e um `pnpm build` (o manifesto dos action IDs).
  * O app sobe com `ADMIN_ESCRITA_LIBERADA=1` (#75): sem ela, o modo leitura
  * recusaria primeiro e o teste passaria sem provar nada das outras camadas.
- * Ver docs/security/pentest-2026-10.md.
+ * Ver docs/security/ (um relatório por rodada).
  */
 
 const MANIFESTO = ".next/server/server-reference-manifest.json";
@@ -58,6 +58,7 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
   let ids: string[] = [];
   let cafesAntes = 0;
   let fotosAntes = 0;
+  let revisoesAntes: unknown[] = [];
   // O app precisa estar no ar (apontado para o descartável). Se não responder,
   // pula com aviso em vez de falhar a suíte.
   let indisponivel: string | null = null;
@@ -74,6 +75,9 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     const { count: f } = await service.from("cafe_fotos").select("*", { count: "exact", head: true });
     cafesAntes = c ?? 0;
     fotosAntes = f ?? 0;
+    // As actions da fila (#182) estão no mesmo worker de `cafes/novo`: nenhuma pode decidir uma revisão.
+    const { data: r } = await service.from("revisoes").select("id,status").order("id");
+    revisoesAntes = r ?? [];
   });
 
   it("o build expõe os action IDs do admin", () => {
@@ -100,7 +104,7 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     }
   });
 
-  it("nada foi escrito: contagem de cafes e cafe_fotos intacta, sem café 'INVADIDO'", async (ctx) => {
+  it("nada foi escrito: cafes e cafe_fotos intactos, sem café 'INVADIDO', revisões no mesmo status", async (ctx) => {
     if (indisponivel) return ctx.skip();
     const { count: c } = await service.from("cafes").select("*", { count: "exact", head: true });
     const { count: f } = await service.from("cafe_fotos").select("*", { count: "exact", head: true });
@@ -108,6 +112,8 @@ suite("Server Actions de escrita recusam sem sessão e cross-origin", () => {
     expect(f).toBe(fotosAntes);
     const { data } = await service.from("cafes").select("slug").eq("slug", "invadido");
     expect(data ?? []).toEqual([]);
+    const { data: r } = await service.from("revisoes").select("id,status").order("id");
+    expect(r ?? []).toEqual(revisoesAntes);
   });
 
   afterAll(async () => {

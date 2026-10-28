@@ -39,6 +39,7 @@ export function promptDosCandidatos({ consulta, paginas }: { consulta: string; p
     "Regras:",
     "- Use SÓ o que está nas páginas; não use conhecimento próprio nem estime. Dado ausente = null.",
     "- Só cafés em Recife, Olinda ou Jaboatão dos Guararapes (PE). Ignore padaria, rede, lanchonete e café comum.",
+    "- Só cafeterias FÍSICAS: um lugar com salão ou balcão onde se toma café. Torrefação, marca de grãos ou loja online sem salão NÃO entram.",
     "- sinais: indícios de café especial (origem do grão, torra própria, métodos filtrados, barista, microlote…), cada um com a URL e um trecho LITERAL da página. Sem indício, lista vazia.",
     "- fontes: as páginas que sustentam os dados de cadastro (endereço, bairro, Instagram, telefone, horário), com a data COMO APARECE na página (null se não houver) e um trecho LITERAL.",
     "- Copie os trechos, não parafraseie. Horário por dia no formato pedido.",
@@ -52,8 +53,9 @@ export function criarGemini(chave: string, modelo: string = MODELO_PADRAO): Gemi
     const resposta = (await postarJson(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
       headers: { "x-goog-api-key": chave },
       timeoutMs: 90_000,
-      // Um timeout já custou 90 s e um pedido da cota diária; repetir dobraria os dois (#190).
+      // Timeout e 429 já custaram um pedido da cota diária (20 no grátis); repetir só gasta outro (#190).
       retentarTimeout: false,
+      retentar429: false,
       corpo: {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {

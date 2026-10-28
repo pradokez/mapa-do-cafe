@@ -27,8 +27,11 @@ const CREDITOS_POR_CAFE = 2;
 export const CONSULTAS_ABERTAS = ["café especial", "cafeteria nova"].flatMap((termo) =>
   ["Recife", "Olinda", "Jaboatão dos Guararapes"].map((cidade) => `${termo} ${cidade}`),
 );
-/** Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto". */
-export const CONSULTAS_POR_RODADA = 4;
+/**
+ * Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto".
+ * Com ~15 cafés na semana, o rodízio reserva 15 das 18 chamadas Gemini: cabem 3 (#190).
+ */
+export const CONSULTAS_POR_RODADA = 3;
 /** O `erro` da rodada cabe em 80 caracteres no banco. */
 const MAX_ERRO = 80;
 

@@ -1,16 +1,17 @@
 /**
  * `fetch` com timeout e uma retentativa curta (429 e 5xx, ou rede), para os
  * adaptadores. O erro nunca leva URL, cabeçalho nem corpo: só `HTTP <status>`,
- * `timeout` ou `rede` (o robô os mostra no log). Timeout só se repete com
- * `retentarTimeout`: quem demorou uma vez costuma demorar de novo.
+ * `timeout` ou `rede` (o robô os mostra no log). Timeout e 429 só se repetem
+ * com `retentarTimeout` e `retentar429`: quem demorou uma vez costuma demorar
+ * de novo, e 2 s não bastam para uma cota por minuto ou por dia voltar.
  */
 const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function postarJson(
   url: string,
-  init: { headers: Record<string, string>; corpo: unknown; timeoutMs?: number; esperaEntreTentativasMs?: number; retentarTimeout?: boolean },
+  init: { headers: Record<string, string>; corpo: unknown; timeoutMs?: number; esperaEntreTentativasMs?: number; retentarTimeout?: boolean; retentar429?: boolean },
 ): Promise<unknown> {
-  const { timeoutMs = 30_000, esperaEntreTentativasMs = 2_000, retentarTimeout = true } = init;
+  const { timeoutMs = 30_000, esperaEntreTentativasMs = 2_000, retentarTimeout = true, retentar429 = true } = init;
   for (let tentativa = 0; ; tentativa += 1) {
     try {
       const resposta = await fetch(url, {
@@ -20,7 +21,7 @@ export async function postarJson(
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (resposta.ok) return await resposta.json();
-      if (tentativa === 0 && (resposta.status === 429 || resposta.status >= 500)) {
+      if (tentativa === 0 && ((resposta.status === 429 && retentar429) || resposta.status >= 500)) {
         await esperar(esperaEntreTentativasMs);
         continue;
       }

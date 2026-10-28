@@ -190,4 +190,18 @@ describe("Distância sem posição", () => {
     expect(radio("Até 1 km").getAttribute("aria-checked")).toBe("false");
     expect(radio("Qualquer distância").getAttribute("aria-checked")).toBe("true");
   });
+
+  it("tocar com o pedido da abertura ainda pendente já tenta; se ele falhar depois, a posição que veio fica", async () => {
+    const { CafeDirectory } = await import("./cafe-directory");
+    render(<CafeDirectory cafes={CAFES} festivais={{}} vitrines={[]} agora={new Date()} />);
+    expect(chip("menu").getAttribute("aria-disabled")).toBe("true");
+
+    await userEvent.click(chip("dialog"));
+    expect(getCurrentPosition).toHaveBeenCalledTimes(2);
+    await responder(pedidos[1], "posicao");
+    await responder(pedidos[0], "negada");
+
+    expect(chip("dialog").hasAttribute("aria-disabled")).toBe(false);
+    expect(nomes()).toEqual(["Perto", "Longe"]);
+  });
 });

@@ -10,9 +10,9 @@
 import type { Cafe } from "../../src/lib/cafe";
 import { atualidadeDasFontes } from "../../src/lib/revisao-atualidade";
 import { trechoExisteNaPagina } from "../../src/lib/revisao-fontes";
-import { proporRevisoes, type Proposta, type Rejeitada } from "../../src/lib/revisao-proposta";
-import { rodizio } from "../../src/lib/rodizio";
-import { aFatos, lerExtracao, type Extracao } from "./schema";
+import { proporCafeNovo, proporRevisoes, type Proposta, type PropostaCafeNovo, type Rejeitada } from "../../src/lib/revisao-proposta";
+import { rodizio, semanaDeRecife } from "../../src/lib/rodizio";
+import { aCandidatoCafeNovo, aFatos, lerCandidatos, lerExtracao, type Extracao } from "./schema";
 
 /** Teto por rodada (#181): ~30% da cota mensal do Tavily; 2 a menos que os 20/dia do Gemini grátis. */
 export const LIMITES_PADRAO = { creditosTavily: 70, chamadasGemini: 18 } as const;
@@ -23,6 +23,12 @@ export const PAGINAS_POR_CAFE = 5;
 const PAGINAS_POR_CREDITO = 5;
 /** Um café custa no máximo 1 busca + 1 extract. */
 const CREDITOS_POR_CAFE = 2;
+/** Busca aberta (#189): 2 termos × 3 cidades, em janela rotativa por semana (cobre todas em ~2 semanas). */
+export const CONSULTAS_ABERTAS = ["café especial", "cafeteria nova"].flatMap((termo) =>
+  ["Recife", "Olinda", "Jaboatão dos Guararapes"].map((cidade) => `${termo} ${cidade}`),
+);
+/** Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto". */
+export const CONSULTAS_POR_RODADA = 4;
 /** O `erro` da rodada cabe em 80 caracteres no banco. */
 const MAX_ERRO = 80;
 
@@ -65,17 +71,19 @@ export type EntradaDoGemini = {
 export type Gemini = {
   /** A resposta JSON crua: quem valida é o `lerExtracao`. */
   extrair(entrada: EntradaDoGemini): Promise<unknown>;
+  /** Busca aberta (#189): a resposta JSON crua, validada pelo `lerCandidatos`. */
+  extrairCandidatos(entrada: { consulta: string; paginas: EntradaDoGemini["paginas"] }): Promise<unknown>;
 };
 
 export type RevisaoParaRegistrar = {
-  tipo: "atualizacao" | "fechamento";
-  cafe_id: string;
+  tipo: "atualizacao" | "fechamento" | "cafe_novo";
+  cafe_id: string | null;
   campo: string | null;
   valor_atual: unknown;
   valor_proposto: unknown;
   fontes: { url: string; titulo: string; data_fonte: string | null; trecho: string; atualidade: string }[];
   atualidade: string;
-  nome_normalizado: null;
+  nome_normalizado: string | null;
 };
 
 export type Rodada = {
@@ -93,13 +101,15 @@ export type Dependencias = {
   gemini: Gemini;
   agora: Date;
   limites?: { creditosTavily: number; chamadasGemini: number };
+  /** As consultas da busca aberta; o padrão é `CONSULTAS_ABERTAS`. */
+  consultas?: readonly string[];
   /** Espera entre duas chamadas ao Gemini. */
   pausa: () => Promise<void>;
   log: (mensagem: string) => void;
 };
 
-/** Falha de um café, com o código curto que vai para a rodada. */
-class FalhaDoCafe extends Error {
+/** Falha de um café ou de uma consulta, com o código curto que vai para a rodada. */
+class Falha extends Error {
   constructor(readonly codigo: "busca" | "extracao" | "gemini" | "schema") {
     super(codigo);
   }
@@ -112,6 +122,10 @@ function montarErro(teto: boolean, falhas: Map<string, number>): string | null {
   return partes.length > 0 ? partes.join(";").slice(0, MAX_ERRO) : null;
 }
 
+function fontesParaRegistrar(fontes: { url: string; titulo: string; data_fonte: string | null; trecho: string; atualidade: string }[]): RevisaoParaRegistrar["fontes"] {
+  return fontes.map(({ url, titulo, data_fonte, trecho, atualidade }) => ({ url, titulo, data_fonte, trecho, atualidade }));
+}
+
 function revisaoDaProposta(proposta: Proposta, agora: Date): RevisaoParaRegistrar {
   const { fontes, atualidade } = atualidadeDasFontes(proposta.fontes, proposta.campo, agora);
   return {
@@ -120,15 +134,27 @@ function revisaoDaProposta(proposta: Proposta, agora: Date): RevisaoParaRegistra
     campo: proposta.campo,
     valor_atual: proposta.valorAtual,
     valor_proposto: proposta.valorProposto,
-    fontes: fontes.map(({ url, titulo, data_fonte, trecho, atualidade: daFonte }) => ({
-      url,
-      titulo,
-      data_fonte,
-      trecho,
-      atualidade: daFonte,
-    })),
+    fontes: fontesParaRegistrar(fontes),
     atualidade,
     nome_normalizado: null,
+  };
+}
+
+function revisaoDeCafeNovo(proposta: PropostaCafeNovo, agora: Date): RevisaoParaRegistrar {
+  const { fontes, atualidade } = atualidadeDasFontes(
+    proposta.fontes.map((fonte) => ({ ...fonte, valor: proposta.valorProposto })),
+    null,
+    agora,
+  );
+  return {
+    tipo: "cafe_novo",
+    cafe_id: null,
+    campo: null,
+    valor_atual: null,
+    valor_proposto: proposta.valorProposto,
+    fontes: fontesParaRegistrar(fontes),
+    atualidade,
+    nome_normalizado: proposta.nomeNormalizado,
   };
 }
 
@@ -162,13 +188,14 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
   let verificados = 0;
   let teto = false;
 
-  async function verificar(cafe: CafeDoContexto): Promise<Proposta[]> {
+  /** Busca + Extract de uma consulta → as páginas lidas (texto da página inteira e o trecho da busca). */
+  async function lerPaginas(consulta: string): Promise<Map<string, { titulo: string; texto: string }>> {
     let resultados: ResultadoDeBusca[];
     try {
       creditos += 1;
-      resultados = await tavily.buscar(`${cafe.nome} ${cafe.bairro} ${cafe.cidade}`);
+      resultados = await tavily.buscar(consulta);
     } catch {
-      throw new FalhaDoCafe("busca");
+      throw new Falha("busca");
     }
 
     const paginas = new Map<string, { titulo: string; texto: string }>();
@@ -185,10 +212,22 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
           paginas.set(p.url, { titulo: antes?.titulo ?? p.url, texto: `${p.texto}\n${antes?.texto ?? ""}` });
         }
       } catch {
-        throw new FalhaDoCafe("extracao");
+        throw new Falha("extracao");
       }
     }
-    if (!Array.from(paginas.values()).some((p) => p.texto.trim() !== "")) return [];
+    return paginas;
+  }
+
+  const temTexto = (paginas: Map<string, { texto: string }>) => Array.from(paginas.values()).some((p) => p.texto.trim() !== "");
+  /** O modelo extrai e o código decide: trecho que não está na página derruba a fonte. */
+  const sustentada = (paginas: Map<string, { texto: string }>) => (fonte: { url: string; trecho: string }) => {
+    const pagina = paginas.get(fonte.url);
+    return pagina !== undefined && trechoExisteNaPagina(fonte.trecho, pagina.texto);
+  };
+
+  async function verificar(cafe: CafeDoContexto): Promise<Proposta[]> {
+    const paginas = await lerPaginas(`${cafe.nome} ${cafe.bairro} ${cafe.cidade}`);
+    if (!temTexto(paginas)) return [];
 
     if (chamadasGemini > 0) await pausa();
     let bruto: unknown;
@@ -199,22 +238,80 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
         paginas: Array.from(paginas).map(([url, p]) => ({ url, ...p })),
       });
     } catch {
-      throw new FalhaDoCafe("gemini");
+      throw new Falha("gemini");
     }
 
     let extracao: Extracao;
     try {
       extracao = lerExtracao(bruto);
     } catch {
-      throw new FalhaDoCafe("schema");
+      throw new Falha("schema");
     }
 
-    // O modelo extrai e o código decide: trecho que não está na página derruba a fonte.
-    const fatos = aFatos(extracao, (fonte) => {
-      const pagina = paginas.get(fonte.url);
-      return pagina !== undefined && trechoExisteNaPagina(fonte.trecho, pagina.texto);
-    });
+    const fatos = aFatos(extracao, sustentada(paginas));
     return proporRevisoes(fatos, cafe as Cafe, rejeitadas, agora);
+  }
+
+  // Busca aberta (#189): antes do rodízio, mas só com o que sobra depois de reservar o custo dele inteiro.
+  const consultas = deps.consultas ?? CONSULTAS_ABERTAS;
+  const cabem = Math.max(
+    0,
+    Math.min(
+      limites.chamadasGemini - daSemana.length,
+      Math.floor((limites.creditosTavily - daSemana.length * CREDITOS_POR_CAFE) / CREDITOS_POR_CAFE),
+    ),
+  );
+  const pretendidas = Math.min(CONSULTAS_POR_RODADA, consultas.length);
+  const quantas = Math.min(cabem, pretendidas);
+  if (quantas < pretendidas) teto = true;
+  const jaPropostos = [...contexto.cafes_novos_rejeitados];
+
+  async function buscarCafesNovos(consulta: string): Promise<PropostaCafeNovo[]> {
+    const paginas = await lerPaginas(consulta);
+    if (!temTexto(paginas)) return [];
+
+    if (chamadasGemini > 0) await pausa();
+    let bruto: unknown;
+    try {
+      chamadasGemini += 1;
+      bruto = await gemini.extrairCandidatos({
+        consulta,
+        paginas: Array.from(paginas).map(([url, p]) => ({ url, ...p })),
+      });
+    } catch {
+      throw new Falha("gemini");
+    }
+
+    let candidatos: ReturnType<typeof lerCandidatos>["candidatos"];
+    try {
+      candidatos = lerCandidatos(bruto).candidatos;
+    } catch {
+      throw new Falha("schema");
+    }
+
+    const propostas: PropostaCafeNovo[] = [];
+    for (const candidato of candidatos) {
+      const proposta = proporCafeNovo(aCandidatoCafeNovo(candidato, sustentada(paginas)), contexto.cafes, jaPropostos);
+      if (!proposta) continue;
+      // Na mesma rodada, o mesmo café achado por outra consulta não se repete.
+      jaPropostos.push(proposta.valorProposto.nome);
+      propostas.push(proposta);
+    }
+    return propostas;
+  }
+
+  const inicioDaJanela = quantas > 0 ? (semanaDeRecife(agora) * quantas) % consultas.length : 0;
+  for (let i = 0; i < quantas; i++) {
+    const consulta = consultas[(inicioDaJanela + i) % consultas.length];
+    try {
+      const propostas = await buscarCafesNovos(consulta);
+      for (const proposta of propostas) revisoes.push(revisaoDeCafeNovo(proposta, agora));
+      log(`busca aberta ${i + 1}/${quantas}: ${propostas.length} cafés novos`);
+    } catch (erro) {
+      const codigo = erro instanceof Falha ? erro.codigo : "inesperada";
+      falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
+      log(`busca aberta ${i + 1}/${quantas}: falha (${codigo})`);
+    }
   }
 
   for (const cafe of daSemana) {
@@ -229,7 +326,7 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
       for (const proposta of propostas) revisoes.push(revisaoDaProposta(proposta, agora));
     } catch (erro) {
       // Só o código: a mensagem pode trazer URL, chave ou trecho de página.
-      const codigo = erro instanceof FalhaDoCafe ? erro.codigo : "inesperada";
+      const codigo = erro instanceof Falha ? erro.codigo : "inesperada";
       falhas.set(codigo, (falhas.get(codigo) ?? 0) + 1);
       log(`café ${cafe.id}: falha (${codigo})`);
     }

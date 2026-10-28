@@ -5,16 +5,13 @@
  */
 import { postarJson } from "./http";
 import type { EntradaDoGemini, Gemini } from "./robo";
-import { SCHEMA_DA_EXTRACAO } from "./schema";
+import { SCHEMA_DA_EXTRACAO, SCHEMA_DOS_CANDIDATOS } from "./schema";
 
 export const MODELO_PADRAO = "gemini-3-flash-preview";
 /** Por página, para caber no contexto e na cota de tokens do plano grátis. */
 const MAX_CARACTERES_POR_PAGINA = 12_000;
 
 export function promptDaExtracao({ cafe, paginas }: EntradaDoGemini): string {
-  const fontes = paginas
-    .map((p, i) => `### Página ${i + 1}\nURL: ${p.url}\nTítulo: ${p.titulo}\n${p.texto.slice(0, MAX_CARACTERES_POR_PAGINA)}`)
-    .join("\n\n");
   return [
     `Você extrai fatos sobre o café "${cafe.nome}" (${cafe.bairro}, ${cafe.cidade}) das páginas abaixo.`,
     "Regras:",
@@ -25,24 +22,48 @@ export function promptDaExtracao({ cafe, paginas }: EntradaDoGemini): string {
     "- Booleanos (aceita_pets, tem_estacionamento, permite_coffee_office, acessivel_pcd, opcoes_vegetarianas, tem_ar_condicionado): negacao_explicita só quando a página diz que NÃO tem.",
     "- Situação: 'permanente' só para fechado definitivamente; 'temporaria' para reforma, férias etc.",
     "",
-    fontes,
+    paginasEmTexto(paginas),
+  ].join("\n");
+}
+
+function paginasEmTexto(paginas: EntradaDoGemini["paginas"]): string {
+  return paginas
+    .map((p, i) => `### Página ${i + 1}\nURL: ${p.url}\nTítulo: ${p.titulo}\n${p.texto.slice(0, MAX_CARACTERES_POR_PAGINA)}`)
+    .join("\n\n");
+}
+
+/** Busca aberta (#189): cafés novos que as páginas de uma consulta citam. */
+export function promptDosCandidatos({ consulta, paginas }: { consulta: string; paginas: EntradaDoGemini["paginas"] }): string {
+  return [
+    `As páginas abaixo vieram da busca "${consulta}". Liste os cafés ESPECIAIS (cafeterias de café de especialidade) que elas citam.`,
+    "Regras:",
+    "- Use SÓ o que está nas páginas; não use conhecimento próprio nem estime. Dado ausente = null.",
+    "- Só cafés em Recife, Olinda ou Jaboatão dos Guararapes (PE). Ignore padaria, rede, lanchonete e café comum.",
+    "- sinais: indícios de café especial (origem do grão, torra própria, métodos filtrados, barista, microlote…), cada um com a URL e um trecho LITERAL da página. Sem indício, lista vazia.",
+    "- fontes: as páginas que sustentam os dados de cadastro (endereço, bairro, Instagram, telefone, horário), com a data COMO APARECE na página (null se não houver) e um trecho LITERAL.",
+    "- Copie os trechos, não parafraseie. Horário por dia no formato pedido.",
+    "",
+    paginasEmTexto(paginas),
   ].join("\n");
 }
 
 export function criarGemini(chave: string, modelo: string = MODELO_PADRAO): Gemini {
+  async function gerar(prompt: string, schema: object): Promise<unknown> {
+    const resposta = (await postarJson(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+      headers: { "x-goog-api-key": chave },
+      timeoutMs: 90_000,
+      corpo: {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0 },
+      },
+    })) as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] };
+    const texto = resposta.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (typeof texto !== "string") throw new Error("resposta sem texto");
+    return JSON.parse(texto);
+  }
+
   return {
-    async extrair(entrada) {
-      const resposta = (await postarJson(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
-        headers: { "x-goog-api-key": chave },
-        timeoutMs: 90_000,
-        corpo: {
-          contents: [{ parts: [{ text: promptDaExtracao(entrada) }] }],
-          generationConfig: { responseMimeType: "application/json", responseJsonSchema: SCHEMA_DA_EXTRACAO, temperature: 0 },
-        },
-      })) as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] };
-      const texto = resposta.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (typeof texto !== "string") throw new Error("resposta sem texto");
-      return JSON.parse(texto);
-    },
+    extrair: (entrada) => gerar(promptDaExtracao(entrada), SCHEMA_DA_EXTRACAO),
+    extrairCandidatos: (entrada) => gerar(promptDosCandidatos(entrada), SCHEMA_DOS_CANDIDATOS),
   };
 }

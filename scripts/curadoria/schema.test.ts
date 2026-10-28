@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aFatos, ExtracaoInvalida, lerExtracao } from "./schema";
+import { aCandidatoCafeNovo, aFatos, ExtracaoInvalida, lerCandidatos, lerExtracao } from "./schema";
 
 const fonte = { url: "https://a.example/", titulo: "A", data_fonte: null, trecho: "t" };
 const vazia = { horario: [], instagram: [], telefone: [], endereco: [], faixa_preco: [], booleanos: [], situacao: [] };
@@ -39,5 +39,61 @@ describe("aFatos", () => {
     const fatos = aFatos(e, (f) => f.url === "https://a.example/");
     expect(fatos.instagram).toHaveLength(1);
     expect(fatos.booleanos?.aceita_pets?.[0]).toMatchObject({ valor: true, negacaoExplicita: false });
+  });
+});
+
+const sinal = { sinal: "grãos de origem", url: "https://a.example/", trecho: "grãos de origem única" };
+const candidato = {
+  nome: "Café Novo",
+  cidade: "Recife",
+  bairro: null,
+  endereco: null,
+  instagram: "@novo",
+  telefone: null,
+  horario: { segunda: "08:00 – 18:00" },
+  faixa_preco: null,
+  sinais: [sinal],
+  fontes: [fonte],
+};
+
+describe("lerCandidatos", () => {
+  it("aceita candidatos no schema, com opcionais nulos", () => {
+    const { candidatos } = lerCandidatos({ candidatos: [candidato] });
+    expect(candidatos[0]).toMatchObject({ nome: "Café Novo", bairro: null, horario: { segunda: "08:00 – 18:00" } });
+    expect(candidatos[0].sinais).toEqual([sinal]);
+  });
+
+  it("aceita lista vazia", () => {
+    expect(lerCandidatos({ candidatos: [] }).candidatos).toEqual([]);
+  });
+
+  it.each([
+    ["não é objeto", "texto"],
+    ["lista ausente", {}],
+    ["candidato sem nome", { candidatos: [{ ...candidato, nome: undefined }] }],
+    ["opcional que não é texto nem null", { candidatos: [{ ...candidato, bairro: 3 }] }],
+    ["sinal sem trecho", { candidatos: [{ ...candidato, sinais: [{ sinal: "x", url: "u" }] }] }],
+    ["fonte sem url", { candidatos: [{ ...candidato, fontes: [{ titulo: "A", data_fonte: null, trecho: "t" }] }] }],
+    ["horário que não é objeto", { candidatos: [{ ...candidato, horario: "8h" }] }],
+  ])("recusa: %s", (_, bruto) => {
+    expect(() => lerCandidatos(bruto)).toThrow(ExtracaoInvalida);
+  });
+});
+
+describe("aCandidatoCafeNovo", () => {
+  const { candidatos } = lerCandidatos({
+    candidatos: [{ ...candidato, sinais: [sinal, { ...sinal, trecho: "inventado" }], fontes: [fonte, { ...fonte, url: "https://b.example/" }] }],
+  });
+
+  it("mantém só sinais e fontes que a página sustenta", () => {
+    const c = aCandidatoCafeNovo(candidatos[0], (f) => f.url === "https://a.example/" && f.trecho !== "inventado");
+    expect(c.sinais).toEqual([sinal]);
+    expect(c.fontes.map((f) => f.url)).toEqual(["https://a.example/"]);
+    expect(c).toMatchObject({ nome: "Café Novo", cidade: "Recife", instagram: "@novo" });
+  });
+
+  it("a fonte de um sinal sustentado também é fonte do cadastro", () => {
+    const c = aCandidatoCafeNovo({ ...candidatos[0], fontes: [] }, () => true);
+    expect(c.fontes.map((f) => f.url)).toContain("https://a.example/");
   });
 });

@@ -8,8 +8,10 @@ import { DIAS_DA_SEMANA } from "../../src/lib/cafe-hours";
 import {
   CAMPOS_BOOLEANOS,
   type CampoBooleano,
+  type CandidatoCafeNovo,
   type FatosDoCafe,
   type FonteDoFato,
+  type Sinal,
   type Situacao,
 } from "../../src/lib/revisao-proposta";
 
@@ -154,4 +156,98 @@ export function aFatos(extracao: Extracao, manter: (fonte: Citacao) => boolean):
     booleanos,
     situacao: ok(extracao.situacao),
   };
+}
+
+/** Um candidato a café novo, como o Gemini o devolve (#189). Opcionais vêm `null`, nunca estimados. */
+export type Candidato = {
+  nome: string;
+  cidade: string;
+  bairro: string | null;
+  endereco: string | null;
+  instagram: string | null;
+  telefone: string | null;
+  horario: Partial<Record<DiaSemana, string>> | null;
+  faixa_preco: string | null;
+  sinais: Sinal[];
+  fontes: Citacao[];
+};
+
+const CAMPOS_DE_TEXTO_DO_CANDIDATO = ["bairro", "endereco", "instagram", "telefone", "faixa_preco"] as const;
+
+/** `responseJsonSchema` da busca aberta. */
+export const SCHEMA_DOS_CANDIDATOS = {
+  type: "object",
+  properties: {
+    candidatos: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          nome: { type: "string" },
+          cidade: { type: "string", description: "Recife, Olinda ou Jaboatão dos Guararapes." },
+          ...Object.fromEntries(CAMPOS_DE_TEXTO_DO_CANDIDATO.map((campo) => [campo, { type: ["string", "null"] }])),
+          horario: {
+            type: ["object", "null"],
+            description: 'Horário por dia, "HH:MM – HH:MM" (turnos separados por ", ") ou "Fechado".',
+            properties: Object.fromEntries(DIAS_DA_SEMANA.map((dia) => [dia, { type: "string" }])),
+          },
+          sinais: {
+            type: "array",
+            description: "Indícios de café especial (origem do grão, torra própria, métodos filtrados…), cada um com o trecho LITERAL.",
+            items: {
+              type: "object",
+              properties: { sinal: { type: "string" }, url: CITACAO.url, trecho: CITACAO.trecho },
+              required: ["sinal", "url", "trecho"],
+            },
+          },
+          fontes: {
+            type: "array",
+            description: "Páginas que sustentam os dados de cadastro.",
+            items: { type: "object", properties: CITACAO, required: ["url", "titulo", "data_fonte", "trecho"] },
+          },
+        },
+        required: ["nome", "cidade", ...CAMPOS_DE_TEXTO_DO_CANDIDATO, "horario", "sinais", "fontes"],
+      },
+    },
+  },
+  required: ["candidatos"],
+} as const;
+
+function textoOuNulo(valor: unknown, onde: string): string | null {
+  if (valor === null) return null;
+  return texto(valor, onde);
+}
+
+/** Resposta do Gemini na busca aberta → candidatos tipados, ou `ExtracaoInvalida`. */
+export function lerCandidatos(bruto: unknown): { candidatos: Candidato[] } {
+  const raiz = registro(bruto, "candidatos");
+  return {
+    candidatos: lista(raiz, "candidatos", (item, onde) => ({
+      nome: texto(item.nome, `${onde}.nome`),
+      cidade: texto(item.cidade, `${onde}.cidade`),
+      bairro: textoOuNulo(item.bairro, `${onde}.bairro`),
+      endereco: textoOuNulo(item.endereco, `${onde}.endereco`),
+      instagram: textoOuNulo(item.instagram, `${onde}.instagram`),
+      telefone: textoOuNulo(item.telefone, `${onde}.telefone`),
+      faixa_preco: textoOuNulo(item.faixa_preco, `${onde}.faixa_preco`),
+      horario: item.horario === null ? null : horarioDe(item.horario, `${onde}.horario`),
+      sinais: lista(item, "sinais", (s, o) => ({ sinal: texto(s.sinal, `${o}.sinal`), url: texto(s.url, `${o}.url`), trecho: texto(s.trecho, `${o}.trecho`) })),
+      fontes: lista(item, "fontes", citacao),
+    })),
+  };
+}
+
+/**
+ * Candidato → entrada do `proporCafeNovo`, mantendo só os sinais e as fontes que
+ * `manter` aprova (o trecho existe na página). A fonte de um sinal sustentado
+ * também é fonte do cadastro: a administradora sempre vê de onde veio.
+ */
+export function aCandidatoCafeNovo(candidato: Candidato, manter: (fonte: { url: string; trecho: string }) => boolean): CandidatoCafeNovo {
+  const sinais = candidato.sinais.filter(manter);
+  const fontes = candidato.fontes.filter(manter);
+  for (const { url, trecho } of sinais) {
+    if (!fontes.some((f) => f.url === url)) fontes.push({ url, titulo: url, data_fonte: null, trecho });
+  }
+  const { nome, cidade, bairro, endereco, instagram, telefone, horario, faixa_preco } = candidato;
+  return { nome, cidade, bairro, endereco, instagram, telefone, horario, faixa_preco, sinais, fontes };
 }

@@ -16,7 +16,7 @@ const PRIMEIRA_SEGUNDA = 4;
  * Número da semana (segunda a domingo) desde 1970, no dia de `America/Recife`.
  * Contínuo: a semana ISO do ano reinicia em janeiro e quebraria o ciclo de 4.
  */
-function semanaDeRecife(agora: Date): number {
+export function semanaDeRecife(agora: Date): number {
   const [ano, mes, dia] = hojeEmRecife(agora).split("-").map(Number);
   const dias = Math.floor(Date.UTC(ano, mes - 1, dia) / MS_POR_DIA);
   return Math.floor((dias - PRIMEIRA_SEGUNDA) / 7);

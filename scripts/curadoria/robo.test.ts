@@ -54,12 +54,16 @@ function deps(over: Partial<Omit<Dependencias, "tavily" | "gemini">> & { tavily?
     buscar: vi.fn(over.tavily?.buscar ?? (async () => [{ url: URL_SITE, titulo: "Guia", trecho: "resumo" }])),
     extrair: vi.fn(over.tavily?.extrair ?? (async () => [{ url: URL_SITE, texto: TEXTO }])),
   };
-  const gemini = { extrair: vi.fn(over.gemini?.extrair ?? (async () => vazia())) };
+  const gemini = {
+    extrair: vi.fn(over.gemini?.extrair ?? (async () => vazia())),
+    extrairCandidatos: vi.fn(over.gemini?.extrairCandidatos ?? (async () => ({ candidatos: [] }))),
+  };
   const pausa = vi.fn(async () => {});
   const base: Dependencias = {
     lerContexto: async () => ({ cafes: TODOS, rejeitadas: [], cafes_novos_rejeitados: [] }),
     agora: AGORA,
     pausa,
+    consultas: [], // a busca aberta só roda nos testes dela
     ...over,
     log,
     registrar,
@@ -269,5 +273,137 @@ describe("rodarRodada", () => {
     expect(log).not.toContain(SEGREDO);
     expect(log).not.toContain(CORPO);
     expect(log).not.toContain(URL_SITE);
+  });
+});
+
+
+describe("busca aberta de cafés novos (#189)", () => {
+  const SINAL = { sinal: "torra própria", url: URL_SITE, trecho: "Aberto desde 2020" };
+  const candidato = (extra: Record<string, unknown> = {}) => ({
+    nome: "Torra Nova",
+    cidade: "Recife",
+    bairro: "Boa Viagem",
+    endereco: null,
+    instagram: "@torranova",
+    telefone: null,
+    faixa_preco: null,
+    horario: null,
+    sinais: [SINAL],
+    fontes: [citacao(TRECHO_INSTA)],
+    ...extra,
+  });
+  const achados = (...candidatos: unknown[]) => ({ extrairCandidatos: async () => ({ candidatos }) });
+  const abertas = (d: ReturnType<typeof deps>) =>
+    (d.tavily.buscar as ReturnType<typeof vi.fn>).mock.calls.map(([q]) => q as string).filter((q) => q.startsWith("q"));
+
+  it("registra o café novo com sinal sustentado pela página, com fontes e atualidade", async () => {
+    const d = deps({ consultas: ["q1"], gemini: achados(candidato()) });
+    const { revisoes } = await rodarRodada(d);
+    const novas = revisoes.filter((r) => r.tipo === "cafe_novo");
+    expect(novas).toHaveLength(1);
+    expect(novas[0]).toMatchObject({
+      cafe_id: null,
+      campo: null,
+      valor_atual: null,
+      nome_normalizado: "torra-nova",
+      valor_proposto: { nome: "Torra Nova", cidade: "Recife", bairro: "Boa Viagem", instagram: "https://instagram.com/torranova", sinais: [SINAL] },
+    });
+    expect(novas[0].fontes[0]).toMatchObject({ url: URL_SITE, trecho: TRECHO_INSTA, atualidade: "atualizada" });
+    expect(d.registrar.mock.calls[0][1]).toEqual(revisoes);
+  });
+
+  it.each([
+    ["sem sinal", candidato({ sinais: [] })],
+    ["fora das três cidades", candidato({ cidade: "Caruaru" })],
+    ["já no diretório, ativo", candidato({ nome: "Café 1" })],
+    ["já no diretório, fora do ar", candidato({ nome: "Cafeteria Inativa" })],
+    ["já rejeitado", candidato({ nome: "Coffee Rejeitado" })],
+    ["trecho do sinal que não está na página", candidato({ sinais: [{ ...SINAL, trecho: "grãos colhidos na lua" }] })],
+    ["sinal de uma URL que não foi lida", candidato({ sinais: [{ ...SINAL, url: "https://outra.example/" }] })],
+  ])("nunca registra candidato %s", async (_, c) => {
+    const d = deps({
+      consultas: ["q1"],
+      gemini: achados(c),
+      lerContexto: async () => ({
+        cafes: [...TODOS, cafe(99, { nome: "Cafeteria Inativa", ativo: false })],
+        rejeitadas: [],
+        cafes_novos_rejeitados: ["Rejeitado Coffee"],
+      }),
+    });
+    const { revisoes } = await rodarRodada(d);
+    expect(revisoes.filter((r) => r.tipo === "cafe_novo")).toEqual([]);
+  });
+
+  it("Santa Clara entra sem sinal; o mesmo café em duas consultas vira uma revisão", async () => {
+    const d = deps({ consultas: ["q1", "q2"], gemini: achados(candidato({ nome: "Santa Clara", sinais: [], fontes: [citacao("Aberto desde 2020")] })) });
+    const { revisoes } = await rodarRodada(d);
+    expect(revisoes.filter((r) => r.tipo === "cafe_novo")).toHaveLength(1);
+    expect(d.gemini.extrairCandidatos).toHaveBeenCalledTimes(2);
+  });
+
+  it("reserva o rodízio inteiro: a busca só usa o que sobra do teto, e o rodízio nunca é cortado", async () => {
+    // 3 cafés na semana reservam 3 chamadas Gemini: com teto de 5, sobram 2 consultas.
+    const d = deps({ consultas: ["q1", "q2", "q3", "q4"], limites: { creditosTavily: 70, chamadasGemini: 5 } });
+    const { rodada } = await rodarRodada(d);
+    expect(abertas(d)).toHaveLength(2);
+    expect(rodada.cafes_verificados).toBe(DA_SEMANA.length);
+    expect(rodada.chamadas_gemini).toBe(5);
+    expect(rodada.erro).toBe("teto");
+  });
+
+  it("reserva também os créditos do Tavily", async () => {
+    // 3 cafés reservam 6 créditos; com teto de 10 sobram 4 = 2 consultas de 2 créditos.
+    const d = deps({ consultas: ["q1", "q2", "q3"], limites: { creditosTavily: 10, chamadasGemini: 18 } });
+    const { rodada } = await rodarRodada(d);
+    expect(abertas(d)).toHaveLength(2);
+    expect(rodada.cafes_verificados).toBe(DA_SEMANA.length);
+    expect(rodada.chamadas_tavily).toBeLessThanOrEqual(10);
+  });
+
+  it("a janela de consultas gira a cada semana e cobre todas", async () => {
+    const limites = { creditosTavily: 70, chamadasGemini: 5 };
+    const consultas = ["q1", "q2", "q3", "q4"];
+    const a = deps({ consultas, limites });
+    await rodarRodada(a);
+    const b = deps({ consultas, limites, agora: new Date(AGORA.getTime() + 7 * 86_400_000) });
+    await rodarRodada(b);
+    expect(abertas(a)).not.toEqual(abertas(b));
+    expect(new Set([...abertas(a), ...abertas(b)]).size).toBe(4);
+  });
+
+  it("falha numa consulta (busca, Gemini ou schema) não derruba a rodada", async () => {
+    let n = 0;
+    const d = deps({
+      consultas: ["q1", "q2", "q3"],
+      tavily: {
+        buscar: async (q) => {
+          if (q === "q1") throw new Error(`401 ${CHAVE}`);
+          return [{ url: URL_SITE, titulo: "Guia", trecho: "resumo" }];
+        },
+      },
+      gemini: {
+        extrairCandidatos: async () => {
+          if (++n === 1) throw new Error(`503 ${CHAVE}`);
+          return { candidatos: "lixo" };
+        },
+      },
+    });
+    const { rodada } = await rodarRodada(d);
+    expect(rodada.cafes_verificados).toBe(DA_SEMANA.length);
+    expect(rodada.erro).toBe("falhas:busca=1,gemini=1,schema=1");
+    expect(d.registrar).toHaveBeenCalledTimes(1);
+  });
+
+  it("a pausa vale para todas as chamadas ao Gemini, buscas abertas e verificações", async () => {
+    const d = deps({ consultas: ["q1", "q2"] });
+    const { rodada } = await rodarRodada(d);
+    expect(d.pausa).toHaveBeenCalledTimes(rodada.chamadas_gemini - 1);
+  });
+
+  it("o log não leva URL, chave, segredo nem corpo de página", async () => {
+    const d = deps({ consultas: ["q1"], gemini: achados(candidato({ sinais: [{ ...SINAL, trecho: CORPO }] })) });
+    await rodarRodada(d);
+    const log = d.log.mock.calls.map(([m]) => m).join("\n");
+    for (const proibido of [CHAVE, SEGREDO, CORPO, URL_SITE, "Torra Nova"]) expect(log).not.toContain(proibido);
   });
 });

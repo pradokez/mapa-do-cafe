@@ -62,6 +62,20 @@ export async function clientAutenticado(usuario: UsuarioTeste): Promise<Supabase
   return client;
 }
 
+/**
+ * Loga como o usuário, cadastra um autenticador TOTP e o confirma: devolve um
+ * client com sessão **aal2**, a que a RLS do admin exige (#188). Com
+ * `appMetadata.role=admin`, é a administradora de verdade.
+ */
+export async function clientAal2(usuario: UsuarioTeste): Promise<SupabaseClient> {
+  const client = await clientAutenticado(usuario);
+  const { data: fator, error: erroEnroll } = await client.auth.mfa.enroll({ factorType: "totp" });
+  if (erroEnroll || !fator) throw new Error(`não cadastrou o TOTP de ${usuario.email}: ${erroEnroll?.message}`);
+  const { error } = await client.auth.mfa.challengeAndVerify({ factorId: fator.id, code: totp(fator.totp.secret) });
+  if (error) throw new Error(`não confirmou o TOTP de ${usuario.email}: ${error.message}`);
+  return client;
+}
+
 // --- TOTP (RFC 6238) para tentar uma sessão aal2 real quando o plano permite ---
 
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";

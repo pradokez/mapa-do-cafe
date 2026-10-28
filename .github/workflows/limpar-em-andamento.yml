@@ -1,0 +1,24 @@
+name: Limpar em-andamento
+
+# A label `em-andamento` marca a issue que alguém já está implementando
+# (skill dev-task). Quando a issue fecha — pelo `Closes #n` do PR mergeado ou
+# à mão —, ninguém mais está trabalhando nela.
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  remover-label:
+    if: contains(github.event.issue.labels.*.name, 'em-andamento')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remover a label da issue fechada
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: gh issue edit "$ISSUE" --remove-label em-andamento

@@ -44,7 +44,8 @@ export function CafeDirectory({
   vitrines: Edicao[];
   /**
    * O instante em que o servidor decidiu: o da vitrine e o primeiro do
-   * "Aberto agora", para o HTML já sair filtrado e a hidratação bater.
+   * "Aberto agora" e do horário nos cards (#163), para o HTML já sair
+   * filtrado e a hidratação bater.
    */
   agora: Date;
   /** `configDoPix` das envs; sem ela, o botão de apoio não aparece. */
@@ -143,6 +144,7 @@ export function CafeDirectory({
             <h1 className="sr-only">Cafés especiais em Recife e Olinda</h1>
             <CafeList
               cafes={filtrados}
+              agora={agoraDoFiltro}
               festivais={festivais}
               hovered={hoveredVisivel}
               selectedId={selectedId}

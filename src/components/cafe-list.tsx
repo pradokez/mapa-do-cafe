@@ -22,6 +22,8 @@ export type Hovered = { id: string; source: "card" | "pin" };
 
 type Props = {
   cafes: Cafe[];
+  /** Instante do request: o horário de agora nos cards (#163). */
+  agora: Date;
   /** Participantes dos festivais no ar: os selos dos cards. */
   festivais: FestivaisNoAr;
   hovered?: Hovered | null;
@@ -35,7 +37,7 @@ type Props = {
   topo?: ReactNode;
 };
 
-export function CafeList({ cafes, festivais, hovered = null, selectedId = null, onHover, onLimpar, topo }: Props) {
+export function CafeList({ cafes, agora, festivais, hovered = null, selectedId = null, onHover, onLimpar, topo }: Props) {
   const highlightOf = (id: string): CardHighlight | undefined => {
     if (id === selectedId || (id === hovered?.id && hovered.source === "pin")) return "linked";
     if (id === hovered?.id) return "lifted";
@@ -86,7 +88,7 @@ export function CafeList({ cafes, festivais, hovered = null, selectedId = null, 
                 onFocus={() => onHover?.(cafe.id)}
                 onBlur={() => onHover?.(null)}
               >
-                <CafeCard cafe={cafe} festivais={festivais} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
+                <CafeCard cafe={cafe} agora={agora} festivais={festivais} highlight={highlightOf(cafe.id)} priority={i < CARDS_PRIORITARIOS} />
               </li>
             ))}
           </ul>

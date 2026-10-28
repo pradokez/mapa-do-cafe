@@ -76,7 +76,7 @@ const vitrine = () => screen.queryByRole("region", { name: "Combos do Eu Amo Caf
 
 describe("Vitrine do festival na home", () => {
   it("durante a edição e sem filtro, mostra os combos na ordem do número e leva à página", () => {
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
 
     const secao = vitrine()!;
     expect(within(secao).getByText("2 cafés participando · até 15 nov · R$ 34,90")).toBeDefined();
@@ -87,7 +87,7 @@ describe("Vitrine do festival na home", () => {
   });
 
   it("diz de onde vêm as artes, com link para o Instagram do festival", () => {
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
 
     const link = within(vitrine()!).getByRole("link", { name: /^Eu Amo Café/ });
     expect(link.closest("p")?.textContent).toBe("Artes divulgadas no Instagram do Eu Amo Café (abre em nova aba).");
@@ -96,37 +96,37 @@ describe("Vitrine do festival na home", () => {
 
   it("antes do início, a vitrine já aparece, com a contagem no lugar do prazo", () => {
     const antes = new Date("2026-10-10T15:00:00Z");
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: antes }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={antes} />);
     expect(within(vitrine()!).getByText("2 cafés participando · começa em 8 dias · R$ 34,90")).toBeDefined();
   });
 
   it("sem edição no ar, não há vitrine", () => {
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[]} agora={DURANTE} />);
     expect(vitrine()).toBeNull();
   });
 
   it("sem nenhum participante na lista de cafés (saíram do ar), não há vitrine", () => {
     const foraDoAr = { ...EU_AMO_CAFE, participacoes: [participacao("z", 1)] };
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [foraDoAr], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[foraDoAr]} agora={DURANTE} />);
     expect(vitrine()).toBeNull();
   });
 
   it.each(["/?pets=true", "/?q=kaffe", "/?eu_amo_cafe=true"])("com filtro ou busca (%s), a vitrine some", (url) => {
     replaceState(null, "", url);
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
     expect(vitrine()).toBeNull();
   });
 
   it("limpar os filtros traz a vitrine de volta", async () => {
     replaceState(null, "", "/?pets=true");
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
 
     await userEvent.click(screen.getAllByRole("button", { name: "Limpar filtros" })[0]);
     expect(vitrine()).not.toBeNull();
   });
 
   it("tocar numa arte a amplia, com \"Ver café\"; fechar devolve o foco ao combo", async () => {
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
 
     await userEvent.click(within(vitrine()!).getByRole("button", { name: /Versado/ }));
     const dialogo = screen.getByRole("dialog", { name: "Versado, combo 2 de 2" });
@@ -143,7 +143,7 @@ describe("Vitrine do festival na home", () => {
   });
 
   it("no desktop, as setas passam para o próximo conjunto e se apagam nas pontas", async () => {
-    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={{ edicoes: [EU_AMO_CAFE], agora: DURANTE }} />);
+    render(<CafeDirectory cafes={CAFES} festivais={FESTIVAIS} vitrines={[EU_AMO_CAFE]} agora={DURANTE} />);
     const secao = vitrine()!;
     const fileira = within(secao).getByRole("list");
     // Sem layout no jsdom: 300 px à vista de 900.

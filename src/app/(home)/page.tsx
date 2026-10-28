@@ -22,11 +22,17 @@ export default async function Home() {
   const [cafes, edicoes] = await Promise.all([listCafesAtivos(), listFestivais()]);
   const agora = new Date();
   const festivais = participantesNoAr(edicoes, agora);
-  const vitrines = { edicoes: edicoesEmVitrine(edicoes, agora), agora };
+
 
   return (
     <div className="flex h-dvh flex-col">
-      <CafeDirectory cafes={cafes} festivais={festivais} vitrines={vitrines} pix={configDoPix(process.env)} />
+      <CafeDirectory
+        cafes={cafes}
+        festivais={festivais}
+        vitrines={edicoesEmVitrine(edicoes, agora)}
+        agora={agora}
+        pix={configDoPix(process.env)}
+      />
     </div>
   );
 }

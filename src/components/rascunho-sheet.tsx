@@ -10,6 +10,9 @@ import { OPCOES_DE_RAIO, raioLabel, type Coordenadas, type RaioKm } from "@/lib/
 import { filtrarCafes, type CafeFilters } from "@/lib/cafe-filter";
 import type { FestivaisNoAr } from "@/lib/festival";
 
+/** O que os sheets chamam ao aplicar: o estado inteiro e, do rascunho, o instante da abertura. */
+export type AplicarFiltros = (next: CafeFilters, agora?: Date) => void;
+
 type Props = {
   titulo: string;
   /** Botão que abre o sheet; recebe o foco de volta ao fechar. */
@@ -21,7 +24,8 @@ type Props = {
   origem: Coordenadas | null;
   /** Filtros em vigor (a URL): o rascunho parte deles a cada abertura. */
   filters: CafeFilters;
-  onAplicar: (next: CafeFilters) => void;
+  /** Aplica o rascunho com o instante em que o sheet abriu (o do "Aberto agora"). */
+  onAplicar: AplicarFiltros;
   children: (rascunho: CafeFilters, mudar: (next: CafeFilters) => void) => React.ReactNode;
 };
 
@@ -29,19 +33,25 @@ type Props = {
  * Bottom sheet de filtro do mobile, com rascunho: marcar opções não mexe na
  * URL, e "Ver N cafés" já conta o resultado do rascunho. Só o botão aplica
  * (uma entrada no histórico); Esc, toque no fundo ou arrasto para baixo descartam.
+ * O "Aberto agora" conta com o instante da abertura, que vai junto ao aplicar:
+ * o número do botão é o da lista que aparece.
  */
 export function RascunhoSheet({ titulo, trigger, cafes, festivais, origem, filters, onAplicar, children }: Props) {
   const [aberto, setAberto] = useState(false);
   const [rascunho, setRascunho] = useState(filters);
+  const [agora, setAgora] = useState<Date | null>(null);
 
   const abrirOuFechar = (abrir: boolean) => {
-    if (abrir) setRascunho(filters);
+    if (abrir) {
+      setRascunho(filters);
+      setAgora(new Date());
+    }
     setAberto(abrir);
   };
   // A busca não é do sheet: um termo que chega com ele aberto (debounce do
   // campo) vale para a contagem e não é desfeito ao aplicar.
   const efetivo = { ...rascunho, q: filters.q };
-  const total = filtrarCafes(cafes, efetivo, { festivais, origem }).length;
+  const total = filtrarCafes(cafes, efetivo, { festivais, origem, agora }).length;
 
   return (
     <Sheet open={aberto} onOpenChange={abrirOuFechar}>
@@ -52,7 +62,7 @@ export function RascunhoSheet({ titulo, trigger, cafes, festivais, origem, filte
         <button
           type="button"
           onClick={() => {
-            onAplicar(efetivo);
+            onAplicar(efetivo, agora ?? undefined);
             setAberto(false);
           }}
           className="mt-3.5 h-12 flex-none rounded-full bg-espresso text-[15px] font-semibold text-cream"

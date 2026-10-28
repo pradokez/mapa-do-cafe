@@ -78,7 +78,7 @@ function renderHome() {
     <CafeDirectory
       cafes={CAFES}
       festivais={{ "eu-amo-cafe": ["perto"] }}
-      vitrines={{ edicoes: [EDICAO], agora: DURANTE }}
+      vitrines={[EDICAO]} agora={DURANTE}
     />,
   );
 }

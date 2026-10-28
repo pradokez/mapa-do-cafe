@@ -47,7 +47,7 @@ describe("BairroSheet", () => {
     await userEvent.click(screen.getByRole("button", { name: "Ver 3 cafés" }));
 
     expect(onAplicar).toHaveBeenCalledOnce();
-    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, bairros: ["gracas", "espinheiro"] });
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, bairros: ["gracas", "espinheiro"] }, expect.any(Date));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -84,7 +84,7 @@ describe("BairroSheet", () => {
     expect(screen.getByRole("checkbox", { name: "Todos os bairros" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByRole("checkbox", { name: "Graças" }).getAttribute("aria-checked")).toBe("false");
     await userEvent.click(screen.getByRole("button", { name: "Ver 3 cafés" }));
-    expect(onAplicar).toHaveBeenCalledWith(FILTROS_VAZIOS);
+    expect(onAplicar).toHaveBeenCalledWith(FILTROS_VAZIOS, expect.any(Date));
   });
 
   it("o rascunho parte dos filtros em vigor, inclusive os de fora do sheet", async () => {
@@ -96,7 +96,7 @@ describe("BairroSheet", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "Graças" }));
     await userEvent.click(screen.getByRole("button", { name: "Ver 0 cafés" }));
 
-    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, pets: true, bairros: ["gracas"] });
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, pets: true, bairros: ["gracas"] }, expect.any(Date));
   });
 
   it("busca que chega com o sheet aberto (debounce) não é desfeita ao aplicar", async () => {
@@ -110,7 +110,7 @@ describe("BairroSheet", () => {
 
     expect(screen.getByRole("button", { name: "Ver 0 cafés" })).toBeDefined();
     await userEvent.click(screen.getByRole("button", { name: "Ver 0 cafés" }));
-    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, q: "zzz", bairros: ["gracas"] });
+    expect(onAplicar).toHaveBeenCalledWith({ ...FILTROS_VAZIOS, q: "zzz", bairros: ["gracas"] }, expect.any(Date));
   });
 
   describe("arrastar para baixo", () => {

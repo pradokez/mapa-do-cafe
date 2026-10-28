@@ -42,27 +42,30 @@ const chipsDaBarra = () =>
     .map((el) => el.getAttribute("aria-label"));
 
 describe("FilterBar", () => {
-  it("a barra mostra os festivais no ar e o estacionamento; o resto fica em Mais filtros", () => {
+  it("a barra mostra o Aberto agora, os festivais no ar e o estacionamento; o resto fica em Mais filtros", () => {
     renderBar();
 
-    expect(chipsDaBarra()).toEqual(["Recife Coffee", "Eu Amo Café", "Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
+    expect(chipsDaBarra()).toEqual(["Aberto agora", "Recife Coffee", "Eu Amo Café", "Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
     expect(screen.queryByRole("button", { name: "Aceita pets" })).toBeNull();
   });
 
-  it("só o festival no ar tem chip; sem nenhum no ar, a barra começa no estacionamento", () => {
+  it("só o festival no ar tem chip; sem nenhum no ar, o estacionamento vem logo depois do Aberto agora", () => {
     renderBar(FILTROS_VAZIOS, { "eu-amo-cafe": [] });
-    expect(chipsDaBarra()).toEqual(["Eu Amo Café", "Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
+    expect(chipsDaBarra()).toEqual(["Aberto agora", "Eu Amo Café", "Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
 
     cleanup();
     renderBar(FILTROS_VAZIOS, {});
-    expect(chipsDaBarra()).toEqual(["Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
+    expect(chipsDaBarra()).toEqual(["Aberto agora", "Tem estacionamento", "Econômico", "Moderado", "Elevado"]);
   });
 
-  it("o chip do festival liga o filtro dele", async () => {
+  it("o chip do festival e o do Aberto agora ligam o filtro deles", async () => {
     const onToggle = renderBar(FILTROS_VAZIOS, { "eu-amo-cafe": [] });
     await userEvent.click(screen.getByRole("button", { name: "Eu Amo Café" }));
 
     expect(onToggle).toHaveBeenCalledWith("euAmoCafe");
+
+    await userEvent.click(screen.getByRole("button", { name: "Aberto agora" }));
+    expect(onToggle).toHaveBeenCalledWith("abertoAgora");
   });
 
   it("Mais filtros oferece os outros atributos e liga o marcado", async () => {

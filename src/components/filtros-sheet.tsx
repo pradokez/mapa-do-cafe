@@ -2,9 +2,9 @@
 
 import { useId } from "react";
 
-import { ATRIBUTOS, selosNoAr, type SELOS } from "@/components/cafe-atributos";
+import { ABERTO_AGORA, ATRIBUTOS, selosNoAr, type SELOS } from "@/components/cafe-atributos";
 import { AtributoChip } from "@/components/filter-chip";
-import { RaioOpcoes, RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
+import { RaioOpcoes, RascunhoSheet, SheetOption, type AplicarFiltros } from "@/components/rascunho-sheet";
 import { SlidersIcon } from "@/components/icons";
 import { BOTAO_HEADER_MOBILE } from "@/components/medidas";
 import type { Cafe } from "@/lib/cafe";
@@ -20,11 +20,12 @@ type Props = {
   /** Posição do navegador: o raio conta para o "Ver N cafés". */
   origem: Coordenadas | null;
   filters: CafeFilters;
-  onAplicar: (next: CafeFilters) => void;
+  onAplicar: AplicarFiltros;
 };
 
 /**
  * Botão de filtros do header mobile (com badge) + bottom sheet em seções:
+ * horário com o chip "Aberto agora" (#162, no topo, como no design da #159),
  * distância em linhas de escolha única (#161, no topo, como no design da
  * #159), selos (dos festivais no ar) e comodidades em chips (como no design v2),
  * faixa de preço em linhas (o chip "$" sozinho perderia o nome). Desvio
@@ -65,6 +66,9 @@ export function FiltrosSheet({ cafes, festivais, origem, filters, onAplicar }: P
         const alternarFiltro = (filtro: FiltroBooleano) => mudar({ ...rascunho, [filtro]: !rascunho[filtro] });
         return (
           <>
+            <Secao titulo="Horário">
+              <Chips opcoes={[ABERTO_AGORA]} rascunho={rascunho} onToggle={alternarFiltro} />
+            </Secao>
             <Secao titulo="Distância">
               <RaioOpcoes raioKm={rascunho.raioKm} onEscolher={(raioKm) => mudar({ ...rascunho, raioKm })} />
             </Secao>
@@ -112,7 +116,7 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 }
 
 type ChipsProps = {
-  opcoes: ReadonlyArray<(typeof SELOS)[number] | (typeof ATRIBUTOS)[number]>;
+  opcoes: ReadonlyArray<(typeof SELOS)[number] | (typeof ATRIBUTOS)[number] | typeof ABERTO_AGORA>;
   rascunho: CafeFilters;
   onToggle: (filtro: FiltroBooleano) => void;
 };

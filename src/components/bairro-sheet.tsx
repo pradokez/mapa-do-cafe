@@ -1,7 +1,7 @@
 "use client";
 
 import { chipClass } from "@/components/filter-chip";
-import { RascunhoSheet, SheetOption } from "@/components/rascunho-sheet";
+import { RascunhoSheet, SheetOption, type AplicarFiltros } from "@/components/rascunho-sheet";
 import { ChevronDownIcon } from "@/components/icons";
 import type { Cafe } from "@/lib/cafe";
 import type { Coordenadas } from "@/lib/cafe-distance";
@@ -14,7 +14,7 @@ type Props = {
   origem: Coordenadas | null;
   bairros: BairroOpcao[];
   filters: CafeFilters;
-  onAplicar: (next: CafeFilters) => void;
+  onAplicar: AplicarFiltros;
 };
 
 /**

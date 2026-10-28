@@ -1,6 +1,7 @@
 import {
   AccessibilityIcon,
   CarIcon,
+  ClockIcon,
   CoffeeIcon,
   HeartIcon,
   LaptopIcon,
@@ -44,6 +45,17 @@ export const ATRIBUTOS = [
   { key: "opcoes_vegetarianas", filtro: "vegetariano", label: "Opções vegetarianas", curto: "Vegetariano", Icon: LeafIcon },
   { key: "tem_ar_condicionado", filtro: "arCondicionado", label: "Ar-condicionado", curto: "Ar-condicionado", Icon: SnowflakeIcon },
 ] as const satisfies ReadonlyArray<Booleano & { key: keyof Cafe }>;
+
+/**
+ * "Aberto agora" (#162): só filtro, não atributo do café (o estado de agora
+ * sai do `estadoAgora`). Primeiro chip da barra e seção "Horário" do sheet.
+ */
+export const ABERTO_AGORA = {
+  filtro: "abertoAgora",
+  label: "Aberto agora",
+  curto: "Aberto agora",
+  Icon: ClockIcon,
+} as const satisfies Omit<Booleano, "key">;
 
 /** Selos dos festivais no ar, com ou sem participantes: os chips de filtro. */
 export function selosNoAr(festivais: FestivaisNoAr) {

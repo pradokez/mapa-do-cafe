@@ -23,7 +23,8 @@ import type { ConfigDoPix } from "@/lib/pix";
 
 /**
  * Header com a busca + lista + mapa da home, com o estado que os liga: o
- * recorte dos filtros e da busca (na URL, com os festivais no ar), o raio de
+ * recorte dos filtros e da busca (na URL, com os festivais no ar e o instante
+ * do "Aberto agora", #162), o raio de
  * distância (local, fora da URL, #161), a ordem por distância (com posição), hover nos dois sentidos, o café selecionado (preview aberto) e,
  * no mobile, a visão lista ou mapa do FAB — estado local, fora da URL: a home
  * sempre abre na lista. Tudo no cliente, sem round-trip. As vitrines dos
@@ -34,19 +35,35 @@ export function CafeDirectory({
   cafes,
   festivais,
   vitrines,
+  agora,
   pix = null,
 }: {
   cafes: Cafe[];
   festivais: FestivaisNoAr;
-  /** Edições com vitrine hoje (`edicoesEmVitrine`) e o instante em que o servidor decidiu. */
-  vitrines: { edicoes: Edicao[]; agora: Date };
+  /** Edições com vitrine hoje (`edicoesEmVitrine`). */
+  vitrines: Edicao[];
+  /**
+   * O instante em que o servidor decidiu: o da vitrine e o primeiro do
+   * "Aberto agora", para o HTML já sair filtrado e a hidratação bater.
+   */
+  agora: Date;
   /** `configDoPix` das envs; sem ela, o botão de apoio não aparece. */
   pix?: ConfigDoPix | null;
 }) {
   const bairros = useMemo(() => bairrosDisponiveis(cafes), [cafes]);
   const slugs = useMemo(() => bairros.map((b) => b.slug), [bairros]);
-  const { filters: escolhidos, toggle, toggleBairro, limparBairros, togglePreco, buscar, escolherRaio, aplicar, limpar } =
-    useFilterParams(slugs, festivais);
+  const {
+    filters: escolhidos,
+    agora: agoraDoFiltro,
+    toggle,
+    toggleBairro,
+    limparBairros,
+    togglePreco,
+    buscar,
+    escolherRaio,
+    aplicar,
+    limpar,
+  } = useFilterParams(slugs, festivais, agora);
   // Com posição, do mais perto ao mais longe; sem ela (e no HTML do servidor),
   // a ordem alfabética do repositório. Memo: o mapa refaz os pins quando a
   // lista muda de identidade.
@@ -55,8 +72,8 @@ export function CafeDirectory({
   // esconde a vitrine e o chip fica em "Distância". Com ela, o escolhido vale.
   const filters = useMemo(() => (coords ? escolhidos : { ...escolhidos, raioKm: null }), [coords, escolhidos]);
   const filtrados = useMemo(
-    () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords }), coords),
-    [cafes, filters, festivais, coords],
+    () => ordenarPorDistancia(filtrarCafes(cafes, filters, { festivais, origem: coords, agora: agoraDoFiltro }), coords),
+    [cafes, filters, festivais, coords, agoraDoFiltro],
   );
   // O mapa abre na posição e nos cafés mais perto do diretório inteiro, não do recorte.
   const focus = useMemo(() => pontosParaEnquadrar(cafes, coords), [cafes, coords]);
@@ -64,7 +81,7 @@ export function CafeDirectory({
   // Os cafés dos combos saem da lista que já veio, sem repetir no payload.
   const combosDasVitrines = useMemo(
     () =>
-      vitrines.edicoes
+      vitrines
         .map((edicao) => ({ edicao, combos: combosDaEdicao(edicao, cafes) }))
         .filter(({ combos }) => combos.length > 0),
     [vitrines, cafes],
@@ -134,7 +151,7 @@ export function CafeDirectory({
               topo={
                 !comFiltro &&
                 combosDasVitrines.map(({ edicao, combos }) => (
-                  <FestivalVitrine key={edicao.id} edicao={edicao} combos={combos} agora={vitrines.agora} />
+                  <FestivalVitrine key={edicao.id} edicao={edicao} combos={combos} agora={agora} />
                 ))
               }
             />

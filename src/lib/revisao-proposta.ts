@@ -90,7 +90,7 @@ export type Proposta = {
 type Candidato = { fonte: FonteDoFato; valor: unknown };
 
 /** JSON com chaves em ordem: o `jsonb` não preserva a ordem do horário. */
-function canonico(valor: unknown): string {
+export function canonico(valor: unknown): string {
   return JSON.stringify(valor, (_, v) =>
     v && typeof v === "object" && !Array.isArray(v)
       ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))

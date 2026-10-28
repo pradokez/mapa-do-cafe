@@ -29,7 +29,7 @@ export const CONSULTAS_ABERTAS = ["café especial", "cafeteria nova"].flatMap((t
 );
 /**
  * Quantas consultas abertas uma rodada pretende fazer; menos que isso, por falta de teto, é "teto".
- * Com ~15 cafés na semana, o rodízio reserva 15 das 18 chamadas Gemini: cabem 3 (#190).
+ * Com ~15 cafés na semana (~120 ativos, rodízio de 8 grupos), o rodízio reserva 15 das 18 chamadas Gemini: cabem 3 (#190, #198).
  */
 export const CONSULTAS_POR_RODADA = 3;
 /** O `erro` da rodada cabe em 80 caracteres no banco. */

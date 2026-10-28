@@ -33,7 +33,7 @@ function cafe(n: number, extra: Partial<CafeDoContexto> = {}): CafeDoContexto {
   } as CafeDoContexto;
 }
 
-const TODOS = Array.from({ length: 12 }, (_, i) => cafe(i + 1));
+const TODOS = Array.from({ length: 24 }, (_, i) => cafe(i + 1));
 const DA_SEMANA = rodizio(TODOS, AGORA);
 
 const URL_SITE = "https://guia.example.com/cafe";
@@ -365,8 +365,8 @@ describe("busca aberta de cafés novos (#189)", () => {
     expect(rodada.erro).toBe("teto");
   });
 
-  it("com ~15 cafés na semana e o teto padrão, a busca aberta cabe sem marcar teto (#190)", async () => {
-    const cafes = Array.from({ length: 60 }, (_, i) => cafe(i + 1));
+  it("com ~15 cafés na semana (120 ativos) e o teto padrão, a busca aberta cabe sem marcar teto (#190)", async () => {
+    const cafes = Array.from({ length: 120 }, (_, i) => cafe(i + 1));
     const d = deps({ consultas: CONSULTAS_ABERTAS, lerContexto: async () => ({ cafes, rejeitadas: [], cafes_novos_rejeitados: [] }) });
     const { rodada } = await rodarRodada(d);
     expect(d.gemini.extrairCandidatos).toHaveBeenCalledTimes(CONSULTAS_POR_RODADA);

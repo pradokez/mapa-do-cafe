@@ -173,11 +173,19 @@ describe("decisões na fila (#182)", () => {
     expect(within(item).getByRole("link", { name: "Ver café" }).getAttribute("href")).toBe("/admin/cafes/c1");
   });
 
-  it("café novo só se rejeita; revisão decidida não tem botão", () => {
+  it("café novo se aprova direto (abre o cadastro, #187), mesmo sem data; revisão decidida não tem botão", () => {
     render(
       <ListaDeRevisoes
         revisoes={[
-          revisao({ id: "n", tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null, nome_proposto: "Novo" }),
+          revisao({
+            id: "n",
+            tipo: "cafe_novo",
+            cafe_id: null,
+            campo: null,
+            cafe: null,
+            nome_proposto: "Novo",
+            atualidade: "sem_data",
+          }),
           revisao({ id: "d", cafe_id: "c2", status: "aprovada", cafe: { nome: "Café B", slug: "b", ativo: true } }),
         ]}
         agora={AGORA}
@@ -185,7 +193,7 @@ describe("decisões na fila (#182)", () => {
       />,
     );
 
-    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="n"]')!)).toEqual(["Rejeitar"]);
+    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="n"]')!)).toEqual(["Aprovar", "Rejeitar"]);
     expect(botoes(document.querySelector<HTMLElement>('[data-revisao="d"]')!)).toEqual([]);
   });
 });

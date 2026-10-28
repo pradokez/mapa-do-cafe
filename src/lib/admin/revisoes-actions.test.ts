@@ -16,6 +16,14 @@ const cache = vi.hoisted(() => ({
 }));
 vi.mock("next/cache", () => cache);
 
+// Como o do Next: `redirect` lança, e nada depois dele roda.
+const navegacao = vi.hoisted(() => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT ${url}`);
+  }),
+}));
+vi.mock("next/navigation", () => navegacao);
+
 const sessao = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
 vi.mock("./require-admin", () => sessao);
 
@@ -214,8 +222,8 @@ describe("aprovarRevisao — o que não grava", () => {
     expect(banco.updates).toEqual([]);
   });
 
-  it("café novo não grava em cafes (o cadastro cuida dele)", async () => {
-    repo.getRevisaoById.mockResolvedValue(
+  describe("café novo (#187)", () => {
+    const novo = (mudancas: Partial<Revisao> = {}) =>
       revisao({
         tipo: "cafe_novo",
         cafe_id: null,
@@ -223,13 +231,39 @@ describe("aprovarRevisao — o que não grava", () => {
         valor_atual: null,
         valor_proposto: { nome: "Novo" },
         cafe: null,
-      }),
-    );
+        ...mudancas,
+      });
 
-    expect(await aprovarRevisao(null, form({ id: ID }))).toMatchObject({
-      ok: false,
+    it("não grava nada: abre o cadastro preenchido com a revisão", async () => {
+      repo.getRevisaoById.mockResolvedValue(novo());
+
+      await expect(aprovarRevisao(null, form({ id: ID }))).rejects.toThrow("NEXT_REDIRECT");
+      expect(navegacao.redirect).toHaveBeenCalledWith(`/admin/cafes/novo?revisao=${ID}`);
+      expect(banco.from).not.toHaveBeenCalled();
+      expect(repo.getCafeById).not.toHaveBeenCalled();
     });
-    expect(banco.updates).toEqual([]);
+
+    it("não pede confirmação, nem com a fonte sem data: o cadastro mostra as fontes", async () => {
+      repo.getRevisaoById.mockResolvedValue(novo({ atualidade: "sem_data" }));
+
+      await expect(aprovarRevisao(null, form({ id: ID }))).rejects.toThrow("NEXT_REDIRECT");
+      expect(navegacao.redirect).toHaveBeenCalledWith(`/admin/cafes/novo?revisao=${ID}`);
+    });
+
+    it("já decidido não abre o cadastro", async () => {
+      repo.getRevisaoById.mockResolvedValue(novo({ status: "rejeitada" }));
+
+      expect(await aprovarRevisao(null, form({ id: ID }))).toMatchObject({ ok: false, id: ID });
+      expect(navegacao.redirect).not.toHaveBeenCalled();
+    });
+
+    it("no modo leitura, nem abre o cadastro", async () => {
+      vi.stubEnv("ADMIN_ESCRITA_LIBERADA", "");
+      repo.getRevisaoById.mockResolvedValue(novo());
+
+      expect(await aprovarRevisao(null, form({ id: ID }))).toMatchObject({ ok: false });
+      expect(navegacao.redirect).not.toHaveBeenCalled();
+    });
   });
 
   it("indício sem campo (fechado temporariamente) não se aprova", async () => {

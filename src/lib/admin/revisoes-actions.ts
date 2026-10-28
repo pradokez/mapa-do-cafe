@@ -6,6 +6,7 @@
  * só o que ele devolve vai ao banco. Nada do robô chega ao site sem isso.
  */
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { isUuid } from "@/lib/admin-auth";
 import { validarDadosCafe } from "@/lib/cafe-dados";
@@ -26,7 +27,8 @@ const ERRO_INVALIDA = "O valor proposto não passa na validação do café. Corr
 /**
  * Aprova uma revisão de atualização ou fechamento, relida do banco (o form só
  * traz o id e a confirmação). Formato do `useFormState`: os botões funcionam
- * também sem JavaScript. Fora de `atualizada`, só com `confirmacao=1`.
+ * também sem JavaScript. Fora de `atualizada`, só com `confirmacao=1`. Café
+ * novo vai ao cadastro preenchido (#187), sem gravar.
  */
 export async function aprovarRevisao(_anterior: DecisaoDeRevisao, dados: FormData): Promise<DecisaoDeRevisao> {
   await requireAdmin();
@@ -39,7 +41,11 @@ export async function aprovarRevisao(_anterior: DecisaoDeRevisao, dados: FormDat
   const revisao = await getRevisaoById(id);
   if (!revisao) return { ok: false, id, erro: ERRO_GERAL };
   if (revisao.status !== "pendente") return { ok: false, id, erro: ERRO_DECIDIDA };
-  // Café novo (pelo cadastro) e indício sem campo não têm o que aprovar aqui.
+  // Café novo (#187): nada se grava aqui. O cadastro abre preenchido com a
+  // proposta, e salvá-lo é que marca a revisão aprovada. Sem confirmação: as
+  // fontes estão à vista lá, e quem decide é o Salvar.
+  if (revisao.tipo === "cafe_novo") redirect(`/admin/cafes/novo?revisao=${revisao.id}`);
+  // Indício sem campo não tem o que aprovar.
   if (!acoesDaRevisao(revisao).aprovar || !revisao.cafe_id) return { ok: false, id, erro: ERRO_GERAL };
   // A atualidade é a da linha no banco, nunca a do form.
   if (revisao.atualidade !== "atualizada" && dados.get("confirmacao") !== "1") {

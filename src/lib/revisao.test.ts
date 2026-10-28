@@ -5,6 +5,7 @@ import {
   agruparPorCafe,
   alternarStatus,
   avisoDeConfirmacao,
+  cadastroDaRevisao,
   formatarUltimaRodada,
   formatarValor,
   mesmoValor,
@@ -171,9 +172,9 @@ describe("acoesDaRevisao", () => {
     expect(acoesDaRevisao(rev({ campo: null }))).toEqual({ aprovar: false, descartar: "Arquivar", verCafe: true });
   });
 
-  it("café novo, nesta fatia, só se rejeita", () => {
+  it("café novo se aprova pelo cadastro (#187): Aprovar e Rejeitar", () => {
     expect(acoesDaRevisao(rev({ tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null }))).toEqual({
-      aprovar: false,
+      aprovar: true,
       descartar: "Rejeitar",
       verCafe: false,
     });
@@ -207,5 +208,79 @@ describe("avisoDeConfirmacao", () => {
   it("sem data e conflito dizem por que pedem confirmação", () => {
     expect(avisoDeConfirmacao(rev({ atualidade: "sem_data" }), agora)).toBe("As fontes não têm data.");
     expect(avisoDeConfirmacao(rev({ atualidade: "conflito" }), agora)).toBe("As fontes discordam entre si.");
+  });
+
+  it("café novo não pede confirmação: aprovar só abre o cadastro, com as fontes à vista", () => {
+    const novo = { tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null } as const;
+    expect(avisoDeConfirmacao(rev({ ...novo, atualidade: "sem_data" }), agora)).toBeNull();
+    expect(avisoDeConfirmacao(rev({ ...novo, atualidade: "conflito" }), agora)).toBeNull();
+  });
+});
+
+describe("cadastroDaRevisao", () => {
+  const completo = {
+    nome: " Café Novo ",
+    bairro: "Graças",
+    endereco: "R. das Graças, 10",
+    cidade: "Olinda",
+    instagram: "@cafenovo",
+    telefone: "81999084986",
+    faixa_preco: "$$",
+    aceita_pets: true,
+    tem_estacionamento: false,
+    tem_ar_condicionado: null,
+    horario_funcionamento: { segunda: "08:00 – 18:00", domingo: "Fechado" },
+    sinais: [{ sinal: "Torra própria", trecho: "torramos aqui", url: "https://x.com" }],
+  };
+
+  it("preenche o que veio, normalizado como o banco guarda", () => {
+    const { campos, sinais } = cadastroDaRevisao(completo);
+    expect(campos).toEqual({
+      nome: "Café Novo",
+      bairro: "Graças",
+      endereco: "R. das Graças, 10",
+      cidade: "Olinda",
+      instagram: "https://instagram.com/cafenovo",
+      telefone: "(81) 99908-4986",
+      faixa_preco: "$$",
+      aceita_pets: true,
+      tem_estacionamento: false,
+      tem_ar_condicionado: null,
+      horario_funcionamento: { segunda: "08:00 – 18:00", domingo: "Fechado" },
+    });
+    expect(sinais).toEqual([{ sinal: "Torra própria", trecho: "torramos aqui", url: "https://x.com" }]);
+  });
+
+  it("nunca preenche slug nem coordenadas: são conferidos à mão", () => {
+    const { campos } = cadastroDaRevisao({ ...completo, slug: "x", lat: -8.05, lng: -34.9 });
+    expect(campos).not.toHaveProperty("slug");
+    expect(campos).not.toHaveProperty("lat");
+    expect(campos).not.toHaveProperty("lng");
+  });
+
+  it("campo fora do formato fica de fora (o cadastro mantém o padrão)", () => {
+    const { campos } = cadastroDaRevisao({
+      nome: "   ",
+      bairro: 3,
+      cidade: "Paulista",
+      instagram: "https://facebook.com/x",
+      telefone: "123",
+      faixa_preco: "$$$$",
+      aceita_pets: "sim",
+      tem_ar_condicionado: "talvez",
+      horario_funcionamento: { segunda: "8h às 18h", terca: "09:00 – 17:00", feriado: "Fechado" },
+    });
+    expect(campos).toEqual({ horario_funcionamento: { terca: "09:00 – 17:00" } });
+  });
+
+  it("sinal sem texto ou sem trecho cai; o link pode faltar", () => {
+    const { sinais } = cadastroDaRevisao({
+      sinais: [{ sinal: "SCA", trecho: "barista SCA" }, { sinal: "", trecho: "x" }, { sinal: "x" }, "lixo"],
+    });
+    expect(sinais).toEqual([{ sinal: "SCA", trecho: "barista SCA", url: null }]);
+  });
+
+  it.each([null, "texto", [], 3])("valor proposto fora do contrato (%j) → nada", (valor) => {
+    expect(cadastroDaRevisao(valor)).toEqual({ campos: {}, sinais: [] });
   });
 });

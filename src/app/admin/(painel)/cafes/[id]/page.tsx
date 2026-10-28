@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DadosCafeForm } from "@/components/admin/dados-cafe-form";
+import { Fontes } from "@/components/admin/lista-de-revisoes";
 import { FotosCafe } from "@/components/admin/fotos-cafe";
 import { StatusCafe, VerNoSite } from "@/components/admin/status-cafe";
 import { StatusForm } from "@/components/admin/status-form";
 import { VoltarAoPainel } from "@/components/admin/voltar-ao-painel";
 import { ChevronDownIcon } from "@/components/icons";
 import { coordenadasDoLink, salvarDadosCafe } from "@/lib/admin/cafe-actions";
-import { getCafeById, listFotosDoCafe } from "@/lib/cafe-repository";
+import { getCafeById, getRevisaoById, listFotosDoCafe } from "@/lib/cafe-repository";
+import { formatarDiaDaRevisao, propostaDaRevisao } from "@/lib/revisao";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
-type Props = { params: { id: string }; searchParams: { novo?: string } };
+type Props = { params: { id: string }; searchParams: { novo?: string; revisao?: string | string[] } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   await requireAdmin();
@@ -25,6 +27,13 @@ export default async function AdminCafe({ params, searchParams }: Props) {
   await requireAdmin();
   const [cafe, fotos] = await Promise.all([getCafeById(params.id), listFotosDoCafe(params.id)]);
   if (!cafe) notFound();
+
+  // Aberto pelo "Editar no café" (#186). Id malformado, revisão decidida, de outro café ou
+  // com valor fora do formato não quebram: a seção Dados abre como sempre, em silêncio.
+  const param = searchParams.revisao;
+  const pedida = typeof param === "string" ? await getRevisaoById(param) : null;
+  const proposta = pedida?.status === "pendente" && pedida.cafe_id === cafe.id ? propostaDaRevisao(pedida) : null;
+  const revisao = pedida && proposta ? { revisao: pedida, proposta } : null;
 
   return (
     <>
@@ -64,7 +73,7 @@ export default async function AdminCafe({ params, searchParams }: Props) {
           <StatusForm cafeId={cafe.id} nome={cafe.nome} ativo={cafe.ativo} />
         </section>
         {/* Formulário longo: recolhido até ser pedido. `details` nativo — teclado e leitor de tela de graça. */}
-        <details className="group rounded-xl border border-card-line bg-white px-5 py-4">
+        <details open={revisao ? true : undefined} className="group rounded-xl border border-card-line bg-white px-5 py-4">
           {/* `summary` aceita só heading e conteúdo inline: grade em vez de um `div` em volta. */}
           <summary className="-mx-5 -my-4 grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-x-4 rounded-xl px-5 py-4 [&::-webkit-details-marker]:hidden">
             <h2 className={TITULO_SECAO}>Dados</h2>
@@ -75,8 +84,18 @@ export default async function AdminCafe({ params, searchParams }: Props) {
               className="col-start-2 row-span-2 row-start-1 text-ink-2 transition-transform group-open:rotate-180"
             />
           </summary>
+          {revisao && (
+            <div className="mt-4 flex flex-col gap-2 rounded-lg border border-aviso-line bg-aviso-bg px-4 py-3 text-[13.5px] text-aviso-fg">
+              <p role="status">
+                Valor proposto pela revisão de {formatarDiaDaRevisao(revisao.revisao.criado_em)}. Confira as fontes
+                antes de salvar.
+              </p>
+              <Fontes fontes={revisao.revisao.fontes} />
+            </div>
+          )}
           <DadosCafeForm
             cafe={cafe}
+            revisao={revisao ? { id: revisao.revisao.id, ...revisao.proposta } : undefined}
             ativo={cafe.ativo}
             salvar={salvarDadosCafe.bind(null, cafe.id)}
             buscarCoordenadas={coordenadasDoLink}

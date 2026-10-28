@@ -165,6 +165,15 @@ describe("decisões na fila (#182)", () => {
     expect(enviar.closest("form")?.querySelector<HTMLInputElement>('input[name="confirmacao"]')?.value).toBe("1");
   });
 
+  it("atualização com campo ganha Editar no café, que leva ao café com a revisão (#186)", () => {
+    render(<ListaDeRevisoes revisoes={[revisao({})]} agora={AGORA} total={1} />);
+    const item = screen.getByText("Telefone").closest("li")!;
+
+    expect(within(item).getByRole("link", { name: "Editar no café" }).getAttribute("href")).toBe(
+      "/admin/cafes/c1?revisao=r1",
+    );
+  });
+
   it("fechado temporariamente: Ver café e Arquivar, sem Aprovar", () => {
     render(<ListaDeRevisoes revisoes={[revisao({ campo: null })]} agora={AGORA} total={1} />);
     const item = screen.getByText(/Indício sem campo/).closest("li")!;

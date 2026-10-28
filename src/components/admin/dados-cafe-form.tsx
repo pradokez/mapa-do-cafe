@@ -27,7 +27,7 @@ import {
 } from "@/lib/cafe-dados";
 import { DIAS_DA_SEMANA } from "@/lib/cafe-hours";
 import { faixaPrecoNome } from "@/lib/format";
-import type { PreenchimentoDoCadastro } from "@/lib/revisao";
+import type { CampoDeRevisao, PreenchimentoDoCadastro } from "@/lib/revisao";
 
 import { botaoCtaClass, botaoNeutroClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
@@ -98,6 +98,16 @@ function estadoPreenchido({ horario_funcionamento, ...campos }: PreenchimentoDoC
   };
 }
 
+/** O café com o valor proposto no lugar (#186); o horário proposto troca só os dias que traz. */
+function comProposta(cafe: NovoCafe, revisao: Edicao["revisao"]): NovoCafe {
+  if (!revisao) return cafe;
+  const { campo, valor } = revisao;
+  return {
+    ...cafe,
+    [campo]: campo === "horario_funcionamento" ? { ...cafe.horario_funcionamento, ...(valor as object) } : valor,
+  };
+}
+
 /** O payload da Server Action — o mesmo que `validarDadosCafe` confere aqui e lá. */
 function payloadDe({ horario, ...resto }: Estado) {
   return {
@@ -129,7 +139,9 @@ const marcaClass = "size-[18px] shrink-0 accent-terracotta";
 type Edicao = {
   cafe: NovoCafe;
   /** Server Action já ligada ao café (`salvarDadosCafe.bind(null, id)`). */
-  salvar: (campos: unknown) => Promise<ResultadoSalvar>;
+  salvar: (campos: unknown, revisaoId?: string) => Promise<ResultadoSalvar>;
+  /** Aberto pelo "Editar no café" (#186): o campo vem com o valor proposto, e salvar marca a revisão aprovada. */
+  revisao?: { id: string; campo: CampoDeRevisao; valor: unknown };
   /** Café no ar: o sucesso diz que a mudança já está no site, e trocar o endereço pede confirmação. */
   ativo: boolean;
 };
@@ -152,8 +164,10 @@ export function DadosCafeForm(props: Props) {
   const form = useRef<HTMLFormElement>(null);
   const revisao = "cadastrar" in props ? props.revisao : undefined;
   const [salvo, setSalvo] = useState(() => (edicao ? estadoDe(edicao.cafe) : ESTADO_NOVO));
-  // A proposta da revisão não está salva em lugar nenhum: sair sem cadastrar avisa.
-  const [estado, setEstado] = useState(() => (revisao ? estadoPreenchido(revisao.campos) : salvo));
+  // A proposta da revisão não está salva em lugar nenhum: sair sem salvar avisa.
+  const [estado, setEstado] = useState(() =>
+    edicao ? estadoDe(comProposta(edicao.cafe, edicao.revisao)) : revisao ? estadoPreenchido(revisao.campos) : salvo,
+  );
   const [erros, setErros] = useState<ErrosDados>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -293,7 +307,7 @@ export function DadosCafeForm(props: Props) {
         router.push(`/admin/cafes/${resultado.id}?novo=1`);
         return;
       }
-      const resultado = await props.salvar(payload);
+      const resultado = await (props.revisao ? props.salvar(payload, props.revisao.id) : props.salvar(payload));
       if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
       // O que o banco guardou, já normalizado (telefone formatado, Instagram em URL).
       const novo = estadoDe(resultado.cafe);

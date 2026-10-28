@@ -217,6 +217,8 @@ export type AcoesDaRevisao = {
   descartar: "Rejeitar" | "Arquivar" | null;
   /** Só no indício: não há o que aprovar, mas o café merece uma olhada. */
   verCafe: boolean;
+  /** Atualização com campo: abre o café com o valor proposto no formulário (#186). */
+  editar: boolean;
 };
 
 /**
@@ -225,11 +227,11 @@ export type AcoesDaRevisao = {
  * Café novo se aprova pelo cadastro (#187): Aprovar abre o formulário preenchido.
  */
 export function acoesDaRevisao(revisao: Pick<Revisao, "tipo" | "campo" | "status">): AcoesDaRevisao {
-  if (revisao.status !== "pendente") return { aprovar: false, descartar: null, verCafe: false };
+  if (revisao.status !== "pendente") return { aprovar: false, descartar: null, verCafe: false, editar: false };
   if (revisao.tipo === "atualizacao" && revisao.campo === null) {
-    return { aprovar: false, descartar: "Arquivar", verCafe: true };
+    return { aprovar: false, descartar: "Arquivar", verCafe: true, editar: false };
   }
-  return { aprovar: true, descartar: "Rejeitar", verCafe: false };
+  return { aprovar: true, descartar: "Rejeitar", verCafe: false, editar: revisao.tipo === "atualizacao" };
 }
 
 /** O que o cadastro recebe pronto: nunca slug nem coordenadas, conferidos à mão. */
@@ -282,6 +284,20 @@ export function cadastroDaRevisao(valor: unknown): { campos: PreenchimentoDoCada
   return { campos, sinais };
 }
 
+/**
+ * O que o "Editar no café" (#186) põe no formulário: o campo da revisão com o
+ * valor proposto, no formato do banco. `null` sem campo, ou com valor fora do
+ * formato (o formulário abre sem proposta, em silêncio).
+ */
+export function propostaDaRevisao(
+  revisao: Pick<Revisao, "tipo" | "campo" | "valor_proposto">,
+): { campo: CampoDeRevisao; valor: unknown } | null {
+  if (revisao.tipo !== "atualizacao" || revisao.campo === null) return null;
+  const { campos } = cadastroDaRevisao({ [revisao.campo]: revisao.valor_proposto });
+  const valor = (campos as Record<string, unknown>)[revisao.campo];
+  return valor === undefined ? null : { campo: revisao.campo, valor };
+}
+
 /** O mesmo valor de campo, com as chaves do horário em qualquer ordem. */
 export function mesmoValor(a: unknown, b: unknown): boolean {
   return canonico(a) === canonico(b);
@@ -304,6 +320,13 @@ export function formatarValor(campo: CampoDeRevisao, valor: unknown): string[] {
 /** "1 revisão pendente" / "N revisões pendentes" — o cartão do topo do `/admin`. */
 export function rotuloDePendentes(n: number): string {
   return n === 1 ? "1 revisão pendente" : `${milhar(n)} revisões pendentes`;
+}
+
+const diaEMes = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Recife", day: "2-digit", month: "2-digit" });
+
+/** "28/10" — o dia da revisão em Recife (o aviso do "Editar no café", #186). */
+export function formatarDiaDaRevisao(iso: string): string {
+  return diaEMes.format(new Date(iso));
 }
 
 const partesDaRodada = new Intl.DateTimeFormat("pt-BR", {

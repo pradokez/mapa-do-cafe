@@ -6,9 +6,11 @@ import {
   alternarStatus,
   avisoDeConfirmacao,
   cadastroDaRevisao,
+  formatarDiaDaRevisao,
   formatarUltimaRodada,
   formatarValor,
   mesmoValor,
+  propostaDaRevisao,
   ordenarRevisoes,
   rotuloDeAtualidade,
   rotuloDePendentes,
@@ -160,16 +162,27 @@ describe("mesmoValor", () => {
 
 describe("acoesDaRevisao", () => {
   it("atualização com campo e fechamento pendentes: Aprovar e Rejeitar", () => {
-    expect(acoesDaRevisao(rev({}))).toEqual({ aprovar: true, descartar: "Rejeitar", verCafe: false });
+    expect(acoesDaRevisao(rev({}))).toEqual({
+      aprovar: true,
+      descartar: "Rejeitar",
+      verCafe: false,
+      editar: true,
+    });
     expect(acoesDaRevisao(rev({ tipo: "fechamento", campo: null }))).toEqual({
       aprovar: true,
       descartar: "Rejeitar",
       verCafe: false,
+      editar: false,
     });
   });
 
   it("fechado temporariamente (indício sem campo) não tem Aprovar: só Ver café e Arquivar", () => {
-    expect(acoesDaRevisao(rev({ campo: null }))).toEqual({ aprovar: false, descartar: "Arquivar", verCafe: true });
+    expect(acoesDaRevisao(rev({ campo: null }))).toEqual({
+      aprovar: false,
+      descartar: "Arquivar",
+      verCafe: true,
+      editar: false,
+    });
   });
 
   it("café novo se aprova pelo cadastro (#187): Aprovar e Rejeitar", () => {
@@ -177,11 +190,17 @@ describe("acoesDaRevisao", () => {
       aprovar: true,
       descartar: "Rejeitar",
       verCafe: false,
+      editar: false,
     });
   });
 
   it.each(["aprovada", "rejeitada", "obsoleta"] as const)("revisão %s não tem ação", (status) => {
-    expect(acoesDaRevisao(rev({ status }))).toEqual({ aprovar: false, descartar: null, verCafe: false });
+    expect(acoesDaRevisao(rev({ status }))).toEqual({
+      aprovar: false,
+      descartar: null,
+      verCafe: false,
+      editar: false,
+    });
   });
 });
 
@@ -288,5 +307,31 @@ describe("cadastroDaRevisao", () => {
 
   it.each([null, "texto", [], 3])("valor proposto fora do contrato (%j) → nada", (valor) => {
     expect(cadastroDaRevisao(valor)).toEqual({ campos: {}, sinais: [] });
+  });
+});
+
+describe("propostaDaRevisao (#186)", () => {
+  it("devolve o campo e o valor proposto, já no formato do banco", () => {
+    expect(propostaDaRevisao(rev({ valor_proposto: "81 99908-4986" }))).toEqual({
+      campo: "telefone",
+      valor: "(81) 99908-4986",
+    });
+    expect(propostaDaRevisao(rev({ campo: "aceita_pets", valor_proposto: true }))).toEqual({
+      campo: "aceita_pets",
+      valor: true,
+    });
+  });
+
+  it("valor fora do formato, revisão sem campo ou de outro tipo → null", () => {
+    expect(propostaDaRevisao(rev({ campo: "instagram", valor_proposto: "https://outro.site/x" }))).toBeNull();
+    expect(propostaDaRevisao(rev({ campo: null }))).toBeNull();
+    expect(propostaDaRevisao(rev({ tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null }))).toBeNull();
+  });
+});
+
+describe("formatarDiaDaRevisao", () => {
+  it("é o dia de Recife, não o do UTC", () => {
+    expect(formatarDiaDaRevisao("2026-10-28T12:00:00Z")).toBe("28/10");
+    expect(formatarDiaDaRevisao("2026-10-29T01:30:00Z")).toBe("28/10");
   });
 });

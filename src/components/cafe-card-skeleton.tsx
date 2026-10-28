@@ -1,9 +1,9 @@
-import { CARD_COMODIDADES, CARD_CORPO, CARD_FOTO, CARD_MOLDURA, CARD_NOME } from "@/components/medidas";
+import { CARD_COMODIDADES, CARD_CORPO, CARD_FOTO, CARD_HORARIO, CARD_MOLDURA, CARD_NOME } from "@/components/medidas";
 import { Bloco, Linha } from "@/components/skeleton";
 
 /**
  * Card da lista enquanto os cafés não chegam: a moldura real do `CafeCard`
- * com blocos no lugar de foto, nome, preço, bairro e comodidades — as mesmas
+ * com blocos no lugar de foto, nome, preço, bairro, horário e comodidades — as mesmas
  * medidas, para a troca não pular.
  */
 export function CafeCardSkeleton() {
@@ -21,6 +21,9 @@ export function CafeCardSkeleton() {
         </div>
         <span className="text-[12.5px] lg:text-[13px]">
           <Linha className="w-24" />
+        </span>
+        <span className={CARD_HORARIO}>
+          <Linha className="w-20" />
         </span>
         <div className={CARD_COMODIDADES}>
           <span className="flex items-center gap-2.5 lg:gap-1.5">

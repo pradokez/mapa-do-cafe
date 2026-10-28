@@ -30,6 +30,8 @@ type Props = (
        * Uma vez por mapa, e só se a pessoa ainda não arrastou nem deu zoom.
        */
       focus?: Coordenadas[] | null;
+      /** Instante da linha de horário do preview (#163): o mesmo dos cards. */
+      agora: Date;
     }
   | {
       /** Localizador estático (detalhe e formulário do admin): acompanha a posição se ela mudar. */
@@ -37,6 +39,7 @@ type Props = (
       cafes: Pin[];
       userPosition?: never;
       focus?: never;
+      agora?: never;
     }
 ) & {
   hoveredId?: string | null;
@@ -146,6 +149,7 @@ export function CafeMap({
   className = "",
   userPosition = null,
   focus = null,
+  agora,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const molduraRef = useRef<HTMLDivElement>(null);
@@ -460,6 +464,7 @@ export function CafeMap({
         // Card do pin no mobile, acima do FAB (o design o põe a 92 px do pé).
         <CafeMapPreview
           cafe={previewCafe}
+          agora={agora}
           linkRef={previewLink}
           onClose={closePreview}
           style={{ left: 14, right: 14, bottom: 92, width: "auto" }}
@@ -468,6 +473,7 @@ export function CafeMap({
       {previewCafe && acompanhaPin && placement && (
         <CafeMapPreview
           cafe={previewCafe}
+          agora={agora}
           linkRef={previewLink}
           onClose={closePreview}
           style={{

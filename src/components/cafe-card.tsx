@@ -5,6 +5,7 @@ import { CafePhotoFrame } from "@/components/cafe-photo-frame";
 import { DICA, DICA_ACIMA } from "@/components/dica";
 import { Distancia } from "@/components/distancia";
 import { FaixaPrecoSimbolos } from "@/components/faixa-preco";
+import { HorarioAgora } from "@/components/horario-agora";
 import { MaisComodidades } from "@/components/mais-comodidades";
 import { CARD_COMODIDADES, CARD_CORPO, CARD_FOTO, CARD_MOLDURA, CARD_NOME } from "@/components/medidas";
 import { caminhoDoCafe, type Cafe } from "@/lib/cafe";
@@ -41,11 +42,14 @@ const MAX_MOBILE = 5;
  */
 export function CafeCard({
   cafe,
+  agora,
   festivais = {},
   highlight,
   priority = false,
 }: {
   cafe: Cafe;
+  /** Instante do horário de agora (#163): o do "Aberto agora" — o do request ou o do último gesto. */
+  agora: Date;
   /** Participantes dos festivais no ar: os selos do card. */
   festivais?: FestivaisNoAr;
   highlight?: CardHighlight;
@@ -136,6 +140,7 @@ export function CafeCard({
           {localLabel(cafe)}
           <Distancia destino={cafe} />
         </span>
+        <HorarioAgora horario={cafe.horario_funcionamento} agora={agora} />
         {/* Altura fixa no desktop: todos os cards da grade ficam com a mesma altura. */}
         <div className={CARD_COMODIDADES}>
           <ul aria-label="Comodidades" className="flex items-center gap-2.5 text-ink-2 lg:gap-1.5">

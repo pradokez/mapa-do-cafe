@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const SECOES = [
   { href: "/admin", rotulo: "Cafés", atual: (caminho: string) => caminho === "/admin" || caminho.startsWith("/admin/cafes") },
   { href: "/admin/festivais", rotulo: "Festivais", atual: (caminho: string) => caminho.startsWith("/admin/festivais") },
+  { href: "/admin/revisoes", rotulo: "Revisões", atual: (caminho: string) => caminho.startsWith("/admin/revisoes") },
 ];
 
 /** Seções do painel (#102). A atual leva `aria-current="page"` e o sublinhado terracota. */

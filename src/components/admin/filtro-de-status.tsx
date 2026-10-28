@@ -4,41 +4,73 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, useState, useTransition, type FormEvent, type ReactNode } from "react";
 
 import {
-  alternarStatus,
+  alternarStatus as alternarStatusDeRevisao,
+  ROTULO_STATUS_REVISAO,
+  STATUS_REVISAO,
+  statusDoFiltro as statusDoFiltroDeRevisao,
+} from "@/lib/revisao";
+import {
+  alternarStatus as alternarStatusDeSugestao,
   milhar,
   STATUS_SUGESTAO,
-  statusDoFiltro,
-  type ContagemDeSugestoes,
-  type StatusSugestao,
+  statusDoFiltro as statusDoFiltroDeSugestao,
 } from "@/lib/sugestao";
 
-const ROTULO_DO_CHIP: Record<StatusSugestao, string> = { nova: "Novas", lida: "Lidas", arquivada: "Arquivadas" };
+type Status = string;
 
-type Troca = { pendente: boolean; pedido: StatusSugestao[] | null; filtrar: (status: StatusSugestao[]) => void };
+/**
+ * Uma configuração por lista: o filtro é client, e função não atravessa do
+ * Server Component para cá — a página escolhe pelo nome.
+ */
+const LISTAS = {
+  sugestoes: {
+    rota: "/admin/sugestoes",
+    todos: STATUS_SUGESTAO as readonly Status[],
+    rotulos: { nova: "Novas", lida: "Lidas", arquivada: "Arquivadas" } as Record<Status, string>,
+    doParam: statusDoFiltroDeSugestao as (param: string) => Status[],
+    alternar: alternarStatusDeSugestao as (atuais: readonly Status[], status: Status) => Status[],
+  },
+  revisoes: {
+    rota: "/admin/revisoes",
+    todos: STATUS_REVISAO as readonly Status[],
+    rotulos: ROTULO_STATUS_REVISAO as Record<Status, string>,
+    doParam: statusDoFiltroDeRevisao as (param: string) => Status[],
+    alternar: alternarStatusDeRevisao as (atuais: readonly Status[], status: Status) => Status[],
+  },
+};
+
+export type NomeDaLista = keyof typeof LISTAS;
+
+type Troca = {
+  lista: NomeDaLista;
+  pendente: boolean;
+  pedido: Status[] | null;
+  filtrar: (status: Status[]) => void;
+};
 
 const ContextoDaTroca = createContext<Troca | null>(null);
 
 /**
- * Troca de filtro de `/admin/sugestoes` sem navegação de documento (#88): no
+ * Troca de filtro de `/admin/sugestoes` e `/admin/revisoes` sem navegação de documento (#88): no
  * Next 14 o App Router não intercepta `<form method="get">`, e o envio puro
  * refazia a página inteira (header incluído) e voltava a rolagem ao topo.
  * Com JS, o filtro navega pelo router; a transição fica pendente até a página
  * nova chegar — enquanto isso, o chip pedido já aparece ligado e a lista atual
  * fica na tela, esmaecida (`ListaEmEspera`).
  */
-export function TrocaDeFiltro({ children }: { children: ReactNode }) {
+export function TrocaDeFiltro({ lista, children }: { lista: NomeDaLista; children: ReactNode }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
-  const [pedido, setPedido] = useState<StatusSugestao[] | null>(null);
+  const [pedido, setPedido] = useState<Status[] | null>(null);
 
-  const filtrar = (status: StatusSugestao[]) => {
+  const filtrar = (status: Status[]) => {
     setPedido(status);
-    iniciar(() => router.push(`/admin/sugestoes?status=${status.join(",")}`, { scroll: false }));
+    iniciar(() => router.push(`${LISTAS[lista].rota}?status=${status.join(",")}`, { scroll: false }));
   };
 
   // Fora da transição vale o filtro do servidor (inclusive se a navegação falhar).
   return (
-    <ContextoDaTroca.Provider value={{ pendente, pedido: pendente ? pedido : null, filtrar }}>
+    <ContextoDaTroca.Provider value={{ lista, pendente, pedido: pendente ? pedido : null, filtrar }}>
       {children}
     </ContextoDaTroca.Provider>
   );
@@ -67,8 +99,9 @@ export function ListaEmEspera({ children }: { children: ReactNode }) {
  * envio do form. Com JS, o envio vira navegação client-side (`TrocaDeFiltro`).
  * O último chip ligado não desliga: envia o filtro atual.
  */
-export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[]; contagem: ContagemDeSugestoes }) {
-  const { pedido, filtrar } = useTroca();
+export function FiltroDeStatus({ ativos, contagem }: { ativos: Status[]; contagem: Record<Status, number> }) {
+  const { lista, pedido, filtrar } = useTroca();
+  const { rota, todos, rotulos, doParam, alternar } = LISTAS[lista];
   const mostrados = pedido ?? ativos;
 
   // O chip já leva no `value` o filtro que aplica — o mesmo que o GET enviaria.
@@ -77,19 +110,19 @@ export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[];
     const chip = (e.nativeEvent as SubmitEvent).submitter;
     if (!(chip instanceof HTMLButtonElement)) return;
     e.preventDefault();
-    const destino = statusDoFiltro(chip.value);
+    const destino = doParam(chip.value);
     if (destino.join(",") !== mostrados.join(",")) filtrar(destino);
   };
 
   return (
     <form
       method="get"
-      action="/admin/sugestoes"
+      action={rota}
       aria-label="Filtrar por status"
       onSubmit={aoEnviar}
       className="flex flex-wrap gap-1.5"
     >
-      {STATUS_SUGESTAO.map((status) => {
+      {todos.map((status) => {
         const ligado = mostrados.includes(status);
         const travado = ligado && mostrados.length === 1;
         return (
@@ -97,14 +130,14 @@ export function FiltroDeStatus({ ativos, contagem }: { ativos: StatusSugestao[];
             key={status}
             type="submit"
             name="status"
-            value={alternarStatus(mostrados, status).join(",")}
+            value={alternar(mostrados, status).join(",")}
             aria-pressed={ligado}
             aria-disabled={travado || undefined}
             className={`inline-flex h-9 items-center gap-[7px] rounded-full border px-3.5 text-[13px] font-medium transition-colors aria-disabled:cursor-default ${
               ligado ? "border-espresso bg-espresso text-cream" : "border-line-strong bg-white text-espresso hover:bg-hover-soft"
             }`}
           >
-            {ROTULO_DO_CHIP[status]}
+            {rotulos[status]}
             <span
               className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11.5px] font-semibold ${
                 ligado ? "bg-cream/20 text-cream" : "bg-hover-soft text-ink-2"

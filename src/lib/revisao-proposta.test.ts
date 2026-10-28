@@ -3,7 +3,10 @@ import { cafe } from "./cafe.fixture";
 import {
   FECHADO_PERMANENTEMENTE,
   FECHADO_TEMPORARIAMENTE,
+  nomeNormalizado,
+  proporCafeNovo,
   proporRevisoes,
+  type CandidatoCafeNovo,
   type Fato,
   type FatoBooleano,
   type FatosDoCafe,
@@ -173,5 +176,124 @@ describe("proporRevisoes", () => {
     const [proposta] = propor({ faixa_preco: [fato("$$", 1), fato("$$$", 2)] });
     expect(proposta.valorProposto).toBe("$$$");
     expect(proposta.fontes).toHaveLength(2);
+  });
+});
+
+describe("nomeNormalizado", () => {
+  it("ignora caixa, acento e sufixos de café nas pontas", () => {
+    expect(nomeNormalizado("Santa Clara Café")).toBe("santa-clara");
+    expect(nomeNormalizado("Cafeteria Santa Clara")).toBe("santa-clara");
+    expect(nomeNormalizado("SÃO BRAZ coffee shop")).toBe("sao-braz");
+    expect(nomeNormalizado("Café Coffee Mira")).toBe("mira");
+  });
+
+  it("palavra do meio fica", () => {
+    expect(nomeNormalizado("Casa do Café Expresso")).toBe("casa-do-cafe-expresso");
+  });
+
+  it("nome só de sufixo não vira vazio", () => {
+    expect(nomeNormalizado("Café")).toBe("cafe");
+  });
+});
+
+describe("proporCafeNovo", () => {
+  const sinal = { sinal: "torra própria", trecho: "Torramos nossos grãos aqui mesmo", url: "https://exemplo.com/1" };
+  const candidato = (extra: Partial<CandidatoCafeNovo> = {}): CandidatoCafeNovo => ({
+    nome: "Grão Novo Café",
+    cidade: "Recife",
+    sinais: [sinal],
+    fontes: [fonte(1)],
+    ...extra,
+  });
+  const propor = (extra: Partial<CandidatoCafeNovo> = {}, cafes = [cafe("x", { nome: "Outro" })], rejeitados: string[] = []) =>
+    proporCafeNovo(candidato(extra), cafes, rejeitados);
+
+  it("com sinal, nas três cidades → proposta", () => {
+    expect(propor()).toMatchObject({
+      tipo: "cafe_novo",
+      nomeNormalizado: "grao-novo",
+      valorProposto: { nome: "Grão Novo Café", cidade: "Recife", sinais: [sinal] },
+      fontes: [fonte(1)],
+    });
+  });
+
+  it("fora das três cidades → nada", () => {
+    expect(propor({ cidade: "Paulista" })).toBeNull();
+    expect(propor({ cidade: "" })).toBeNull();
+  });
+
+  it("cidade sem caixa nem acento, e Jaboatão sozinho, viram o valor do banco", () => {
+    expect(propor({ cidade: "OLINDA" })?.valorProposto.cidade).toBe("Olinda");
+    expect(propor({ cidade: "jaboatao dos guararapes" })?.valorProposto.cidade).toBe("Jaboatão dos Guararapes");
+    expect(propor({ cidade: "Jaboatão" })?.valorProposto.cidade).toBe("Jaboatão dos Guararapes");
+  });
+
+  it("sem nome → nada", () => {
+    expect(propor({ nome: "  " })).toBeNull();
+  });
+
+  it("sem sinal, ou sinal sem trecho, → nada", () => {
+    expect(propor({ sinais: [] })).toBeNull();
+    expect(propor({ sinais: [{ ...sinal, trecho: "  " }] })).toBeNull();
+    expect(propor({ sinais: [{ ...sinal, url: "" }] })).toBeNull();
+  });
+
+  it("Santa Clara e São Braz sem sinal → proposta", () => {
+    expect(propor({ nome: "Santa Clara", sinais: [] })).toMatchObject({ nomeNormalizado: "santa-clara" });
+    expect(propor({ nome: "Café São Braz Boa Viagem", sinais: [] })).toMatchObject({
+      nomeNormalizado: "sao-braz-boa-viagem",
+      valorProposto: { sinais: [] },
+    });
+  });
+
+  it("nome que só começa parecido não é exceção", () => {
+    expect(propor({ nome: "Santa Claraíso", sinais: [] })).toBeNull();
+  });
+
+  it("duplicado de café ativo ou inativo, pelo nome normalizado → nada", () => {
+    expect(propor({ nome: "Cafeteria Grão Novo" }, [cafe("x", { nome: "Grão Novo" })])).toBeNull();
+    expect(propor({}, [cafe("x", { nome: "GRAO NOVO coffee", ativo: false })])).toBeNull();
+  });
+
+  it("rejeitado nunca volta", () => {
+    expect(propor({}, [], ["grao-novo"])).toBeNull();
+    expect(propor({ nome: "Santa Clara Café", sinais: [] }, [], ["santa-clara"])).toBeNull();
+  });
+
+  it("campos no formato do banco, sem slug nem coordenadas", () => {
+    const proposta = propor({
+      bairro: " Casa Forte ",
+      endereco: " Rua Nova, 10 ",
+      instagram: "@grao.novo",
+      telefone: "81999084986",
+      horario: { segunda: "08:00 – 18:00", terca: "lixo" },
+      faixa_preco: "$$",
+      booleanos: { aceita_pets: { valor: true }, acessivel_pcd: { valor: false, negacaoExplicita: true } },
+    });
+    expect(proposta?.valorProposto).toEqual({
+      nome: "Grão Novo Café",
+      cidade: "Recife",
+      bairro: "Casa Forte",
+      endereco: "Rua Nova, 10",
+      instagram: "https://instagram.com/grao.novo",
+      telefone: "(81) 99908-4986",
+      horario_funcionamento: { segunda: "08:00 – 18:00" },
+      faixa_preco: "$$",
+      aceita_pets: true,
+      acessivel_pcd: false,
+      sinais: [sinal],
+    });
+  });
+
+  it("opcional inválido fica de fora; false sem negação explícita também", () => {
+    const proposta = propor({
+      bairro: "x".repeat(61),
+      instagram: "https://instagram.com/p/ABC/",
+      telefone: "123",
+      horario: { segunda: "25:00 – 18:00" },
+      faixa_preco: "$$$$",
+      booleanos: { tem_estacionamento: { valor: false } },
+    });
+    expect(proposta?.valorProposto).toEqual({ nome: "Grão Novo Café", cidade: "Recife", sinais: [sinal] });
   });
 });

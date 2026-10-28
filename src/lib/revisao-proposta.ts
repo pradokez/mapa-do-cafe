@@ -1,17 +1,21 @@
 /**
- * Propostas de curadoria sobre um café que já está no banco (#180, PRD #167) —
- * sem React, sem Supabase. O modelo extrai fatos de páginas; este módulo decide
- * o que vira revisão: normaliza pelos validadores do `cafe-dados`, propõe só o
- * que difere do banco e nunca devolve o que a administradora rejeitou há pouco.
+ * Propostas de curadoria (PRD #167) — sem React, sem Supabase. O modelo extrai
+ * fatos de páginas; este módulo decide o que vira revisão: normaliza pelos
+ * validadores do `cafe-dados`, propõe só o que difere do banco e nunca devolve
+ * o que a administradora rejeitou há pouco. Duas portas: um café que já está
+ * no banco (`proporRevisoes`, #180) e um candidato a café novo
+ * (`proporCafeNovo`, #184).
  */
 
-import type { Cafe, DiaSemana } from "./cafe";
+import type { Cafe, Cidade, DiaSemana, FaixaPreco } from "./cafe";
 import {
   BOOLEANOS,
+  CIDADES,
   FAIXAS,
   MAX_TEXTO,
   normalizarInstagram,
   normalizarTelefone,
+  slugify,
   textoAparado,
   validarHorarioDia,
 } from "./cafe-dados";
@@ -186,16 +190,13 @@ function candidatosDeHorario(fatos: Fato<Partial<Record<DiaSemana, string>>>[] |
   });
 }
 
-/**
- * `false` só com negação explícita (nunca por falta de menção); `true` vale
- * sempre. O `null` do ar-condicionado vira o valor que a fonte dá.
- */
+/** `false` só com negação explícita (nunca por falta de menção); `true` vale sempre. */
+const booleanoAceito = ({ valor, negacaoExplicita }: Pick<FatoBooleano, "valor" | "negacaoExplicita">) =>
+  typeof valor === "boolean" && (valor || negacaoExplicita === true);
+
+/** O `null` do ar-condicionado vira o valor que a fonte dá. */
 function candidatosBooleanos(fatos: FatoBooleano[] | undefined): Candidato[] {
-  return (fatos ?? []).flatMap((fato) => {
-    if (typeof fato.valor !== "boolean") return [];
-    if (!fato.valor && fato.negacaoExplicita !== true) return [];
-    return [{ fonte: fato, valor: fato.valor }];
-  });
+  return (fatos ?? []).flatMap((fato) => (booleanoAceito(fato) ? [{ fonte: fato, valor: fato.valor }] : []));
 }
 
 function propostasDeSituacao(
@@ -248,4 +249,136 @@ export function proporRevisoes(fatos: FatosDoCafe, cafe: Cafe, rejeitadas: Rejei
 
   const propostas = porCampo.flatMap(([campo, candidatos]) => proporCampo(cafe, campo, candidatos, rejeitadas, agora) ?? []);
   return [...propostasDeSituacao(cafe, fatos.situacao, rejeitadas, agora), ...propostas];
+}
+
+/** Casas que entram como café novo mesmo sem sinal de café especial (PRD #167), pelo nome normalizado. */
+export const EXCECOES_DE_CAFE_NOVO = ["santa-clara", "sao-braz"] as const;
+
+const PALAVRAS_DE_CAFE = new Set(["cafe", "cafes", "cafeteria", "coffee"]);
+const DEPOIS_DE_COFFEE = new Set(["shop", "house"]);
+
+/**
+ * Nome → chave para reconhecer o mesmo café: `slugify` sem "café",
+ * "cafeteria", "coffee" (e "coffee shop/house") nas pontas — "Cafeteria Santa
+ * Clara" e "Santa Clara Café" são o mesmo. O meio do nome fica. Se não sobrar
+ * nada, o slug inteiro.
+ */
+export function nomeNormalizado(nome: string): string {
+  const slug = slugify(nome);
+  const palavras = slug.split("-").filter(Boolean);
+  for (;;) {
+    const [primeira, segunda] = palavras;
+    const [ultima, penultima] = [palavras[palavras.length - 1], palavras[palavras.length - 2]];
+    if (primeira === "coffee" && DEPOIS_DE_COFFEE.has(segunda)) palavras.splice(0, 2);
+    else if (PALAVRAS_DE_CAFE.has(primeira)) palavras.shift();
+    else if (penultima === "coffee" && DEPOIS_DE_COFFEE.has(ultima)) palavras.splice(-2);
+    else if (PALAVRAS_DE_CAFE.has(ultima)) palavras.pop();
+    else break;
+  }
+  return palavras.length > 0 ? palavras.join("-") : slug;
+}
+
+/** Indício de café especial (origem do grão, torra própria, métodos filtrados…), com o trecho literal. */
+export type Sinal = { sinal: string; trecho: string; url: string };
+
+/** O que o modelo extraiu de um café que não está no banco. Só nome e cidade são obrigatórios. */
+export type CandidatoCafeNovo = {
+  nome: string;
+  cidade: string;
+  bairro?: string | null;
+  endereco?: string | null;
+  instagram?: string | null;
+  telefone?: string | null;
+  horario?: Partial<Record<DiaSemana, string>> | null;
+  faixa_preco?: string | null;
+  booleanos?: Partial<Record<CampoBooleano, Pick<FatoBooleano, "valor" | "negacaoExplicita">>>;
+  sinais: Sinal[];
+  fontes: FonteDoFato[];
+};
+
+/** O `valor_proposto` do `cafe_novo` (contrato na migration): sem slug, lat e lng; opcionais só quando validam. */
+export type CafeNovoProposto = {
+  nome: string;
+  cidade: Cidade;
+  bairro?: string;
+  endereco?: string;
+  instagram?: string;
+  telefone?: string;
+  horario_funcionamento?: Partial<Record<DiaSemana, string>>;
+  faixa_preco?: FaixaPreco;
+  sinais: Sinal[];
+} & Partial<Record<CampoBooleano, boolean>>;
+
+export type PropostaCafeNovo = {
+  tipo: "cafe_novo";
+  nomeNormalizado: string;
+  valorProposto: CafeNovoProposto;
+  fontes: FonteDoFato[];
+};
+
+/** "recife", "Jaboatao dos Guararapes" e "Jaboatão" sozinho → a cidade do banco. */
+function cidadeDoCandidato(valor: string): Cidade | null {
+  const chave = slugify(valor);
+  if (chave === "jaboatao") return "Jaboatão dos Guararapes";
+  return CIDADES.find((cidade) => slugify(cidade) === chave) ?? null;
+}
+
+function ehExcecao(nome: string): boolean {
+  return EXCECOES_DE_CAFE_NOVO.some((excecao) => nome === excecao || nome.startsWith(`${excecao}-`));
+}
+
+/** Texto aparado dentro do limite, ou `null`. */
+function textoAte(valor: unknown, maximo: number): string | null {
+  const texto = textoAparado(valor);
+  return texto && texto.length <= maximo ? texto : null;
+}
+
+/**
+ * Candidato a café novo + todos os cafés do banco (ativos e inativos) + os
+ * nomes normalizados dos cafés novos rejeitados → proposta `cafe_novo`, ou
+ * `null`. Fora das três cidades, sem sinal de café especial com trecho (salvo
+ * as exceções), já no banco ou já rejeitado (nunca volta) → nada.
+ */
+export function proporCafeNovo(
+  candidato: CandidatoCafeNovo,
+  cafes: Pick<Cafe, "nome">[],
+  rejeitados: string[],
+): PropostaCafeNovo | null {
+  const nome = textoAte(candidato.nome, MAX_TEXTO.nome);
+  const cidade = cidadeDoCandidato(candidato.cidade);
+  if (!nome || !cidade) return null;
+
+  const chave = nomeNormalizado(nome);
+  const sinais = candidato.sinais.filter(({ sinal, trecho, url }) => textoAparado(sinal) && textoAparado(trecho) && textoAparado(url));
+  if (sinais.length === 0 && !ehExcecao(chave)) return null;
+  if (cafes.some((cafe) => nomeNormalizado(cafe.nome) === chave)) return null;
+  if (rejeitados.some((rejeitado) => nomeNormalizado(rejeitado) === chave)) return null;
+
+  const proposto: CafeNovoProposto = { nome, cidade, sinais };
+  const bairro = textoAte(candidato.bairro, MAX_TEXTO.bairro);
+  if (bairro) proposto.bairro = bairro;
+  const endereco = textoAte(candidato.endereco, MAX_TEXTO.endereco);
+  if (endereco) proposto.endereco = endereco;
+  const instagram = doNormalizador(normalizarInstagram)(candidato.instagram ?? "");
+  if (instagram) proposto.instagram = instagram;
+  const telefone = doNormalizador(normalizarTelefone)(candidato.telefone ?? "");
+  if (telefone) proposto.telefone = telefone;
+
+  const horario = Object.fromEntries(
+    DIAS_DA_SEMANA.flatMap((dia) => {
+      const texto = candidato.horario?.[dia];
+      return texto !== undefined && validarHorarioDia(texto) === null ? [[dia, texto]] : [];
+    }),
+  );
+  if (Object.keys(horario).length > 0) proposto.horario_funcionamento = horario;
+
+  const faixa = FAIXAS.find((f) => f === textoAparado(candidato.faixa_preco));
+  if (faixa) proposto.faixa_preco = faixa;
+
+  for (const campo of CAMPOS_BOOLEANOS) {
+    const fato = candidato.booleanos?.[campo];
+    if (fato && booleanoAceito(fato)) proposto[campo] = fato.valor;
+  }
+
+  return { tipo: "cafe_novo", nomeNormalizado: chave, valorProposto: proposto, fontes: candidato.fontes.map(fonteDe) };
 }

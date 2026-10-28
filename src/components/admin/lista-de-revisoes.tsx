@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   agruparPorCafe,
+  avisoDeConfirmacao,
   formatarValor,
   ROTULO_DO_CAMPO,
   rotuloDeAtualidade,
@@ -13,6 +14,7 @@ import { milhar } from "@/lib/sugestao";
 import { isHttpUrl } from "@/lib/url";
 
 import { ChevronRightIcon } from "../icons";
+import { AcoesDaRevisao, DecisoesDaFila } from "./decisoes-da-fila";
 
 type Props = { revisoes: Revisao[]; agora: Date; total: number };
 
@@ -28,60 +30,67 @@ const ROTULO_DO_TIPO = { cafe_novo: "Café novo", atualizacao: "Atualização", 
 const STATUS_FINAL = { pendente: null, aprovada: "Aprovada", rejeitada: "Rejeitada", obsoleta: "Obsoleta" } as const;
 
 /**
- * Fila de `/admin/revisoes` (#177), agrupada por café. Server Component, sem
- * JS: as fontes são `<details>` nativos. Os textos vêm do robô e da web, então
- * saem como texto puro (o React escapa) e o link da fonte só vale se for http(s).
+ * Fila de `/admin/revisoes` (#177), agrupada por café. Server Component: as
+ * fontes são `<details>` nativos, e as decisões (#182), formulários com a
+ * Server Action. Os textos vêm do robô e da web, então saem como texto puro
+ * (o React escapa) e o link da fonte só vale se for http(s).
  */
 export function ListaDeRevisoes({ revisoes, agora, total }: Props) {
-  if (revisoes.length === 0) {
-    return (
-      <p className="rounded-[14px] border border-dashed border-line-strong p-14 text-center text-[14px] text-ink-3">
-        Nada por aqui com esse filtro.
-      </p>
-    );
-  }
+  const grupos = agruparPorCafe(revisoes);
+  // A ordem da tela, para o foco achar o vizinho de quem saiu da lista.
+  const itens = grupos.flatMap((g) => g.revisoes).map(({ id, status }) => ({ id, status }));
 
   return (
-    <>
-      <ul className="flex flex-col gap-4">
-        {agruparPorCafe(revisoes).map((grupo) => (
-          <li key={grupo.chave} className="overflow-hidden rounded-[14px] border border-line bg-white">
-            <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-5 py-3.5">
-              <h2 className="font-display text-[20px] leading-[1.2] text-espresso">
-                {grupo.cafe && grupo.revisoes[0].cafe_id ? (
-                  <Link href={`/admin/cafes/${grupo.revisoes[0].cafe_id}`} className="hover:underline">
-                    {grupo.titulo}
-                  </Link>
-                ) : (
-                  grupo.titulo
+    <DecisoesDaFila itens={itens}>
+      {revisoes.length === 0 ? (
+        <p
+          data-vazio
+          tabIndex={-1}
+          className="rounded-[14px] border border-dashed border-line-strong p-14 text-center text-[14px] text-ink-3 focus:outline-none"
+        >
+          Nada por aqui com esse filtro.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {grupos.map((grupo) => (
+            <li key={grupo.chave} className="overflow-hidden rounded-[14px] border border-line bg-white">
+              <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-5 py-3.5">
+                <h2 className="font-display text-[20px] leading-[1.2] text-espresso">
+                  {grupo.cafe && grupo.revisoes[0].cafe_id ? (
+                    <Link href={`/admin/cafes/${grupo.revisoes[0].cafe_id}`} className="hover:underline">
+                      {grupo.titulo}
+                    </Link>
+                  ) : (
+                    grupo.titulo
+                  )}
+                </h2>
+                {grupo.cafe && !grupo.cafe.ativo && (
+                  <span className="text-[12px] font-semibold text-ink-3">Fora do ar</span>
                 )}
-              </h2>
-              {grupo.cafe && !grupo.cafe.ativo && (
-                <span className="text-[12px] font-semibold text-ink-3">Fora do ar</span>
-              )}
-              {grupo.cafe?.ativo && (
-                <Link
-                  href={`/cafes/${grupo.cafe.slug}`}
-                  className="text-[13px] text-ink-3 underline underline-offset-2 hover:text-espresso"
-                >
-                  Ver no site
-                </Link>
-              )}
-            </header>
-            <ul>
-              {grupo.revisoes.map((revisao) => (
-                <Item key={revisao.id} revisao={revisao} agora={agora} />
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
+                {grupo.cafe?.ativo && (
+                  <Link
+                    href={`/cafes/${grupo.cafe.slug}`}
+                    className="text-[13px] text-ink-3 underline underline-offset-2 hover:text-espresso"
+                  >
+                    Ver no site
+                  </Link>
+                )}
+              </header>
+              <ul>
+                {grupo.revisoes.map((revisao) => (
+                  <Item key={revisao.id} revisao={revisao} agora={agora} />
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
       {total > revisoes.length && (
         <p className="mt-3 text-[13px] text-ink-3">
           Mostrando as {milhar(revisoes.length)} mais recentes de {milhar(total)}.
         </p>
       )}
-    </>
+    </DecisoesDaFila>
   );
 }
 
@@ -127,7 +136,7 @@ function Mudanca({ revisao }: { revisao: Revisao }) {
 function Item({ revisao, agora }: { revisao: Revisao; agora: Date }) {
   const final = STATUS_FINAL[revisao.status];
   return (
-    <li className="flex flex-col gap-3 border-t border-line px-5 py-4 first:border-t-0">
+    <li data-revisao={revisao.id} className="flex flex-col gap-3 border-t border-line px-5 py-4 first:border-t-0">
       <p className="flex flex-wrap items-center gap-2 text-[12.5px] text-ink-3">
         <span className="inline-flex h-[22px] items-center rounded-full bg-hover-soft px-[9px] text-[12px] font-semibold text-ink-2">
           {ROTULO_DO_TIPO[revisao.tipo]}
@@ -142,6 +151,7 @@ function Item({ revisao, agora }: { revisao: Revisao; agora: Date }) {
       </p>
       <Mudanca revisao={revisao} />
       <Fontes fontes={revisao.fontes} />
+      <AcoesDaRevisao revisao={revisao} aviso={avisoDeConfirmacao(revisao, agora)} />
     </li>
   );
 }

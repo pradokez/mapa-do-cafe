@@ -23,12 +23,16 @@ const banco = vi.hoisted(() => {
   const resposta = { atual: { error: null as { code: string; message: string } | null } };
   const eq = vi.fn(() => Promise.resolve(resposta.atual));
   const update = vi.fn(() => ({ eq }));
-  const from = vi.fn(() => ({ update }));
-  return { resposta, eq, update, from };
+  const insert = vi.fn(() => Promise.resolve(resposta.atual));
+  const from = vi.fn(() => ({ update, insert }));
+  return { resposta, eq, update, insert, from };
 });
 vi.mock("@/lib/supabase-server", () => ({ createSessionClient: () => ({ from: banco.from }) }));
 
-import { salvarDadosCafe } from "./cafe-actions";
+const revisoes = vi.hoisted(() => ({ marcarRevisaoAprovada: vi.fn() }));
+vi.mock("./revisoes", () => revisoes);
+
+import { cadastrarCafe, salvarDadosCafe } from "./cafe-actions";
 
 const ID = "0b4a1f6e-2f61-4d7c-9a31-0c8f3f1f0a11";
 const ANTES = cafe(ID, { slug: "cafe-antigo", nome: "Café Antigo" });
@@ -47,6 +51,7 @@ beforeEach(() => {
   sessao.requireAdmin.mockResolvedValue({ email: "admin@x" });
   banco.resposta.atual = { error: null };
   repo.getCafeById.mockResolvedValue(ANTES);
+  revisoes.marcarRevisaoAprovada.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -115,5 +120,46 @@ describe("salvarDadosCafe — endereço", () => {
 
     expect(await salvarDadosCafe(ID, campos({ slug: "cafe-novo" }))).toMatchObject({ ok: false });
     expect(banco.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("cadastrarCafe — a partir de uma revisão (#187)", () => {
+  const REVISAO = "6934bcef-f5ec-49f8-b8e2-da0e8b31c280";
+  const novo = () => ({ ...ANTES, slug: "cafe-novo", nome: "Café Novo" });
+
+  it("sem revisão, cadastra fora do ar e não mexe em revisões", async () => {
+    const resultado = await cadastrarCafe(novo());
+
+    expect(resultado).toEqual({ ok: true, id: expect.any(String) });
+    expect(banco.insert).toHaveBeenCalledWith(expect.objectContaining({ slug: "cafe-novo", ativo: false }));
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
+  });
+
+  it("com revisão, o café nasce fora do ar e marca aprovada só a pendente de café novo", async () => {
+    const resultado = await cadastrarCafe(novo(), REVISAO);
+
+    expect(resultado).toEqual({ ok: true, id: expect.any(String) });
+    expect(banco.insert).toHaveBeenCalledWith(expect.objectContaining({ ativo: false }));
+    expect(revisoes.marcarRevisaoAprovada).toHaveBeenCalledWith(REVISAO, "cafe_novo", null);
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin", "layout");
+  });
+
+  it("revisão que não marca (já decidida em outra aba) não desfaz o café", async () => {
+    revisoes.marcarRevisaoAprovada.mockResolvedValue(false);
+
+    expect(await cadastrarCafe(novo(), REVISAO)).toEqual({ ok: true, id: expect.any(String) });
+  });
+
+  it("id de revisão malformado é ignorado", async () => {
+    expect(await cadastrarCafe(novo(), "nao-e-uuid")).toMatchObject({ ok: true });
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
+  });
+
+  it("cadastro que falha (slug repetido, inválido) não marca a revisão", async () => {
+    banco.resposta.atual = { error: { code: "23505", message: "duplicate key" } };
+    expect(await cadastrarCafe(novo(), REVISAO)).toMatchObject({ ok: false, erros: { slug: expect.any(String) } });
+
+    expect(await cadastrarCafe({ ...novo(), slug: "" }, REVISAO)).toMatchObject({ ok: false });
+    expect(revisoes.marcarRevisaoAprovada).not.toHaveBeenCalled();
   });
 });

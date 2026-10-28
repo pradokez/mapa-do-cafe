@@ -15,7 +15,7 @@ vi.mock("react-dom", async (original) => ({
 
 import { CartaoRevisoes } from "./cartao-revisoes";
 import { FiltroDeStatus, TrocaDeFiltro } from "./filtro-de-status";
-import { ListaDeRevisoes } from "./lista-de-revisoes";
+import { ListaDeRevisoes, Sinais } from "./lista-de-revisoes";
 
 afterEach(cleanup);
 
@@ -173,11 +173,19 @@ describe("decisões na fila (#182)", () => {
     expect(within(item).getByRole("link", { name: "Ver café" }).getAttribute("href")).toBe("/admin/cafes/c1");
   });
 
-  it("café novo só se rejeita; revisão decidida não tem botão", () => {
+  it("café novo se aprova direto (abre o cadastro, #187), mesmo sem data; revisão decidida não tem botão", () => {
     render(
       <ListaDeRevisoes
         revisoes={[
-          revisao({ id: "n", tipo: "cafe_novo", cafe_id: null, campo: null, cafe: null, nome_proposto: "Novo" }),
+          revisao({
+            id: "n",
+            tipo: "cafe_novo",
+            cafe_id: null,
+            campo: null,
+            cafe: null,
+            nome_proposto: "Novo",
+            atualidade: "sem_data",
+          }),
           revisao({ id: "d", cafe_id: "c2", status: "aprovada", cafe: { nome: "Café B", slug: "b", ativo: true } }),
         ]}
         agora={AGORA}
@@ -185,7 +193,7 @@ describe("decisões na fila (#182)", () => {
       />,
     );
 
-    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="n"]')!)).toEqual(["Rejeitar"]);
+    expect(botoes(document.querySelector<HTMLElement>('[data-revisao="n"]')!)).toEqual(["Aprovar", "Rejeitar"]);
     expect(botoes(document.querySelector<HTMLElement>('[data-revisao="d"]')!)).toEqual([]);
   });
 });
@@ -222,5 +230,28 @@ describe("CartaoRevisoes", () => {
   it("sem rodada: 'O robô ainda não rodou'", () => {
     render(<CartaoRevisoes pendentes={0} rodada={null} />);
     expect(screen.getByText(/O robô ainda não rodou/)).toBeTruthy();
+  });
+});
+
+describe("Sinais do café novo (#187)", () => {
+  it("cada sinal com o trecho; o link só vale se for http(s), e o texto sai puro", () => {
+    render(
+      <Sinais
+        sinais={[
+          { sinal: "Torra própria", trecho: "torramos aqui", url: "https://cafe.example/sobre" },
+          { sinal: "<b>SCA</b>", trecho: "barista certificado", url: "javascript:alert(1)" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Torra própria/ }).getAttribute("href")).toBe("https://cafe.example/sobre");
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByText("<b>SCA</b>")).toBeTruthy();
+    expect(screen.getByText("“torramos aqui”")).toBeTruthy();
+  });
+
+  it("sem sinal, diz que a proposta não trouxe nenhum", () => {
+    render(<Sinais sinais={[]} />);
+    expect(screen.getByText("Nenhum sinal na proposta.")).toBeTruthy();
   });
 });

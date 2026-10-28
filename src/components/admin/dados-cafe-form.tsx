@@ -27,6 +27,7 @@ import {
 } from "@/lib/cafe-dados";
 import { DIAS_DA_SEMANA } from "@/lib/cafe-hours";
 import { faixaPrecoNome } from "@/lib/format";
+import type { PreenchimentoDoCadastro } from "@/lib/revisao";
 
 import { botaoCtaClass, botaoNeutroClass, Erro, inputClass, invalidoClass, labelClass } from "./form";
 import { HorarioEditor, type Horario } from "./horario-editor";
@@ -84,6 +85,19 @@ function estadoDe(cafe: NovoCafe): Estado {
   };
 }
 
+/** Cadastro aberto por uma revisão de café novo (#187): o que ela trouxe sobre o formulário em branco. */
+function estadoPreenchido({ horario_funcionamento, ...campos }: PreenchimentoDoCadastro): Estado {
+  return {
+    ...ESTADO_NOVO,
+    ...campos,
+    instagram: campos.instagram ?? "",
+    telefone: campos.telefone ?? "",
+    horario: Object.fromEntries(
+      DIAS_DA_SEMANA.map((dia) => [dia, turnosDoHorario(horario_funcionamento?.[dia])]),
+    ) as Horario,
+  };
+}
+
 /** O payload da Server Action — o mesmo que `validarDadosCafe` confere aqui e lá. */
 function payloadDe({ horario, ...resto }: Estado) {
   return {
@@ -120,8 +134,14 @@ type Edicao = {
   ativo: boolean;
 };
 
-/** Cadastro (#53): formulário em branco, com slug; o sucesso leva à página do café. */
-type Cadastro = { cadastrar: (campos: unknown) => Promise<ResultadoCadastro> };
+/**
+ * Cadastro (#53): formulário em branco, com slug; o sucesso leva à página do café.
+ * Aberto pelo "Aprovar" de um café novo (#187), vem preenchido, e salvar marca a revisão aprovada.
+ */
+type Cadastro = {
+  cadastrar: (campos: unknown, revisaoId?: string) => Promise<ResultadoCadastro>;
+  revisao?: { id: string; campos: PreenchimentoDoCadastro };
+};
 
 type Props = (Edicao | Cadastro) & { buscarCoordenadas: (link: string) => Promise<ResultadoCoordenadas> };
 
@@ -130,8 +150,10 @@ export function DadosCafeForm(props: Props) {
   const edicao = "cafe" in props ? props : null;
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
+  const revisao = "cadastrar" in props ? props.revisao : undefined;
   const [salvo, setSalvo] = useState(() => (edicao ? estadoDe(edicao.cafe) : ESTADO_NOVO));
-  const [estado, setEstado] = useState(salvo);
+  // A proposta da revisão não está salva em lugar nenhum: sair sem cadastrar avisa.
+  const [estado, setEstado] = useState(() => (revisao ? estadoPreenchido(revisao.campos) : salvo));
   const [erros, setErros] = useState<ErrosDados>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -263,7 +285,7 @@ export function DadosCafeForm(props: Props) {
     let indo = false;
     try {
       if ("cadastrar" in props) {
-        const resultado = await props.cadastrar(payload);
+        const resultado = await props.cadastrar(payload, revisao?.id);
         if (!resultado.ok) return falhar(resultado.erros ?? {}, resultado.erro);
         // Fica "Salvando…" até a página do café abrir: nada de cadastrar duas vezes.
         indo = true;

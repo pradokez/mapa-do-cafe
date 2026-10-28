@@ -4,9 +4,21 @@
  * leitura precisa: filtro por status, ordem, agrupamento, etiquetas e valores.
  */
 
-import { formatarHorario, horarioDaSemana, NOME_DO_DIA } from "./cafe-hours";
+import type { DiaSemana } from "./cafe";
+import {
+  BOOLEANOS,
+  CIDADES,
+  FAIXAS,
+  MAX_TEXTO,
+  normalizarInstagram,
+  normalizarTelefone,
+  textoAparado,
+  validarHorarioDia,
+  type DadosCafe,
+} from "./cafe-dados";
+import { DIAS_DA_SEMANA, formatarHorario, horarioDaSemana, isRegistro, NOME_DO_DIA } from "./cafe-hours";
 import { alternarEm, statusDoParam } from "./filtro-de-status";
-import { canonico } from "./revisao-proposta";
+import { canonico, type Sinal } from "./revisao-proposta";
 import { milhar } from "./sugestao";
 
 export const STATUS_REVISAO = ["pendente", "aprovada", "rejeitada", "obsoleta"] as const;
@@ -190,8 +202,9 @@ export function rotuloDeAtualidade(atualidade: Atualidade, fontes: readonly Font
  * `atualizada` e se aprova num clique. É o texto do aviso antes do "Aprovar
  * mesmo assim"; quem confere a confirmação é o servidor.
  */
-export function avisoDeConfirmacao(revisao: Pick<Revisao, "atualidade" | "fontes">, agora: Date): string | null {
-  if (revisao.atualidade === "atualizada") return null;
+export function avisoDeConfirmacao(revisao: Pick<Revisao, "tipo" | "atualidade" | "fontes">, agora: Date): string | null {
+  // Café novo: aprovar só abre o cadastro (#187), que mostra as fontes e não grava nada sozinho.
+  if (revisao.tipo === "cafe_novo" || revisao.atualidade === "atualizada") return null;
   if (revisao.atualidade === "sem_data") return "As fontes não têm data.";
   if (revisao.atualidade === "conflito") return "As fontes discordam entre si.";
   const idade = idadeDaFonte(revisao.fontes, agora);
@@ -209,14 +222,64 @@ export type AcoesDaRevisao = {
 /**
  * Os botões de uma revisão (#182). Decidida não tem nenhum. "Fechado
  * temporariamente" (atualização sem campo) é só indício: Ver café e Arquivar.
- * Café novo se aprova pelo cadastro, numa fatia própria: aqui, só Rejeitar.
+ * Café novo se aprova pelo cadastro (#187): Aprovar abre o formulário preenchido.
  */
 export function acoesDaRevisao(revisao: Pick<Revisao, "tipo" | "campo" | "status">): AcoesDaRevisao {
   if (revisao.status !== "pendente") return { aprovar: false, descartar: null, verCafe: false };
   if (revisao.tipo === "atualizacao" && revisao.campo === null) {
     return { aprovar: false, descartar: "Arquivar", verCafe: true };
   }
-  return { aprovar: revisao.tipo !== "cafe_novo", descartar: "Rejeitar", verCafe: false };
+  return { aprovar: true, descartar: "Rejeitar", verCafe: false };
+}
+
+/** O que o cadastro recebe pronto: nunca slug nem coordenadas, conferidos à mão. */
+export type PreenchimentoDoCadastro = Partial<
+  Omit<DadosCafe, "lat" | "lng" | "bairro_slug" | "horario_funcionamento"> & {
+    horario_funcionamento: Partial<Record<DiaSemana, string>>;
+  }
+>;
+
+const ehBooleano = (valor: unknown): valor is boolean => typeof valor === "boolean";
+const ehUm = <T extends string>(lista: readonly T[], valor: unknown): valor is T => lista.includes(valor as T);
+
+/**
+ * `valor_proposto` de um `cafe_novo` → o que pré-preenche o cadastro (#187) e
+ * os sinais de café especial. Campo a campo: o que sai do formato (cidade fora
+ * das três, dia de horário inválido, Instagram de outro site) fica de fora, e
+ * o formulário mantém o padrão dele. Quem valida o café inteiro é o cadastro.
+ */
+export function cadastroDaRevisao(valor: unknown): { campos: PreenchimentoDoCadastro; sinais: Sinal[] } {
+  if (!isRegistro(valor)) return { campos: {}, sinais: [] };
+  const campos: PreenchimentoDoCadastro = {};
+
+  for (const campo of Object.keys(MAX_TEXTO) as (keyof typeof MAX_TEXTO)[]) {
+    const texto = textoAparado(valor[campo]);
+    if (texto) campos[campo] = texto;
+  }
+  if (ehUm(CIDADES, valor.cidade)) campos.cidade = valor.cidade;
+  if (ehUm(FAIXAS, valor.faixa_preco)) campos.faixa_preco = valor.faixa_preco;
+  for (const campo of BOOLEANOS) if (ehBooleano(valor[campo])) campos[campo] = valor[campo];
+  const ar = valor.tem_ar_condicionado;
+  if (ar === null || ehBooleano(ar)) campos.tem_ar_condicionado = ar;
+
+  const instagram = normalizarInstagram(valor.instagram);
+  if (instagram.ok && instagram.valor) campos.instagram = instagram.valor;
+  const telefone = normalizarTelefone(valor.telefone);
+  if (telefone.ok && telefone.valor) campos.telefone = telefone.valor;
+
+  if (isRegistro(valor.horario_funcionamento)) {
+    const proposto = valor.horario_funcionamento;
+    const dias = DIAS_DA_SEMANA.filter((dia) => typeof proposto[dia] === "string" && validarHorarioDia(proposto[dia]) === null);
+    if (dias.length > 0) campos.horario_funcionamento = Object.fromEntries(dias.map((dia) => [dia, proposto[dia] as string]));
+  }
+
+  // Como no `proporCafeNovo`: sinal sem texto, trecho ou link não sustenta nada.
+  const sinais = (Array.isArray(valor.sinais) ? valor.sinais : []).flatMap((s): Sinal[] => {
+    if (!isRegistro(s)) return [];
+    const [sinal, trecho, url] = [s.sinal, s.trecho, s.url].map(textoAparado);
+    return sinal && trecho && url ? [{ sinal, trecho, url }] : [];
+  });
+  return { campos, sinais };
 }
 
 /** O mesmo valor de campo, com as chaves do horário em qualquer ordem. */

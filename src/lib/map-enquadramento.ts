@@ -4,7 +4,7 @@
  */
 
 import { dentroDaRegiao } from "./cafe-dados";
-import { distanciaKm, ordenarPorDistancia, type Coordenadas } from "./cafe-distance";
+import { distanciaKm, ordenarPorDistancia, RAIO_TERRA_KM, type Coordenadas } from "./cafe-distance";
 
 /**
  * Como o mapa enquadra pontos (`fitBounds`): o `cafe-map` e os pins-fantasma
@@ -31,4 +31,40 @@ export function pontosParaEnquadrar(
   const validos = cafes.filter((cafe) => distanciaKm(posicao, cafe) !== null);
   const maisPerto = ordenarPorDistancia(validos, posicao).slice(0, CAFES_NO_ENQUADRAMENTO);
   return maisPerto.length > 0 ? [posicao, ...maisPerto] : null;
+}
+
+const rad = (graus: number) => (graus * Math.PI) / 180;
+const graus = (radianos: number) => (radianos * 180) / Math.PI;
+
+/**
+ * O círculo do raio de distância (#165) como anel `[lng, lat]`, fechado no
+ * primeiro ponto (o formato do polígono GeoJSON): cada ponto a `km` do centro
+ * na mesma esfera do haversine, para o círculo e o filtro (`dentroDoRaio`) baterem.
+ */
+export function circuloDoRaio(centro: Coordenadas, km: number, passos = 64): [number, number][] {
+  const angulo = km / RAIO_TERRA_KM;
+  const lat1 = rad(centro.lat);
+  const lng1 = rad(centro.lng);
+  const anel: [number, number][] = [];
+  for (let i = 0; i < passos; i++) {
+    const rumo = (2 * Math.PI * i) / passos;
+    const lat2 = Math.asin(Math.sin(lat1) * Math.cos(angulo) + Math.cos(lat1) * Math.sin(angulo) * Math.cos(rumo));
+    const lng2 =
+      lng1 +
+      Math.atan2(Math.sin(rumo) * Math.sin(angulo) * Math.cos(lat1), Math.cos(angulo) - Math.sin(lat1) * Math.sin(lat2));
+    anel.push([graus(lng2), graus(lat2)]);
+  }
+  anel.push(anel[0]);
+  return anel;
+}
+
+/** Cantos sudoeste e nordeste do círculo do raio: o que o mapa enquadra com o raio ligado. */
+export function limitesDoCirculo(centro: Coordenadas, km: number): [Coordenadas, Coordenadas] {
+  const anel = circuloDoRaio(centro, km);
+  const lngs = anel.map(([lng]) => lng);
+  const lats = anel.map(([, lat]) => lat);
+  return [
+    { lat: Math.min(...lats), lng: Math.min(...lngs) },
+    { lat: Math.max(...lats), lng: Math.max(...lngs) },
+  ];
 }

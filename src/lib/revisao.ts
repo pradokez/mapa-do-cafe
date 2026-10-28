@@ -6,6 +6,7 @@
 
 import { formatarHorario, horarioDaSemana, NOME_DO_DIA } from "./cafe-hours";
 import { alternarEm, statusDoParam } from "./filtro-de-status";
+import { canonico } from "./revisao-proposta";
 import { milhar } from "./sugestao";
 
 export const STATUS_REVISAO = ["pendente", "aprovada", "rejeitada", "obsoleta"] as const;
@@ -80,6 +81,15 @@ export type Revisao = {
   /** `valor_proposto.nome` do `cafe_novo`; `null` nos outros tipos. */
   nome_proposto: string | null;
 };
+
+/**
+ * Resposta das actions de decisão (#182), no formato do `useFormState`. O erro
+ * leva o `id` quando ele é válido: a fila mostra a mensagem no item certo, inclusive sem JS.
+ */
+export type DecisaoDeRevisao =
+  | { ok: true; id: string; status: StatusRevisao }
+  | { ok: false; erro: string; id?: string }
+  | null;
 
 export type ContagemDeRevisoes = Record<StatusRevisao, number>;
 
@@ -157,16 +167,61 @@ function mesesDesdeAFonte(fontes: readonly FonteDaRevisao[], agora: Date): numbe
   return agora.getUTCFullYear() * 12 + agora.getUTCMonth() - Math.max(...meses);
 }
 
+/** "8 meses", "2 anos": a idade da fonte mais recente com data ISO, ou `null`. */
+function idadeDaFonte(fontes: readonly FonteDaRevisao[], agora: Date): string | null {
+  const meses = mesesDesdeAFonte(fontes, agora);
+  if (meses === null || meses < 1) return null;
+  if (meses < 12) return `${meses} ${meses === 1 ? "mês" : "meses"}`;
+  const anos = Math.floor(meses / 12);
+  return `${anos} ${anos === 1 ? "ano" : "anos"}`;
+}
+
 /** A etiqueta visível da revisão: `Atualizada`, `Antiga · 2 anos`, `Sem data`, `Fontes discordam`. */
 export function rotuloDeAtualidade(atualidade: Atualidade, fontes: readonly FonteDaRevisao[], agora: Date): string {
   if (atualidade === "atualizada") return "Atualizada";
   if (atualidade === "sem_data") return "Sem data";
   if (atualidade === "conflito") return "Fontes discordam";
-  const meses = mesesDesdeAFonte(fontes, agora);
-  if (meses === null || meses < 1) return "Antiga";
-  if (meses < 12) return `Antiga · ${meses} ${meses === 1 ? "mês" : "meses"}`;
-  const anos = Math.floor(meses / 12);
-  return `Antiga · ${anos} ${anos === 1 ? "ano" : "anos"}`;
+  const idade = idadeDaFonte(fontes, agora);
+  return idade ? `Antiga · ${idade}` : "Antiga";
+}
+
+/**
+ * Por que aprovar esta revisão pede confirmação (#182), ou `null` quando ela é
+ * `atualizada` e se aprova num clique. É o texto do aviso antes do "Aprovar
+ * mesmo assim"; quem confere a confirmação é o servidor.
+ */
+export function avisoDeConfirmacao(revisao: Pick<Revisao, "atualidade" | "fontes">, agora: Date): string | null {
+  if (revisao.atualidade === "atualizada") return null;
+  if (revisao.atualidade === "sem_data") return "As fontes não têm data.";
+  if (revisao.atualidade === "conflito") return "As fontes discordam entre si.";
+  const idade = idadeDaFonte(revisao.fontes, agora);
+  return idade ? `A fonte mais recente tem ${idade}.` : "A fonte mais recente é antiga.";
+}
+
+export type AcoesDaRevisao = {
+  aprovar: boolean;
+  /** O que tira a revisão da fila (vai a `rejeitada`); `null` quando já foi decidida. */
+  descartar: "Rejeitar" | "Arquivar" | null;
+  /** Só no indício: não há o que aprovar, mas o café merece uma olhada. */
+  verCafe: boolean;
+};
+
+/**
+ * Os botões de uma revisão (#182). Decidida não tem nenhum. "Fechado
+ * temporariamente" (atualização sem campo) é só indício: Ver café e Arquivar.
+ * Café novo se aprova pelo cadastro, numa fatia própria: aqui, só Rejeitar.
+ */
+export function acoesDaRevisao(revisao: Pick<Revisao, "tipo" | "campo" | "status">): AcoesDaRevisao {
+  if (revisao.status !== "pendente") return { aprovar: false, descartar: null, verCafe: false };
+  if (revisao.tipo === "atualizacao" && revisao.campo === null) {
+    return { aprovar: false, descartar: "Arquivar", verCafe: true };
+  }
+  return { aprovar: revisao.tipo !== "cafe_novo", descartar: "Rejeitar", verCafe: false };
+}
+
+/** O mesmo valor de campo, com as chaves do horário em qualquer ordem. */
+export function mesmoValor(a: unknown, b: unknown): boolean {
+  return canonico(a) === canonico(b);
 }
 
 const SEM_INFORMACAO = "Sem informação";

@@ -67,7 +67,7 @@ function data(ano: number, mes: number, dia: number | null): Data | null {
   if (mes < 1 || mes > 12) return null;
   if (dia !== null) {
     const naData = new Date(Date.UTC(ano, mes - 1, dia));
-    if (naData.getUTCMonth() !== mes - 1 || dia < 1) return null; // 31/02 viraria março
+    if (naData.getUTCMonth() !== mes - 1) return null; // 31/02 viraria março
   }
   return { ano, mes, dia };
 }
@@ -95,8 +95,9 @@ function lerDataDaFonte(texto: string | null): Data | null {
   return todas.length === 1 ? todas[0] : null;
 }
 
-const mesmaData = (a: Data, b: Data) =>
-  a.ano === b.ano && a.mes === b.mes && (a.dia === null || b.dia === null || a.dia === b.dia);
+/** O trecho sustenta a data da fonte? Dia citado precisa estar no trecho; só mês aceita qualquer dia dele. */
+const sustenta = (daFonte: Data, noTrecho: Data) =>
+  daFonte.ano === noTrecho.ano && daFonte.mes === noTrecho.mes && (daFonte.dia === null || daFonte.dia === noTrecho.dia);
 
 /** Dia corrido (UTC) de uma data; só mês vale o dia 1, o lado de quem exige a fonte recente. */
 function diaCorrido({ ano, mes, dia }: Data): number {
@@ -120,7 +121,7 @@ function classificar(fonte: FonteDaProposta, agora: Date): FonteClassificada {
   const escrita = lerDataDaFonte(fonte.data_fonte);
   if (!escrita) return semData;
   // A data precisa estar no trecho citado, em qualquer formato.
-  if (!datasDoTexto(fonte.trecho).some((noTrecho) => mesmaData(escrita, noTrecho))) return semData;
+  if (!datasDoTexto(fonte.trecho).some((noTrecho) => sustenta(escrita, noTrecho))) return semData;
 
   const { hoje, mesAtual, limite } = hojeELimite(agora);
   const futura = escrita.dia === null ? escrita.ano * 12 + escrita.mes > mesAtual : diaCorrido(escrita) > diaCorrido(hoje);

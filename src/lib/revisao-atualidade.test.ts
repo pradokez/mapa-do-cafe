@@ -118,6 +118,8 @@ describe("atualidadeDasFontes — sem data", () => {
     expect(daFonte(fonte("12/09/2026", { trecho: "Abrimos das 8h às 18h." }))).toBe("sem_data");
     expect(daFonte(fonte("12/09/2026", { trecho: "Atualizado em 13/09/2026." }))).toBe("sem_data");
     expect(daFonte(fonte("12/09/2026", { trecho: "Atualizado em 12/09/2025." }))).toBe("sem_data");
+    // O dia não pode ser inventado: o trecho só diz o mês.
+    expect(daFonte(fonte("12/09/2026", { trecho: "Cardápio de set 2026" }))).toBe("sem_data");
   });
 
   it("número que só parece data não conta", () => {

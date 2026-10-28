@@ -158,6 +158,14 @@ function proporCampo(
   };
 }
 
+/** Texto aparado dentro do limite, ou `null`. */
+function textoAte(valor: unknown, maximo: number): string | null {
+  const texto = textoAparado(valor);
+  return texto && texto.length <= maximo ? texto : null;
+}
+
+const faixaDe = (valor: unknown): FaixaPreco | null => FAIXAS.find((f) => f === textoAparado(valor)) ?? null;
+
 function candidatosDeTexto(
   fatos: Fato<string>[] | undefined,
   normalizar: (valor: string) => string | null,
@@ -236,14 +244,8 @@ export function proporRevisoes(fatos: FatosDoCafe, cafe: Cafe, rejeitadas: Rejei
     ["horario_funcionamento", candidatosDeHorario(fatos.horario, cafe)],
     ["instagram", candidatosDeTexto(fatos.instagram, doNormalizador(normalizarInstagram))],
     ["telefone", candidatosDeTexto(fatos.telefone, doNormalizador(normalizarTelefone))],
-    [
-      "endereco",
-      candidatosDeTexto(fatos.endereco, (valor) => {
-        const texto = textoAparado(valor);
-        return texto && texto.length <= MAX_TEXTO.endereco ? texto : null;
-      }),
-    ],
-    ["faixa_preco", candidatosDeTexto(fatos.faixa_preco, (valor) => FAIXAS.find((f) => f === textoAparado(valor)) ?? null)],
+    ["endereco", candidatosDeTexto(fatos.endereco, (valor) => textoAte(valor, MAX_TEXTO.endereco))],
+    ["faixa_preco", candidatosDeTexto(fatos.faixa_preco, faixaDe)],
     ...CAMPOS_BOOLEANOS.map((campo): [CampoRevisado, Candidato[]] => [campo, candidatosBooleanos(fatos.booleanos?.[campo])]),
   ];
 
@@ -327,12 +329,6 @@ function ehExcecao(nome: string): boolean {
   return EXCECOES_DE_CAFE_NOVO.some((excecao) => nome === excecao || nome.startsWith(`${excecao}-`));
 }
 
-/** Texto aparado dentro do limite, ou `null`. */
-function textoAte(valor: unknown, maximo: number): string | null {
-  const texto = textoAparado(valor);
-  return texto && texto.length <= maximo ? texto : null;
-}
-
 /**
  * Candidato a café novo + todos os cafés do banco (ativos e inativos) + os
  * nomes normalizados dos cafés novos rejeitados → proposta `cafe_novo`, ou
@@ -372,7 +368,7 @@ export function proporCafeNovo(
   );
   if (Object.keys(horario).length > 0) proposto.horario_funcionamento = horario;
 
-  const faixa = FAIXAS.find((f) => f === textoAparado(candidato.faixa_preco));
+  const faixa = faixaDe(candidato.faixa_preco);
   if (faixa) proposto.faixa_preco = faixa;
 
   for (const campo of CAMPOS_BOOLEANOS) {

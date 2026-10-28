@@ -45,9 +45,13 @@ export function useFilterParams(bairrosValidos: readonly string[], festivais: Fe
     [searchParams, bairrosValidos, festivais, raioKm],
   );
 
-  const navigate = (next: CafeFilters, instante = new Date()) => {
+  // Com o "Aberto agora" ligado, toda mudança de filtro leva o relógio do gesto.
+  const marcarAgora = (abertoAgora: boolean, instante = new Date()) => {
+    if (abertoAgora) setAgora(instante);
+  };
+  const navigate = (next: CafeFilters, instante?: Date) => {
     setRaioKm(next.raioKm);
-    if (next.abertoAgora) setAgora(instante);
+    marcarAgora(next.abertoAgora, instante);
     escrever(searchParams, next, "push");
   };
   // Estável enquanto a URL não muda: o debounce do campo reinicia quando ela muda.
@@ -67,7 +71,10 @@ export function useFilterParams(bairrosValidos: readonly string[], festivais: Fe
     limparBairros: () => navigate({ ...filters, bairros: [] }),
     togglePreco: (faixa: FaixaPreco) => navigate({ ...filters, precos: alternar(filters.precos, faixa) }),
     buscar,
-    escolherRaio: (km: RaioKm | null) => navigate({ ...filters, raioKm: km }),
+    escolherRaio: (km: RaioKm | null) => {
+      setRaioKm(km);
+      marcarAgora(filters.abertoAgora);
+    },
     /**
      * Aplica um estado inteiro de uma vez (os bottom sheets): uma entrada no
      * histórico, com o instante em que o sheet abriu (o do "Ver N cafés").

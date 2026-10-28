@@ -1,4 +1,4 @@
-import { CARD_HORARIO } from "@/components/medidas";
+import { CARD_HORARIO, HORARIO_COMPACTO } from "@/components/medidas";
 import { estadoAgora, rotuloDoCard, type RotuloDoCard } from "@/lib/cafe-hours";
 
 const TOM: Record<RotuloDoCard["tom"], string> = {
@@ -16,7 +16,7 @@ const TOM: Record<RotuloDoCard["tom"], string> = {
  */
 export function HorarioAgora({ horario, agora, compacto = false }: { horario: unknown; agora: Date; compacto?: boolean }) {
   const rotulo = rotuloDoCard(estadoAgora(horario, agora));
-  const linha = compacto ? "flex h-4 items-center gap-1.5 text-[12.5px] leading-4" : CARD_HORARIO;
+  const linha = compacto ? HORARIO_COMPACTO : CARD_HORARIO;
 
   if (!rotulo) return <span data-horario aria-hidden="true" className={linha} />;
   return (

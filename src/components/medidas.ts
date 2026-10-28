@@ -57,8 +57,9 @@ export const CARD_CORPO = "flex min-w-0 flex-1 flex-col gap-1 pb-0.5 pr-1 pt-[3p
 /** Nome: duas linhas no máximo; no desktop, reservadas mesmo com nome curto. */
 export const CARD_NOME = "text-[16.5px] leading-[1.2] lg:min-h-[2.4em] lg:text-[19px]";
 /** Linha do horário de agora (#163): altura fixa, reservada mesmo sem estado — o card não muda de altura. */
-export const CARD_HORARIO =
-  "flex h-4 items-center gap-1.5 text-[12.5px] leading-4 lg:h-[18px] lg:gap-[7px] lg:text-[13px] lg:leading-[18px]";
+export const HORARIO_COMPACTO = "flex h-4 items-center gap-1.5 text-[12.5px] leading-4";
+/** A mesma linha no card: compacta no mobile, 18 px a partir de `lg`. */
+export const CARD_HORARIO = `${HORARIO_COMPACTO} lg:h-[18px] lg:gap-[7px] lg:text-[13px] lg:leading-[18px]`;
 /** Linha de comodidades: altura fixa no desktop (28 px + 6 de respiro), reservada mesmo vazia. */
 export const CARD_COMODIDADES = "mt-auto flex min-h-4 items-center gap-2.5 lg:h-[34px] lg:pt-1.5";
 

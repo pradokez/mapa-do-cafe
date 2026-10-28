@@ -32,6 +32,8 @@ const config: Config = {
         "map-bg": "#1E1B19",
         "map-control": { DEFAULT: "#2A2623", line: "#3A3430", fg: "#E9DFD3", hover: "#34302C" },
         "map-pin": "#F1E6D8",
+        // Contorno e xícara do pin fechado agora (#165), sobre `map-control`: 6,04:1 no `map-bg`.
+        "pin-apagado": "#A39889",
         "map-voce": "#4C8DF6",
         // Acento do festival sobre `espresso`: o ano no título (#104, 6,45:1) e o ponto da pílula (#103, decorativo).
         brasa: "#E58A5F",

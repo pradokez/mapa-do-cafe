@@ -118,10 +118,10 @@ describe("Filtro de distância — com posição", () => {
 
     await userEvent.click(chipDoMenu("Distância"));
     expect(screen.getAllByRole("menuitemradio").map((el) => el.textContent)).toEqual([
+      "Qualquer distância",
       "Até 1 km",
       "Até 3 km",
       "Até 7 km",
-      "Qualquer distância",
     ]);
     await userEvent.click(screen.getByRole("menuitemradio", { name: "Até 1 km" }));
 
@@ -199,6 +199,12 @@ describe("Filtro de distância — com posição", () => {
     renderHome();
     await userEvent.click(chipDoSheet("Distância"));
     const radio = (nome: string) => within(screen.getByRole("dialog")).getByRole("radio", { name: nome });
+    expect(within(screen.getByRole("dialog")).getAllByRole("radio").map((el) => el.textContent)).toEqual([
+      "Qualquer distância",
+      "Até 1 km",
+      "Até 3 km",
+      "Até 7 km",
+    ]);
 
     radio("Qualquer distância").focus();
     await userEvent.keyboard("{ArrowDown}");

@@ -76,8 +76,8 @@ export function dentroDoRaio<T extends Coordenadas>(
   });
 }
 
-/** Opções do filtro, na ordem do menu: os raios e, por último, a de desligar. */
-export const OPCOES_DE_RAIO: readonly (RaioKm | null)[] = [...RAIOS_KM, null];
+/** Opções do filtro, na ordem do menu: a de desligar primeiro (como "Todos os bairros"), depois os raios. */
+export const OPCOES_DE_RAIO: readonly (RaioKm | null)[] = [null, ...RAIOS_KM];
 
 /** Rótulo de uma opção do filtro: "Até 1 km", ou "Qualquer distância" (desligado). */
 export function raioLabel(km: RaioKm | null): string {

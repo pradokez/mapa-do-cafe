@@ -173,9 +173,9 @@ describe("dentroDoRaio", () => {
 });
 
 describe("raios", () => {
-  it("as opções são 1, 3 e 7 km, e a de desligar vem por último", () => {
+  it("as opções são 1, 3 e 7 km, e a de desligar vem primeiro", () => {
     expect(RAIOS_KM).toEqual([1, 3, 7]);
-    expect(OPCOES_DE_RAIO).toEqual([1, 3, 7, null]);
+    expect(OPCOES_DE_RAIO).toEqual([null, 1, 3, 7]);
   });
 
   it("o chip diz \"Distância\" até um raio ser escolhido", () => {

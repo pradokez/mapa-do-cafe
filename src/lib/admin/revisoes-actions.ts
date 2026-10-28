@@ -54,7 +54,9 @@ export async function aprovarRevisao(_anterior: DecisaoDeRevisao, dados: FormDat
   // fora do ar): aprovar sobrescreveria o que a administradora fez.
   const mudou = campo === null ? !cafe.ativo : !mesmoValor(cafe[campo], revisao.valor_atual);
   if (mudou) {
-    if (!(await mudarStatusDaRevisao(revisao.id, "obsoleta", ["pendente"]))) return { ok: false, id, erro: ERRO_GERAL };
+    if (!(await mudarStatusDaRevisao(revisao.id, "obsoleta", ["pendente"]))) {
+      return { ok: false, id, erro: ERRO_GERAL };
+    }
     revalidatePath("/admin", "layout");
     return { ok: true, id, status: "obsoleta" };
   }
@@ -64,10 +66,7 @@ export async function aprovarRevisao(_anterior: DecisaoDeRevisao, dados: FormDat
   // (normalizado) vai ao banco — o resto do café fica como está.
   let gravar: Record<string, unknown> = { ativo: false };
   if (campo !== null) {
-    const validacao = validarDadosCafe({
-      ...cafe,
-      [campo]: revisao.valor_proposto,
-    });
+    const validacao = validarDadosCafe({ ...cafe, [campo]: revisao.valor_proposto });
     if (!validacao.ok) return { ok: false, id, erro: ERRO_INVALIDA };
     gravar = { [campo]: validacao.valores[campo] };
   }
@@ -82,8 +81,9 @@ export async function aprovarRevisao(_anterior: DecisaoDeRevisao, dados: FormDat
   revalidatePath("/admin", "layout");
 
   // Sem transação: se só a marcação falhar, a próxima tentativa vê o banco mudado e marca obsoleta.
-  if (!(await marcarRevisaoAprovada(revisao.id, revisao.tipo, revisao.cafe_id)))
+  if (!(await marcarRevisaoAprovada(revisao.id, revisao.tipo, revisao.cafe_id))) {
     return { ok: false, id, erro: ERRO_GERAL };
+  }
   return { ok: true, id, status: "aprovada" };
 }
 

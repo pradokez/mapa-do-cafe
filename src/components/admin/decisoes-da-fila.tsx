@@ -10,6 +10,7 @@ import { acoesDaRevisao, type DecisaoDeRevisao, type Revisao, type StatusRevisao
 import { Erro } from "./form";
 
 type AcaoDoForm = (dados: FormData) => void;
+type Acao = "aprovar" | "rejeitar" | "arquivar";
 
 type Contexto = {
   aprovar: AcaoDoForm;
@@ -20,8 +21,6 @@ type Contexto = {
 };
 
 const DecisoesContexto = createContext<Contexto | null>(null);
-
-type Acao = "aprovar" | "rejeitar" | "arquivar";
 
 type Enviada = { id: string; indice: number; acao: Acao };
 
@@ -77,11 +76,7 @@ export function DecisoesDaFila({ itens, children }: { itens: Pick<Revisao, "id" 
     aoEnviar: (id, acao) => {
       setUltimo(acao === "aprovar" ? "aprovar" : "rejeitar");
       setAviso("");
-      enviada.current = {
-        id,
-        indice: itens.findIndex((r) => r.id === id),
-        acao,
-      };
+      enviada.current = { id, indice: itens.findIndex((r) => r.id === id), acao };
     },
   };
 
@@ -126,7 +121,7 @@ export function AcoesDaRevisao({ revisao, aviso }: Props) {
       <div data-acoes className="flex flex-wrap items-start gap-1.5">
         {acoes.aprovar &&
           (aviso ? (
-            <details className="group open:basis-full">
+            <details className="open:basis-full">
               <summary className={`${ctaClass} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                 Aprovar…
               </summary>

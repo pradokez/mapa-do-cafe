@@ -24,17 +24,18 @@ export default async function PainelLayout({ children }: { children: React.React
           {escrita.motivo}
         </p>
       )}
-      <header className="flex h-[72px] items-center justify-between gap-4 border-b border-line px-4 sm:px-7">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
-          <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex shrink-0 items-end gap-5">
-            <Logo />
-            <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 lg:inline">
-              Admin
-            </span>
-          </Link>
+      {/* Abaixo de `sm`, o logo e o "Sair" dividem a primeira linha e a nav ganha a segunda: em 390 px as três seções e o botão não cabem lado a lado (#206). */}
+      <header className="flex min-h-[72px] flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-4 py-2 sm:gap-x-6 sm:px-7 sm:py-0">
+        <Link href="/admin" aria-label="Mapa do Café (Recife!) — admin, início" className="flex shrink-0 items-end gap-5">
+          <Logo />
+          <span className="hidden pb-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3 lg:inline">
+            Admin
+          </span>
+        </Link>
+        <div className="order-last -mx-2 w-full sm:order-none sm:mx-0 sm:w-auto">
           <NavDoPainel />
         </div>
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-3">
           <span className="hidden truncate text-[13.5px] text-ink-3 lg:inline">{email}</span>
           <form action={sair}>
             <button

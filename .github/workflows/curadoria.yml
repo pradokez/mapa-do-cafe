@@ -1,0 +1,41 @@
+name: Curadoria
+
+# Robô de curadoria (#185, PRD #167): pesquisa e propõe revisões, nunca publica.
+# Uma vez por semana, e à mão pelo `workflow_dispatch`. Rodada que falha (contexto
+# ou registro) deixa o job vermelho e o GitHub avisa por email. O toque no banco
+# também ajuda contra a hibernação do Supabase Free.
+
+on:
+  schedule:
+    - cron: "0 5 * * 0" # domingo, 02:00 em Recife
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curadoria
+  cancel-in-progress: false
+
+jobs:
+  rodada:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Rodar a curadoria
+        run: pnpm curadoria
+        env:
+          CURADORIA_SUPABASE_URL: ${{ secrets.CURADORIA_SUPABASE_URL }}
+          CURADORIA_SUPABASE_KEY: ${{ secrets.CURADORIA_SUPABASE_KEY }}
+          CURADORIA_SEGREDO: ${{ secrets.CURADORIA_SEGREDO }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

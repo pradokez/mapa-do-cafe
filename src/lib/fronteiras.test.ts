@@ -90,6 +90,36 @@ describe("fronteira da escrita pública (sugestões)", () => {
   });
 });
 
+// Robô de curadoria (#185): script fora de `src/`, com a publishable key própria
+// e só as duas RPCs protegidas pelo segredo dele.
+describe("fronteira do robô de curadoria", () => {
+  const ROBO = join(SRC, "..", "scripts", "curadoria");
+  const codigoDoRobo = readdirSync(ROBO)
+    .filter((nome) => /\.ts$/.test(nome) && !/\.test\.ts$/.test(nome))
+    .map((nome) => readFileSync(join(ROBO, nome), "utf8"))
+    .join("\n");
+
+  it("o app não chama as RPCs do robô", () => {
+    expect(comCodigo(/curadoria_(contexto|registrar)/)).toEqual([]);
+  });
+
+  it("o robô só chama as duas RPCs dele: sem `.from(…)`, sem secret key", () => {
+    expect(codigoDoRobo).not.toMatch(/\.from\(\s*["'`]/);
+    expect(codigoDoRobo).not.toMatch(/SUPABASE_SECRET_KEY|SERVICE_ROLE|sb_secret_/);
+    const chamadas = codigoDoRobo.match(/\.rpc\(\s*["'`][^"'`]*["'`]/g)?.map((c) => c.replace(/\.rpc\(\s*/, "")) ?? [];
+    expect(Array.from(new Set(chamadas)).sort()).toEqual(['"curadoria_contexto"', '"curadoria_registrar"']);
+  });
+
+  it("as chaves do robô ficam fora de `src/`, sem NEXT_PUBLIC_, e estão no .env.example", () => {
+    expect(comCodigo(/CURADORIA_|TAVILY_API_KEY|GEMINI_API_KEY/)).toEqual([]);
+    expect(codigoDoRobo).not.toMatch(/NEXT_PUBLIC_(CURADORIA|TAVILY|GEMINI)/);
+    const exemplo = readFileSync(join(SRC, "..", ".env.example"), "utf8");
+    for (const env of ["CURADORIA_SUPABASE_URL", "CURADORIA_SUPABASE_KEY", "CURADORIA_SEGREDO", "TAVILY_API_KEY", "GEMINI_API_KEY"]) {
+      expect(exemplo).toMatch(new RegExp(`^${env}=$`, "m"));
+    }
+  });
+});
+
 // Pix (#120): a chave vai para o HTML de qualquer jeito, mas a leitura é do
 // servidor — o padrão sem NEXT_PUBLIC_ evita levar outra env junto por engano.
 describe("fronteira do Pix", () => {

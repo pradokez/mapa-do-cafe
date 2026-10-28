@@ -1,10 +1,11 @@
 import Link from "next/link";
 
+import { CartaoRevisoes } from "@/components/admin/cartao-revisoes";
 import { CartaoSugestoes } from "@/components/admin/cartao-sugestoes";
 import { botaoCtaClass } from "@/components/admin/form";
 import { ListaDeCafes } from "@/components/admin/lista-de-cafes";
 import { PlusIcon } from "@/components/icons";
-import { contarFotosTemporarias, contarSugestoes, listTodosCafes } from "@/lib/cafe-repository";
+import { contarFotosTemporarias, contarRevisoes, contarSugestoes, listTodosCafes, ultimaRodada } from "@/lib/cafe-repository";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { totalDeCafes } from "@/lib/format";
 
@@ -13,9 +14,11 @@ type Props = { searchParams: { q?: string | string[] } };
 // O Next renderiza layout e página em paralelo: a página confere o admin por conta própria.
 export default async function AdminHome({ searchParams }: Props) {
   await requireAdmin();
-  const [cafes, sugestoes, temporarias] = await Promise.all([
+  const [cafes, sugestoes, revisoes, rodada, temporarias] = await Promise.all([
     listTodosCafes(),
     contarSugestoes(),
+    contarRevisoes(),
+    ultimaRodada(),
     contarFotosTemporarias(),
   ]);
   const noAr = cafes.filter((cafe) => cafe.ativo).length;
@@ -24,6 +27,7 @@ export default async function AdminHome({ searchParams }: Props) {
   return (
     <>
       <CartaoSugestoes novas={sugestoes.nova} />
+      <CartaoRevisoes pendentes={revisoes.pendente} rodada={rodada} />
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>

@@ -122,7 +122,7 @@ describe("ListaDeSugestoes", () => {
 
 describe("FiltroDeStatus", () => {
   const contagem = { nova: 3, lida: 1, arquivada: 12 };
-  const comTroca = (ui: React.ReactElement) => render(<TrocaDeFiltro>{ui}</TrocaDeFiltro>);
+  const comTroca = (ui: React.ReactElement) => render(<TrocaDeFiltro lista="sugestoes">{ui}</TrocaDeFiltro>);
 
   it("cada chip envia o filtro que resulta de clicá-lo, com aria-pressed", () => {
     comTroca(<FiltroDeStatus ativos={["nova", "lida"]} contagem={contagem} />);

@@ -19,7 +19,7 @@ export default async function Sugestoes({ searchParams }: Props) {
   const total = ativos.reduce((soma, status) => soma + contagem[status], 0);
 
   return (
-    <TrocaDeFiltro>
+    <TrocaDeFiltro lista="sugestoes">
       <VoltarAoPainel />
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">

@@ -6,6 +6,7 @@
  */
 
 import { MAX_SLUG, SLUG } from "./cafe-dados";
+import { alternarEm, statusDoParam } from "./filtro-de-status";
 
 export const TIPOS_SUGESTAO = ["sugestao", "problema", "outro"] as const;
 export type TipoSugestao = (typeof TIPOS_SUGESTAO)[number];
@@ -165,20 +166,12 @@ export const FILTRO_PADRAO: StatusSugestao[] = ["nova", "lida"];
  * dos chips, para a URL de um mesmo filtro ser uma só.
  */
 export function statusDoFiltro(param: string | string[] | undefined): StatusSugestao[] {
-  const pedidos = ([param].flat()[0] ?? "").split(",");
-  const status = STATUS_SUGESTAO.filter((s) => pedidos.includes(s));
-  return status.length > 0 ? status : FILTRO_PADRAO;
+  return statusDoParam(STATUS_SUGESTAO, FILTRO_PADRAO, param);
 }
 
-/**
- * O filtro que um chip aplica ao ser clicado: liga ou desliga aquele status.
- * O último ligado não desliga — um filtro vazio cairia no padrão, e o clique
- * pareceria fazer o contrário.
- */
+/** O filtro que um chip aplica ao ser clicado (o último ligado não desliga). */
 export function alternarStatus(atuais: readonly StatusSugestao[], status: StatusSugestao): StatusSugestao[] {
-  const ligado = atuais.includes(status);
-  if (ligado && atuais.length === 1) return [...atuais];
-  return STATUS_SUGESTAO.filter((s) => (s === status ? !ligado : atuais.includes(s)));
+  return alternarEm(STATUS_SUGESTAO, atuais, status);
 }
 
 export type AcaoDeStatus = { rotulo: string; para: StatusSugestao };

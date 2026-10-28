@@ -10,6 +10,14 @@ import { urlsPublicasDasFotos } from "./cafe-photos";
 import { urlPublicaDaArte, type Edicao, type FestivalSlug, type Participacao } from "./festival";
 import type { Autorizacao, AutorizacaoDaArte } from "./foto-upload";
 import { PRAZO_DO_SERVIDOR_MS, PrazoEsgotado } from "./prazo";
+import {
+  ordenarRevisoes,
+  STATUS_REVISAO,
+  type ContagemDeRevisoes,
+  type Revisao,
+  type Rodada,
+  type StatusRevisao,
+} from "./revisao";
 import { STATUS_SUGESTAO, type ContagemDeSugestoes, type StatusSugestao, type Sugestao } from "./sugestao";
 import { createAnonClient, createSessionClient } from "./supabase-server";
 import { supabaseEnv } from "./supabase-env";
@@ -245,6 +253,93 @@ export async function contarSugestoes(): Promise<ContagemDeSugestoes> {
     }),
   );
   return Object.fromEntries(contagens) as ContagemDeSugestoes;
+}
+
+/** Teto da fila de revisões: sem paginação, uma rodada descontrolada não infla a página. */
+export const LIMITE_DE_REVISOES = 200;
+
+const SELECT_REVISAO =
+  "id, tipo, cafe_id, campo, valor_atual, valor_proposto, fontes, atualidade, status, criado_em, decidido_em, cafe:cafes(nome, slug, ativo)";
+
+type LinhaDeRevisao = Omit<Revisao, "nome_proposto">;
+
+/** Em `cafe_novo` o café ainda não existe: o nome vem da proposta. */
+function comNomeProposto(linha: LinhaDeRevisao): Revisao {
+  const proposto = linha.valor_proposto;
+  const nome =
+    linha.tipo === "cafe_novo" && typeof proposto === "object" && proposto !== null && "nome" in proposto
+      ? (proposto as { nome: unknown }).nome
+      : null;
+  return { ...linha, nome_proposto: typeof nome === "string" ? nome : null };
+}
+
+/**
+ * Admin: revisões da curadoria com os status pedidos (#177). Pega as
+ * `LIMITE_DE_REVISOES` mais recentes e as ordena por tipo (fechamento, café
+ * novo, atualização). Só o admin lê a tabela — a RLS decide.
+ */
+export async function listRevisoes(status: readonly StatusRevisao[]): Promise<Revisao[]> {
+  const { data, error } = await createSessionClient()
+    .from("revisoes")
+    .select(SELECT_REVISAO)
+    .in("status", [...status])
+    .order("criado_em", { ascending: false })
+    .order("id")
+    .limit(LIMITE_DE_REVISOES)
+    .overrideTypes<LinhaDeRevisao[], { merge: false }>();
+
+  if (error) {
+    throw new Error(`Falha ao listar as revisões: ${error.message}`);
+  }
+  return ordenarRevisoes(data.map(comNomeProposto));
+}
+
+/** Admin: uma revisão pelo id (UUID malformado ou inexistente → `null`). */
+export async function getRevisaoById(id: string): Promise<Revisao | null> {
+  if (!isUuid(id)) return null;
+  const { data, error } = await createSessionClient()
+    .from("revisoes")
+    .select(SELECT_REVISAO)
+    .eq("id", id)
+    .maybeSingle<LinhaDeRevisao>();
+
+  if (error) {
+    throw new Error(`Falha ao ler a revisão: ${error.message}`);
+  }
+  return data ? comNomeProposto(data) : null;
+}
+
+/** Admin: quantas revisões há em cada status — o cartão do `/admin` e os chips da fila. */
+export async function contarRevisoes(): Promise<ContagemDeRevisoes> {
+  const client = createSessionClient();
+  const contagens = await Promise.all(
+    STATUS_REVISAO.map(async (status) => {
+      const { count, error } = await client
+        .from("revisoes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", status);
+      if (error) {
+        throw new Error(`Falha ao contar as revisões (${status}): ${error.message}`);
+      }
+      return [status, count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(contagens) as ContagemDeRevisoes;
+}
+
+/** Admin: a rodada mais recente do robô, ou `null` se ele ainda não rodou. */
+export async function ultimaRodada(): Promise<Rodada | null> {
+  const { data, error } = await createSessionClient()
+    .from("curadoria_rodadas")
+    .select("id, inicio, fim, cafes_verificados, revisoes_criadas, erro")
+    .order("inicio", { ascending: false })
+    .limit(1)
+    .maybeSingle<Rodada>();
+
+  if (error) {
+    throw new Error(`Falha ao ler a última rodada: ${error.message}`);
+  }
+  return data;
 }
 
 /** Tag do cache das edições públicas — o admin a invalida (`revalidarCafe`). */

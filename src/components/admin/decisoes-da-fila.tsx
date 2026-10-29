@@ -42,7 +42,9 @@ const FOCAVEIS = ":is(button, summary, a[href])";
  * que tomou o lugar dele (ou ao aviso de lista vazia), e um `role="status"`
  * diz o que aconteceu — inclusive a revisão que ficou obsoleta.
  */
-export function DecisoesDaFila(props: { itens: Pick<Revisao, "id" | "status">[]; children: ReactNode }) {
+type PropsDaFila = { itens: Pick<Revisao, "id" | "status">[]; children: ReactNode };
+
+export function DecisoesDaFila(props: PropsDaFila) {
   return (
     <LimiteDeEnvio>
       <Decisoes {...props} />
@@ -50,7 +52,7 @@ export function DecisoesDaFila(props: { itens: Pick<Revisao, "id" | "status">[];
   );
 }
 
-function Decisoes({ itens, children }: { itens: Pick<Revisao, "id" | "status">[]; children: ReactNode }) {
+function Decisoes({ itens, children }: PropsDaFila) {
   const [estadoAprovar, aprovar] = useFormState(aprovarRevisao, null);
   const [estadoRejeitar, rejeitar] = useFormState(rejeitarRevisao, null);
   // Sem JS, só uma das duas respondeu: vale a que não é nula.
@@ -104,6 +106,9 @@ function Decisoes({ itens, children }: { itens: Pick<Revisao, "id" | "status">[]
 
 const botaoClass =
   "inline-flex h-11 items-center whitespace-nowrap rounded-lg px-3 text-[12.5px] font-medium transition-colors disabled:opacity-60 md:h-8";
+/** A caixa de aviso da fila: a confirmação de aprovar e a queda de rede. */
+const avisoClass =
+  "flex flex-wrap items-center gap-3 rounded-lg border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13.5px] text-aviso-fg";
 const neutroClass = `${botaoClass} border border-line-strong bg-white text-espresso hover:bg-hover-soft`;
 const ctaClass = `${botaoClass} bg-terracotta text-on-terracotta hover:bg-terracotta-hover`;
 
@@ -133,7 +138,7 @@ export function AcoesDaRevisao({ revisao, aviso }: Props) {
               <summary className={`${ctaClass} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                 Aprovar…
               </summary>
-              <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13.5px] text-aviso-fg">
+              <div className={`mt-2 ${avisoClass}`}>
                 <p>
                   {aviso} <span className="font-semibold">Aprovar mesmo assim?</span>
                 </p>
@@ -212,7 +217,7 @@ function FalhaDeEnvio({ tentarDeNovo }: { tentarDeNovo: () => void }) {
       ref={caixa}
       role="alert"
       tabIndex={-1}
-      className="flex flex-wrap items-center gap-3 rounded-lg border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13.5px] text-aviso-fg outline-none"
+      className={`${avisoClass} focus:outline-none`}
     >
       <p>
         <span className="font-semibold">Não deu para enviar.</span> Confira sua conexão e tente de novo. Nada foi

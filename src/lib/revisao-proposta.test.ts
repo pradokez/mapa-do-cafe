@@ -91,6 +91,18 @@ describe("proporRevisoes", () => {
     expect(propor({ endereco: [fato("Avenida Governador Carlos de Lima Cavalcanti, 1828")] }, { endereco: "Av. Gov. Carlos de Lima Cavalcanti, 1828" })).toEqual([]);
   });
 
+  it("endereço com bairro, complemento, shopping ou nome do café na frente → nada (#213)", () => {
+    const atributos = { endereco: "Av. República do Líbano, 251 - Pina" };
+    const iguais = [
+      "Shopping RioMar, Avenida República do Líbano, 251, Pina, Recife - PE",
+      "Av. República do Líbano, 251, Loja 2210, Recife",
+      "Café Foo - Av. República do Líbano, nº 251 - Pina, Recife/PE",
+    ];
+    expect(propor({ endereco: iguais.map((e, i) => fato(e, i + 1)) }, atributos)).toEqual([]);
+    // número dentro do nome da rua não fecha o endereço
+    expect(propor({ endereco: [fato("Rua 7 de Setembro, 200, Boa Vista")] }, { endereco: "Rua 7 de Setembro, 100, Boa Vista" })).toHaveLength(1);
+  });
+
   it("endereço com outra rua ou outro número → proposta, com o texto da fonte (#190)", () => {
     const atributos = { endereco: "R. das Creoulas, 55 - Graças" };
     expect(propor({ endereco: [fato("Rua das Creoulas, 57, Graças")] }, atributos)).toMatchObject([{ valorProposto: "Rua das Creoulas, 57, Graças" }]);
@@ -260,6 +272,23 @@ describe("proporCafeNovo", () => {
 
   it("sem nome → nada", () => {
     expect(propor({ nome: "  " })).toBeNull();
+  });
+
+  describe("o mesmo lugar com outro nome (#213)", () => {
+    const solo = cafe("s", { nome: "Solo Brewing", cidade: "Recife", endereco: "R. do Espinheiro, 120 - Espinheiro", instagram: "https://instagram.com/solobrewing", telefone: "(81) 99908-4986" });
+
+    it("mesmo endereço em outro formato, na mesma cidade → nada", () => {
+      expect(propor({ nome: "Kaffe Espinheiro", endereco: "Rua do Espinheiro, 120, Espinheiro, Recife - PE" }, [solo])).toBeNull();
+    });
+    it("mesmo Instagram (caixa, barra) ou mesmo telefone → nada", () => {
+      expect(propor({ nome: "Kaffe Espinheiro", instagram: "@SoloBrewing" }, [solo])).toBeNull();
+      expect(propor({ nome: "Kaffe Espinheiro", telefone: "81999084986" }, [solo])).toBeNull();
+    });
+    it("outro número, outra cidade ou endereço sem número → proposta", () => {
+      expect(propor({ nome: "Kaffe", endereco: "Rua do Espinheiro, 121" }, [solo])).not.toBeNull();
+      expect(propor({ nome: "Kaffe", cidade: "Olinda", endereco: "Rua do Espinheiro, 120" }, [solo])).not.toBeNull();
+      expect(propor({ nome: "Kaffe", endereco: "Rua do Espinheiro" }, [{ ...solo, endereco: "Rua do Espinheiro" }])).not.toBeNull();
+    });
   });
 
   it("sem sinal, ou sinal sem trecho, → nada", () => {

@@ -114,17 +114,29 @@ const FORA_DO_ENDERECO = new Set([
   "de", "da", "do", "das", "dos", "n", "no", "numero",
 ]);
 
+/** `, 55`, `- 55`, `, nº 55`: o número do imóvel logo depois da rua, que fecha o endereço. */
+const RUA_E_NUMERO = /^(.*?)\s*(?:,|\s[-–—])\s*(?:n[º°o.]*\s*)?(\d{1,5})(?!\d)/i;
+/** Sem vírgula nem hífen ("Rua X 55"): o primeiro número solto. */
+const RUA_E_NUMERO_SEM_SEPARADOR = /^(.*?)\s+(?:n[º°o.]*\s*)?(\d{1,5})(?!\d)/i;
+
 /**
- * Endereço → chave de comparação (#190): sem caixa, acento, pontuação, CEP,
- * cidade, UF e país, com as abreviações por extenso. "R. das Creoulas, 55 -
- * Graças" e "Rua das Creoulas, 55, Graças, Recife, PE" dão a mesma chave.
+ * Endereço → chave de comparação (#190, #213): sem caixa, acento, pontuação, CEP,
+ * cidade, UF e país, com as abreviações por extenso. Com número, a chave é só
+ * rua + número: bairro, cidade, complemento ("Loja 2") e o que vem antes da rua
+ * ("Shopping RioMar, Av. …") são acréscimos da página, não outro endereço.
+ * "R. das Creoulas, 55 - Graças" e "Rua das Creoulas, 55, Graças, Recife, PE"
+ * dão a mesma chave.
  */
 function chaveDoEndereco(endereco: string): string {
-  return slugify(endereco.replace(/\b\d{5}-?\d{3}\b/g, " "))
+  const semCep = endereco.replace(/\b\d{5}-?\d{3}\b/g, " ");
+  const achado = RUA_E_NUMERO.exec(semCep) ?? RUA_E_NUMERO_SEM_SEPARADOR.exec(semCep);
+  const rua = achado ? (achado[1].split(/\s[-–—]\s|,/).pop() ?? "") : semCep;
+  const palavras = slugify(rua)
     .split("-")
     .map((palavra) => ABREVIACOES[palavra] ?? palavra)
-    .filter((palavra) => palavra !== "" && !FORA_DO_ENDERECO.has(palavra))
-    .join(" ");
+    .filter((palavra) => palavra !== "" && !FORA_DO_ENDERECO.has(palavra));
+  if (achado) palavras.push(achado[2]);
+  return palavras.join(" ");
 }
 
 /**
@@ -362,6 +374,29 @@ function ehExcecao(nome: string): boolean {
   return EXCECOES_DE_CAFE_NOVO.some((excecao) => nome === excecao || nome.startsWith(`${excecao}-`));
 }
 
+/** Um café que o candidato não pode repetir: só o nome é obrigatório; o resto serve para reconhecê-lo com outro nome (#213). */
+export type CafeConhecido = Pick<Cafe, "nome"> & Partial<Pick<Cafe, "cidade" | "endereco" | "instagram" | "telefone">>;
+
+const soDigitos = (valor: string) => valor.replace(/\D/g, "");
+
+/**
+ * O candidato é um café que já conhecemos com outro nome ("Solo Brewing" que
+ * virou "Kaffe Espinheiro")? Mesmo Instagram, mesmo telefone ou mesma rua com
+ * número na mesma cidade. Endereço sem número não prova nada: duas lojas da
+ * mesma rua não são o mesmo café.
+ */
+function mesmoLugar(candidato: CandidatoCafeNovo, cidade: Cidade, cafe: CafeConhecido): boolean {
+  const instagram = doNormalizador(normalizarInstagram)(candidato.instagram ?? "");
+  if (instagram && cafe.instagram && instagram.toLowerCase() === cafe.instagram.toLowerCase()) return true;
+
+  const telefone = doNormalizador(normalizarTelefone)(candidato.telefone ?? "");
+  if (telefone && cafe.telefone && soDigitos(telefone) === soDigitos(cafe.telefone)) return true;
+
+  if (!candidato.endereco || !cafe.endereco || (cafe.cidade && cafe.cidade !== cidade)) return false;
+  const chave = chaveDoEndereco(candidato.endereco);
+  return /\d/.test(chave) && chave === chaveDoEndereco(cafe.endereco);
+}
+
 /**
  * Candidato a café novo + todos os cafés do banco (ativos e inativos) + os
  * nomes normalizados dos cafés novos rejeitados → proposta `cafe_novo`, ou
@@ -370,7 +405,7 @@ function ehExcecao(nome: string): boolean {
  */
 export function proporCafeNovo(
   candidato: CandidatoCafeNovo,
-  cafes: Pick<Cafe, "nome">[],
+  cafes: CafeConhecido[],
   rejeitados: string[],
 ): PropostaCafeNovo | null {
   const nome = textoAte(candidato.nome, MAX_TEXTO.nome);
@@ -380,7 +415,7 @@ export function proporCafeNovo(
   const chave = nomeNormalizado(nome);
   const sinais = candidato.sinais.filter(({ sinal, trecho, url }) => textoAparado(sinal) && textoAparado(trecho) && textoAparado(url));
   if (sinais.length === 0 && !ehExcecao(chave)) return null;
-  if (cafes.some((cafe) => nomeNormalizado(cafe.nome) === chave)) return null;
+  if (cafes.some((cafe) => nomeNormalizado(cafe.nome) === chave || mesmoLugar(candidato, cidade, cafe))) return null;
   if (rejeitados.some((rejeitado) => nomeNormalizado(rejeitado) === chave)) return null;
 
   const proposto: CafeNovoProposto = { nome, cidade, sinais };

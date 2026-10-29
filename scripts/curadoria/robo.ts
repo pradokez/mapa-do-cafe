@@ -8,9 +8,9 @@
  * corpo de página.
  */
 import type { Cafe } from "../../src/lib/cafe";
-import { atualidadeDasFontes } from "../../src/lib/revisao-atualidade";
+import { atualidadeDasFontes, fonteDatada } from "../../src/lib/revisao-atualidade";
 import { trechoExisteNaPagina } from "../../src/lib/revisao-fontes";
-import { proporCafeNovo, proporRevisoes, type Proposta, type PropostaCafeNovo, type Rejeitada } from "../../src/lib/revisao-proposta";
+import { proporCafeNovo, proporRevisoes, type CafeConhecido, type Proposta, type PropostaCafeNovo, type Rejeitada } from "../../src/lib/revisao-proposta";
 import { rodizio, semanaDeRecife } from "../../src/lib/rodizio";
 import { aCandidatoCafeNovo, aFatos, lerCandidatos, lerExtracao, type Extracao } from "./schema";
 
@@ -264,7 +264,7 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
       throw new Falha("schema");
     }
 
-    const fatos = aFatos(extracao, sustentada(paginas));
+    const fatos = aFatos(extracao, (fonte) => sustentada(paginas)(fonte) && fonteDatada(fonte, agora));
     return proporRevisoes(fatos, cafe as Cafe, rejeitadas, agora);
   }
 
@@ -281,6 +281,8 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
   const quantas = Math.min(cabem, pretendidas);
   if (quantas < pretendidas) teto = true;
   const jaPropostos = [...contexto.cafes_novos_rejeitados];
+  // Os cafés do banco e os já propostos nesta rodada: o mesmo lugar com outro nome também não se repete (#213).
+  const conhecidos: CafeConhecido[] = [...contexto.cafes];
 
   async function buscarCafesNovos(consulta: string): Promise<PropostaCafeNovo[]> {
     const paginas = await lerPaginas(consulta);
@@ -307,10 +309,14 @@ export async function rodarRodada(deps: Dependencias): Promise<{ rodada: Rodada;
 
     const propostas: PropostaCafeNovo[] = [];
     for (const candidato of candidatos) {
-      const proposta = proporCafeNovo(aCandidatoCafeNovo(candidato, sustentada(paginas)), contexto.cafes, jaPropostos);
+      const entrada = aCandidatoCafeNovo(candidato, sustentada(paginas), (fonte) => sustentada(paginas)(fonte) && fonteDatada(fonte, agora));
+      // Sem nenhuma fonte datada, a administradora não teria como pesar a proposta (#213).
+      if (entrada.fontes.length === 0) continue;
+      const proposta = proporCafeNovo(entrada, conhecidos, jaPropostos);
       if (!proposta) continue;
       // Na mesma rodada, o mesmo café achado por outra consulta não se repete.
       jaPropostos.push(proposta.valorProposto.nome);
+      conhecidos.push(proposta.valorProposto);
       propostas.push(proposta);
     }
     return propostas;

@@ -238,16 +238,18 @@ export function lerCandidatos(bruto: unknown): { candidatos: Candidato[] } {
 }
 
 /**
- * Candidato → entrada do `proporCafeNovo`, mantendo só os sinais e as fontes que
- * `manter` aprova (o trecho existe na página). A fonte de um sinal sustentado
- * também é fonte do cadastro: a administradora sempre vê de onde veio.
+ * Candidato → entrada do `proporCafeNovo`, mantendo só os sinais que `manter`
+ * aprova (o trecho existe na página) e só as fontes que `manterFonte` aprova
+ * (além disso, datadas, #213). A fonte de um sinal não entra sozinha: ela fica
+ * no próprio sinal, que a administradora vê no cadastro.
  */
-export function aCandidatoCafeNovo(candidato: Candidato, manter: (fonte: { url: string; trecho: string }) => boolean): CandidatoCafeNovo {
+export function aCandidatoCafeNovo(
+  candidato: Candidato,
+  manter: (fonte: { url: string; trecho: string }) => boolean,
+  manterFonte: (fonte: Citacao) => boolean = manter,
+): CandidatoCafeNovo {
   const sinais = candidato.sinais.filter(manter);
-  const fontes = candidato.fontes.filter(manter);
-  for (const { url, trecho } of sinais) {
-    if (!fontes.some((f) => f.url === url)) fontes.push({ url, titulo: url, data_fonte: null, trecho });
-  }
+  const fontes = candidato.fontes.filter(manterFonte);
   const { nome, cidade, bairro, endereco, instagram, telefone, horario, faixa_preco } = candidato;
   return { nome, cidade, bairro, endereco, instagram, telefone, horario, faixa_preco, sinais, fontes };
 }

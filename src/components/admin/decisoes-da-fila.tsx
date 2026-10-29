@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 
 import { aprovarRevisao, rejeitarRevisao } from "@/lib/admin/revisoes-actions";
@@ -42,7 +42,17 @@ const FOCAVEIS = ":is(button, summary, a[href])";
  * que tomou o lugar dele (ou ao aviso de lista vazia), e um `role="status"`
  * diz o que aconteceu — inclusive a revisão que ficou obsoleta.
  */
-export function DecisoesDaFila({ itens, children }: { itens: Pick<Revisao, "id" | "status">[]; children: ReactNode }) {
+type PropsDaFila = { itens: Pick<Revisao, "id" | "status">[]; children: ReactNode };
+
+export function DecisoesDaFila(props: PropsDaFila) {
+  return (
+    <LimiteDeEnvio>
+      <Decisoes {...props} />
+    </LimiteDeEnvio>
+  );
+}
+
+function Decisoes({ itens, children }: PropsDaFila) {
   const [estadoAprovar, aprovar] = useFormState(aprovarRevisao, null);
   const [estadoRejeitar, rejeitar] = useFormState(rejeitarRevisao, null);
   // Sem JS, só uma das duas respondeu: vale a que não é nula.
@@ -96,6 +106,9 @@ export function DecisoesDaFila({ itens, children }: { itens: Pick<Revisao, "id" 
 
 const botaoClass =
   "inline-flex h-11 items-center whitespace-nowrap rounded-lg px-3 text-[12.5px] font-medium transition-colors disabled:opacity-60 md:h-8";
+/** A caixa de aviso da fila: a confirmação de aprovar e a queda de rede. */
+const avisoClass =
+  "flex flex-wrap items-center gap-3 rounded-lg border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13.5px] text-aviso-fg";
 const neutroClass = `${botaoClass} border border-line-strong bg-white text-espresso hover:bg-hover-soft`;
 const ctaClass = `${botaoClass} bg-terracotta text-on-terracotta hover:bg-terracotta-hover`;
 
@@ -125,7 +138,7 @@ export function AcoesDaRevisao({ revisao, aviso }: Props) {
               <summary className={`${ctaClass} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                 Aprovar…
               </summary>
-              <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-aviso-line bg-aviso-bg px-3.5 py-3 text-[13.5px] text-aviso-fg">
+              <div className={`mt-2 ${avisoClass}`}>
                 <p>
                   {aviso} <span className="font-semibold">Aprovar mesmo assim?</span>
                 </p>
@@ -173,5 +186,46 @@ function Botao({ className, children }: { className: string; children: string })
     <button type="submit" disabled={pending} className={className}>
       {pending ? "Salvando…" : children}
     </button>
+  );
+}
+
+/**
+ * A rede cai entre o clique e a resposta: o `fetch` da Server Action rejeita e o
+ * React relança o erro no render (#191). Sem este limite a página inteira vira
+ * "Application error". Aqui a fila é trocada por um aviso com "Tentar de novo",
+ * que a remonta como estava — a revisão segue pendente, nada foi gravado. Só o
+ * caminho com JS passa por aqui: sem JS o formulário é navegação comum.
+ */
+export class LimiteDeEnvio extends Component<{ children: ReactNode }, { falhou: boolean }> {
+  state = { falhou: false };
+
+  static getDerivedStateFromError() {
+    return { falhou: true };
+  }
+
+  render() {
+    if (!this.state.falhou) return this.props.children;
+    return <FalhaDeEnvio tentarDeNovo={() => this.setState({ falhou: false })} />;
+  }
+}
+
+function FalhaDeEnvio({ tentarDeNovo }: { tentarDeNovo: () => void }) {
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => caixa.current?.focus(), []);
+  return (
+    <div
+      ref={caixa}
+      role="alert"
+      tabIndex={-1}
+      className={`${avisoClass} focus:outline-none`}
+    >
+      <p>
+        <span className="font-semibold">Não deu para enviar.</span> Confira sua conexão e tente de novo. Nada foi
+        gravado.
+      </p>
+      <button type="button" onClick={tentarDeNovo} className={neutroClass}>
+        Tentar de novo
+      </button>
+    </div>
   );
 }

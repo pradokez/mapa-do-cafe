@@ -348,8 +348,31 @@ describe("busca aberta de cafés novos (#189)", () => {
     expect(revisoes.filter((r) => r.tipo === "cafe_novo")).toEqual([]);
   });
 
+  it("fonte sem data não conta: candidato só com fonte sem data nunca é registrado (#213)", async () => {
+    const semData = { ...citacao(TRECHO_INSTA), data_fonte: null };
+    const d = deps({ consultas: ["q1"], gemini: achados(candidato({ fontes: [semData] })) });
+    const { revisoes } = await rodarRodada(d);
+    expect(revisoes.filter((r) => r.tipo === "cafe_novo")).toEqual([]);
+  });
+
+  it("fonte sem data cai e a datada fica no café novo (#213)", async () => {
+    const semData = { ...citacao(TRECHO_INSTA, "https://outra.example/"), data_fonte: null };
+    const d = deps({ consultas: ["q1"], gemini: achados(candidato({ fontes: [semData, citacao(TRECHO_INSTA)] })) });
+    const { revisoes } = await rodarRodada(d);
+    expect(revisoes.find((r) => r.tipo === "cafe_novo")?.fontes.map((f) => f.url)).toEqual([URL_SITE]);
+  });
+
+  it("o mesmo lugar com outro nome não vira café novo: Instagram do banco ou do candidato anterior (#213)", async () => {
+    const d = deps({
+      consultas: ["q1"],
+      gemini: achados(candidato({ nome: "Solo Brewing", instagram: "@torranova" }), candidato({ nome: "Kaffe Espinheiro", instagram: "https://instagram.com/TorraNova/" })),
+    });
+    const { revisoes } = await rodarRodada(d);
+    expect(revisoes.filter((r) => r.tipo === "cafe_novo").map((r) => r.valor_proposto)).toMatchObject([{ nome: "Solo Brewing" }]);
+  });
+
   it("Santa Clara entra sem sinal; o mesmo café em duas consultas vira uma revisão", async () => {
-    const d = deps({ consultas: ["q1", "q2"], gemini: achados(candidato({ nome: "Santa Clara", sinais: [], fontes: [citacao("Aberto desde 2020")] })) });
+    const d = deps({ consultas: ["q1", "q2"], gemini: achados(candidato({ nome: "Santa Clara", sinais: [], fontes: [citacao(TRECHO_INSTA)] })) });
     const { revisoes } = await rodarRodada(d);
     expect(revisoes.filter((r) => r.tipo === "cafe_novo")).toHaveLength(1);
     expect(d.gemini.extrairCandidatos).toHaveBeenCalledTimes(2);

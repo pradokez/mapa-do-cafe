@@ -92,8 +92,14 @@ describe("aCandidatoCafeNovo", () => {
     expect(c).toMatchObject({ nome: "Café Novo", cidade: "Recife", instagram: "@novo" });
   });
 
-  it("a fonte de um sinal sustentado também é fonte do cadastro", () => {
+  it("a fonte do cadastro passa pelo próprio filtro, além do trecho (#213)", () => {
+    const c = aCandidatoCafeNovo(candidatos[0], () => true, (f) => f.url === "https://b.example/");
+    expect(c.sinais).toHaveLength(2);
+    expect(c.fontes.map((f) => f.url)).toEqual(["https://b.example/"]);
+  });
+
+  it("a fonte de um sinal não entra sozinha entre as fontes (#213)", () => {
     const c = aCandidatoCafeNovo({ ...candidatos[0], fontes: [] }, () => true);
-    expect(c.fontes.map((f) => f.url)).toContain("https://a.example/");
+    expect(c.fontes).toEqual([]);
   });
 });

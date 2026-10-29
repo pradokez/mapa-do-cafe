@@ -131,6 +131,14 @@ function classificar(fonte: FonteDaProposta, agora: Date): FonteClassificada {
   return { fonte, atualidade: dia >= limite ? "atualizada" : "antiga", dia };
 }
 
+/**
+ * A fonte tem data que o próprio trecho sustenta (#213)? O robô só propõe com
+ * fonte datada: sem data, a administradora não tem como pesar a informação.
+ */
+export function fonteDatada(fonte: Pick<FonteDaProposta, "url" | "titulo" | "data_fonte" | "trecho">, agora: Date): boolean {
+  return classificar({ ...fonte, valor: null }, agora).atualidade !== "sem_data";
+}
+
 export type ResultadoDeAtualidade = {
   /** As mesmas fontes, na mesma ordem, cada uma com a sua atualidade. */
   fontes: (FonteDaProposta & Pick<FonteDaRevisao, "atualidade">)[];

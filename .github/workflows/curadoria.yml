@@ -2,7 +2,7 @@ name: Curadoria
 
 # Robô de curadoria (#185, PRD #167): pesquisa e propõe revisões, nunca publica.
 # Uma vez por semana, e à mão pelo `workflow_dispatch`. Rodada que falha (contexto
-# ou registro) deixa o job vermelho e o GitHub avisa por email. O toque no banco
+# ou registro) deixa o job vermelho e abre uma issue. O toque no banco
 # também ajuda contra a hibernação do Supabase Free.
 
 on:
@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: curadoria
@@ -40,3 +41,20 @@ jobs:
           CURADORIA_SEGREDO: ${{ secrets.CURADORIA_SEGREDO }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # O email do GitHub para run falho não é confiável (não chegou na #212):
+      # abre uma issue, ou comenta na que já está aberta, sem duplicar por semana.
+      - name: Avisar a falha por issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITULO: "Curadoria: a rodada falhou"
+          LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          corpo="A rodada do robô de curadoria falhou. Log: $LINK"
+          aberta=$(gh issue list --state open --search "$TITULO in:title" --json number,title \
+            --jq "map(select(.title == \"$TITULO\")) | .[0].number // empty")
+          if [ -n "$aberta" ]; then
+            gh issue comment "$aberta" --body "$corpo"
+          else
+            gh issue create --title "$TITULO" --body "$corpo"
+          fi

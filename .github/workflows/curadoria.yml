@@ -3,7 +3,8 @@ name: Curadoria
 # Robô de curadoria (#185, PRD #167): pesquisa e propõe revisões, nunca publica.
 # Uma vez por semana, e à mão pelo `workflow_dispatch`. Rodada que falha (contexto
 # ou registro) deixa o job vermelho e abre uma issue. O toque no banco
-# também ajuda contra a hibernação do Supabase Free.
+# também ajuda contra a hibernação do Supabase Free. O job `manter-ligado`
+# impede que o GitHub desligue o agendado em períodos sem commit.
 
 on:
   schedule:
@@ -58,3 +59,21 @@ jobs:
           else
             gh issue create --title "$TITULO" --body "$corpo"
           fi
+
+  # Num repositório público, o GitHub desliga o agendado depois de 60 dias sem
+  # commit, sem falha nem aviso (#207). Reabilitar o próprio workflow a cada
+  # rodada zera a contagem, mesmo quando a rodada falha. Só este job escreve
+  # em Actions: o da rodada, que roda o script e as dependências, não.
+  manter-ligado:
+    needs: rodada
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Reabilitar o workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh api -X PUT "repos/$GH_REPO/actions/workflows/curadoria.yml/enable"
